@@ -1,11 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap");
-
 * {
   box-sizing: border-box;
 }
 
 body {
-  background-image: url("new-year.png");
+  background-image: url("new-year.webp");
   background-size: cover;
   background-position: center center;
   display: flex;
