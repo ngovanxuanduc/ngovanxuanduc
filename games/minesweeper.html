@@ -6,8 +6,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta name="description" content="Cờ caro 3×3 — 2 người hoặc đấu máy (dễ / vừa / khó)." />
-    <title>Tic-Tac-Toe · Games</title>
+    <meta name="description" content="Minesweeper — mở ô, tránh mìn. Click phải / long-press để cắm cờ." />
+    <title>Dò mìn · Games</title>
     <link rel="icon" href="/favicon.ico" />
     <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
@@ -58,40 +58,28 @@
 <div class="container">
         <div class="game-header animate-in">
           <a class="game-header__back" href="/games/">← Games</a>
-          <h1>Tic-Tac-Toe</h1>
-          <p>3×3 classic. X đi trước. Chọn 2 người hoặc đấu máy.</p>
+          <h1>Dò mìn</h1>
+          <p>Mở hết ô không mìn. Click phải (hoặc giữ) để cắm cờ. Click giữa / cả hai nút để mở quanh số.</p>
         </div>
 
         <div class="game-shell animate-in animate-in-delay-1">
-          <div class="ttt-controls">
-            <div class="ttt-controls__row">
-              <span class="ttt-controls__label">Chế độ</span>
-              <div class="ttt-seg" role="group" aria-label="Chế độ chơi">
-                <button type="button" class="ttt-seg__btn" data-mode="pvp" id="ttt-mode-pvp">
-                  2 người
-                </button>
-                <button type="button" class="ttt-seg__btn is-active" data-mode="ai" id="ttt-mode-ai" aria-pressed="true">
-                  Đấu máy
-                </button>
-              </div>
+          <div class="ms-top">
+            <label class="tool-check">
+              Độ khó
+              <select id="ms-diff" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="easy">Dễ 9×9 · 10</option>
+                <option value="medium" selected>Vừa 12×12 · 24</option>
+                <option value="hard">Khó 16×16 · 40</option>
+              </select>
+            </label>
+            <div class="ms-meta">
+              <span>🚩 <strong id="ms-flags">0</strong>/<span id="ms-mines">24</span></span>
+              <span>⏱ <strong id="ms-time">0</strong>s</span>
             </div>
-
-            <div class="ttt-controls__row" id="ttt-diff-row">
-              <span class="ttt-controls__label">Độ khó</span>
-              <div class="ttt-seg" role="group" aria-label="Độ khó máy">
-                <button type="button" class="ttt-seg__btn" data-diff="easy">Dễ</button>
-                <button type="button" class="ttt-seg__btn is-active" data-diff="medium" aria-pressed="true">Vừa</button>
-                <button type="button" class="ttt-seg__btn" data-diff="hard">Khó</button>
-              </div>
-            </div>
-
-            <div class="ttt-controls__actions">
-              <button type="button" class="btn btn--ghost btn--sm" id="ttt-reset">Chơi lại</button>
-            </div>
+            <button type="button" class="btn btn--ghost btn--sm" id="ms-new">Ván mới</button>
           </div>
-
-          <p id="ttt-status" class="game-status">Lượt bạn · <strong>X</strong></p>
-          <div id="ttt-board" class="ttt-board" role="grid" aria-label="Bàn cờ"></div>
+          <p id="ms-status" class="game-status">Click ô để bắt đầu</p>
+          <div id="ms-board" class="ms-board" role="grid" aria-label="Bàn dò mìn"></div>
         </div>
       </div>
 
@@ -114,7 +102,7 @@
       })();
     </script>
     <script src="/js/main.js" defer></script>
-        <script src="/js/tic-tac-toe.js" defer></script>
+        <script src="/js/minesweeper.js" defer></script>
     <!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
     <script>
       (function (w, d, i) {

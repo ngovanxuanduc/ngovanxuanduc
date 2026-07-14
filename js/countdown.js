@@ -9,12 +9,19 @@
  */
 (function () {
   function pad(n) {
-    return n < 10 ? "0" + n : String(n);
+    n = Math.max(0, Math.floor(Number(n) || 0));
+    // days can be 3+ digits — only force 2 for h/m/s style values below 100
+    if (n < 10) return "0" + n;
+    return String(n);
   }
 
   function nextSolarNewYear() {
     var now = new Date();
-    return new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0);
+    var y = now.getFullYear();
+    var target = new Date(y, 0, 1, 0, 0, 0, 0);
+    // If đã qua 1/1 năm nay → lấy 1/1 năm sau
+    if (now >= target) target = new Date(y + 1, 0, 1, 0, 0, 0, 0);
+    return target;
   }
 
   function nextLunarNewYear() {
@@ -63,10 +70,8 @@
     ["ny-", "cd-"].forEach(function (prefix) {
       if (!setDigits(prefix, solarRem)) return;
       var label = document.getElementById(prefix + "label");
-      if (label) {
-        label.textContent =
-          "1/1/" + solarTarget.getFullYear() + " · Tết Dương lịch";
-      }
+      // short — tránh vỡ header
+      if (label) label.textContent = "→ 1/1/" + solarTarget.getFullYear();
     });
 
     // Âm lịch
@@ -78,15 +83,11 @@
       var label = document.getElementById(prefix + "label");
       if (label) {
         label.textContent =
-          formatSolarDate(lunar.date) +
-          " · " +
-          lunar.canChiYear +
-          " (âm)";
+          "→ " + formatSolarDate(lunar.date) + " · " + (lunar.canChiYear || "");
       }
       var title = document.getElementById(prefix + "title");
-      if (title) {
-        title.textContent = "Countdown Tết Âm lịch · " + lunar.canChiYear;
-      }
+      // giữ title ngắn; can chi để ở sub
+      if (title) title.textContent = "Tết Âm lịch";
     });
   }
 

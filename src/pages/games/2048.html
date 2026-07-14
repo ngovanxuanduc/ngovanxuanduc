@@ -1,0 +1,36 @@
+---
+{
+  "title": "2048 · Games",
+  "description": "Gộp ô số đến 2048 — phím mũi tên hoặc vuốt.",
+  "page": "games",
+  "scripts": ["/js/2048.js"]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>2048</h1>
+          <p>Vuốt / mũi tên để gộp ô cùng số. Đạt <strong>2048</strong> để thắng — chơi tiếp được.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <div class="g2048-wrap">
+            <div class="g2048-top">
+              <div class="g2048-scores">
+                <div class="g2048-score">
+                  <span class="g2048-score__label">Điểm</span>
+                  <strong id="g2048-score">0</strong>
+                </div>
+                <div class="g2048-score">
+                  <span class="g2048-score__label">Best</span>
+                  <strong id="g2048-best">0</strong>
+                </div>
+              </div>
+              <button type="button" class="btn btn--ghost btn--sm" id="g2048-new">Ván mới</button>
+            </div>
+            <p id="g2048-status" class="game-status">Mũi tên / WASD / vuốt</p>
+            <div id="g2048-board" class="g2048-board" role="grid" aria-label="Bàn 2048"></div>
+            <p class="snake-hint">↑ ↓ ← → · W A S D · vuốt trên mobile</p>
+          </div>
+        </div>
+      </div>

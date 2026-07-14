@@ -1,7 +1,7 @@
 ---
 {
   "title": "Ngo Van Xuan Duc",
-  "description": "Trang cá nhân của Ngo Van Xuan Duc — lịch âm dương, countdown năm mới, game nhỏ, bài viết.",
+  "description": "Trang cá nhân của Ngo Van Xuan Duc — tools offline, lịch âm dương, countdown, game nhỏ, bài viết.",
   "page": "home",
   "scripts": [
     "/js/lunar.js",
@@ -9,38 +9,35 @@
   ]
 }
 ---
-<div class="container">
-        <section class="hero animate-in">
-          <div class="hero__badge">Online · building things</div>
-          <h1>Ngo Van Xuan Duc</h1>
-          <p class="hero__tagline">
-            Personal corner on the web — dark, minimal, and a little playful.
-            Game nhỏ, bài viết ngắn, lịch âm–dương khi cần.
-          </p>
-          <div class="hero__actions">
-            <a class="btn btn--primary" href="/games/">Chơi game</a>
-            <a class="btn btn--ghost" href="/articles/">Đọc bài viết</a>
+<div class="container container--home">
+        <!-- Top: hero + about side by side on wide screens -->
+        <section class="home-top animate-in">
+          <div class="hero hero--compact">
+            <div class="hero__badge">Online · building things</div>
+            <h1>Ngo Van Xuan Duc</h1>
+            <p class="hero__tagline">
+              Personal corner — dark, minimal, a little playful. Tools offline, lịch âm–dương, mini-games.
+            </p>
+            <div class="hero__actions">
+              <a class="btn btn--primary" href="/tools/">Mở Tools</a>
+              <a class="btn btn--ghost" href="/games/">Chơi game</a>
+              <a class="btn btn--ghost" href="/articles/">Bài viết</a>
+            </div>
           </div>
+          <aside class="home-about">
+            <h2 class="home-about__label">About</h2>
+            <p>
+              Xin chào — mình là <strong>Đức</strong>. Trang cá nhân đơn giản: không sales pitch, không pop-up.
+              Tools chạy local trên trình duyệt, vài game nhỏ, lịch âm–dương khi cần.
+            </p>
+            <p class="home-about__stack">
+              <span>HTML</span><span>CSS</span><span>JS thuần</span><span>static deploy</span>
+            </p>
+          </aside>
         </section>
 
-        <section class="section animate-in animate-in-delay-1">
-          <div class="section__header">
-            <h2 class="section__title">About</h2>
-          </div>
-          <div class="prose">
-            <p>
-              Xin chào — mình là <strong>Đức</strong>. Đây là trang cá nhân đơn
-              giản: không sales pitch, không pop-up. Vài mini-game, vài ghi chú,
-              và trang lịch nếu muốn xem âm–dương hay đếm ngày tới Tết.
-            </p>
-            <p>
-              Stack hiện tại: HTML, CSS, JavaScript thuần — deploy tĩnh, load
-              nhanh, dễ sửa.
-            </p>
-          </div>
-        </section>
-
-        <section class="section animate-in animate-in-delay-2">
+        <!-- Countdown -->
+        <section class="section section--tight animate-in animate-in-delay-1">
           <div class="section__header">
             <h2 class="section__title">Năm mới</h2>
             <a class="section__link" href="/calendar.html">Lịch đầy đủ →</a>
@@ -72,12 +69,8 @@
             </div>
             <div class="countdown-block countdown-block--accent">
               <div class="countdown-block__head">
-                <h3 class="countdown-block__title" id="ny-ln-title">
-                  Tết Âm lịch
-                </h3>
-                <p class="countdown-block__sub" id="ny-ln-label">
-                  Đến mùng 1 Tết
-                </p>
+                <h3 class="countdown-block__title" id="ny-ln-title">Tết Âm lịch</h3>
+                <p class="countdown-block__sub" id="ny-ln-label">Đến mùng 1 Tết</p>
               </div>
               <div class="countdown" aria-live="polite">
                 <div class="countdown__unit">
@@ -101,88 +94,130 @@
           </div>
         </section>
 
-        <section class="section animate-in animate-in-delay-3">
+        <!-- Tools: compact utility list, not game cards -->
+        <section class="section section--tight animate-in animate-in-delay-2">
           <div class="section__header">
             <h2 class="section__title">Tools</h2>
             <a class="section__link" href="/tools/">Xem tất cả →</a>
           </div>
-          <div class="grid grid--3">
-            <a class="card" href="/tools/string-diff.html">
-              <div class="card__icon">↔</div>
-              <h3 class="card__title">Diff string</h3>
-              <p class="card__desc">So sánh hai đoạn text theo dòng.</p>
-              <p class="card__meta">string</p>
+          <div class="home-tools">
+            <a class="home-tool" href="/tools/string-diff.html">
+              <span class="home-tool__cat">string</span>
+              <span class="home-tool__name">Diff string</span>
+              <span class="home-tool__desc">So sánh theo dòng</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
             </a>
-            <a class="card" href="/tools/number-convert.html">
-              <div class="card__icon">123</div>
-              <h3 class="card__title">Number convert</h3>
-              <p class="card__desc">Binary · Octal · Decimal · Hex.</p>
-              <p class="card__meta">number</p>
+            <a class="home-tool" href="/tools/json-format.html">
+              <span class="home-tool__cat">json</span>
+              <span class="home-tool__name">JSON format</span>
+              <span class="home-tool__desc">Pretty · minify</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
             </a>
-            <a class="card" href="/tools/my-ip.html">
-              <div class="card__icon">🌐</div>
-              <h3 class="card__title">What is my IP</h3>
-              <p class="card__desc">Xem IP công khai hiện tại.</p>
-              <p class="card__meta">network</p>
+            <a class="home-tool" href="/tools/uuid.html">
+              <span class="home-tool__cat">id</span>
+              <span class="home-tool__name">UUID / ULID</span>
+              <span class="home-tool__desc">v4 · v7 · ULID</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
+            </a>
+            <a class="home-tool" href="/tools/totp.html">
+              <span class="home-tool__cat">2fa</span>
+              <span class="home-tool__name">KEY → OTP</span>
+              <span class="home-tool__desc">Nhiều secret TOTP</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
+            </a>
+            <a class="home-tool" href="/tools/jwt-decode.html">
+              <span class="home-tool__cat">auth</span>
+              <span class="home-tool__name">JWT decode</span>
+              <span class="home-tool__desc">Header · payload</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
+            </a>
+            <a class="home-tool" href="/tools/my-ip.html">
+              <span class="home-tool__cat">net</span>
+              <span class="home-tool__name">What is my IP</span>
+              <span class="home-tool__desc">IPv4 · IPv6</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
+            </a>
+            <a class="home-tool" href="/tools/timestamp.html">
+              <span class="home-tool__cat">time</span>
+              <span class="home-tool__name">Timestamp</span>
+              <span class="home-tool__desc">Unix ↔ ISO</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
+            </a>
+            <a class="home-tool home-tool--more" href="/tools/">
+              <span class="home-tool__cat">all</span>
+              <span class="home-tool__name">+30 tools offline</span>
+              <span class="home-tool__desc">String · encode · JSON…</span>
+              <span class="home-tool__go" aria-hidden="true">→</span>
             </a>
           </div>
         </section>
 
-        <section class="section">
-          <div class="section__header">
-            <h2 class="section__title">Games</h2>
-            <a class="section__link" href="/games/">Xem tất cả →</a>
-          </div>
-          <div class="grid grid--3">
-            <a class="card" href="/games/tic-tac-toe.html">
-              <div class="card__icon">✕○</div>
-              <h3 class="card__title">Tic-Tac-Toe</h3>
-              <p class="card__desc">Cờ caro 3×3 classic. Hai người trên một máy.</p>
-              <p class="card__meta">2 players · instant</p>
-            </a>
-            <a class="card" href="/games/memory.html">
-              <div class="card__icon">🃏</div>
-              <h3 class="card__title">Memory</h3>
-              <p class="card__desc">Lật thẻ, tìm cặp giống nhau. Đếm số lượt.</p>
-              <p class="card__meta">solo · puzzle</p>
-            </a>
-            <a class="card" href="/games/snake.html">
-              <div class="card__icon">🐍</div>
-              <h3 class="card__title">Snake</h3>
-              <p class="card__desc">Rắn săn mồi cổ điển. Mũi tên hoặc WASD.</p>
-              <p class="card__meta">solo · arcade</p>
-            </a>
-          </div>
-        </section>
+        <!-- Games + Articles side by side -->
+        <div class="home-split animate-in animate-in-delay-3">
+          <section class="section section--tight">
+            <div class="section__header">
+              <h2 class="section__title">Games</h2>
+              <a class="section__link" href="/games/">Tất cả →</a>
+            </div>
+            <div class="grid grid--games">
+              <a class="card card--game" href="/games/tic-tac-toe.html">
+                <div class="card__icon">✕○</div>
+                <h3 class="card__title">Tic-Tac-Toe</h3>
+                <p class="card__desc">3×3 · 2P / AI</p>
+              </a>
+              <a class="card card--game" href="/games/2048.html">
+                <div class="card__icon">▢2</div>
+                <h3 class="card__title">2048</h3>
+                <p class="card__desc">Gộp số · vuốt</p>
+              </a>
+              <a class="card card--game" href="/games/minesweeper.html">
+                <div class="card__icon">💣</div>
+                <h3 class="card__title">Dò mìn</h3>
+                <p class="card__desc">Classic · 3 mức</p>
+              </a>
+              <a class="card card--game" href="/games/tetris.html">
+                <div class="card__icon">▣</div>
+                <h3 class="card__title">Xếp gạch</h3>
+                <p class="card__desc">Tetris · xóa hàng</p>
+              </a>
+              <a class="card card--game" href="/games/snake.html">
+                <div class="card__icon">🐍</div>
+                <h3 class="card__title">Snake</h3>
+                <p class="card__desc">Arcade · WASD</p>
+              </a>
+              <a class="card card--game" href="/games/reaction.html">
+                <div class="card__icon">⚡</div>
+                <h3 class="card__title">Phản xạ</h3>
+                <p class="card__desc">Đo ms · best</p>
+              </a>
+            </div>
+          </section>
 
-        <section class="section">
-          <div class="section__header">
-            <h2 class="section__title">Articles</h2>
-            <a class="section__link" href="/articles/">Xem tất cả →</a>
-          </div>
-          <ul class="article-list">
-            <li>
-              <a href="/articles/chao-mung.html">
-                <span class="article-list__title">Chào mừng đến site mới</span>
-                <span class="article-list__date">2026-07-14</span>
-              </a>
-            </li>
-            <li>
-              <a href="/articles/mini-games.html">
-                <span class="article-list__title"
-                  >Vì sao mình để mini-game trên trang cá nhân</span
-                >
-                <span class="article-list__date">2026-07-14</span>
-              </a>
-            </li>
-            <li>
-              <a href="/articles/dark-minimal.html">
-                <span class="article-list__title"
-                  >Dark &amp; minimal — vài lựa chọn thiết kế</span
-                >
-                <span class="article-list__date">2026-07-14</span>
-              </a>
-            </li>
-          </ul>
-        </section>
+          <section class="section section--tight">
+            <div class="section__header">
+              <h2 class="section__title">Articles</h2>
+              <a class="section__link" href="/articles/">Tất cả →</a>
+            </div>
+            <ul class="article-list article-list--compact">
+              <li>
+                <a href="/articles/chao-mung.html">
+                  <span class="article-list__title">Chào mừng đến site mới</span>
+                  <span class="article-list__date">07-14</span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/mini-games.html">
+                  <span class="article-list__title">Vì sao mini-game trên trang cá nhân</span>
+                  <span class="article-list__date">07-14</span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/dark-minimal.html">
+                  <span class="article-list__title">Dark &amp; minimal — lựa chọn thiết kế</span>
+                  <span class="article-list__date">07-14</span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </div>
       </div>

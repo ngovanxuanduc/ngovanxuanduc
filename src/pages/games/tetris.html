@@ -1,0 +1,64 @@
+---
+{
+  "title": "Xếp gạch · Games",
+  "description": "Xếp gạch (Tetris-style) — xoay, thả, xóa hàng. Offline trên trình duyệt.",
+  "page": "games",
+  "scripts": ["/js/tetris.js"]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Xếp gạch</h1>
+          <p>Xếp tetromino, xóa hàng đầy. ← → di chuyển · ↑ / X xoay · ↓ rơi chậm · Space thả nhanh · P tạm dừng.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <p id="tetris-status" class="game-status">Nhấn Bắt đầu</p>
+
+          <div class="tetris-layout">
+            <div class="tetris-main">
+              <canvas id="tetris-canvas" width="240" height="480" aria-label="Xếp gạch"></canvas>
+            </div>
+            <aside class="tetris-side">
+              <div class="tetris-panel">
+                <span class="tetris-panel__label">Next</span>
+                <canvas id="tetris-next" width="96" height="96" aria-hidden="true"></canvas>
+              </div>
+              <div class="tetris-panel tetris-panel--stats">
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Điểm</span>
+                  <strong id="tetris-score">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Best</span>
+                  <strong id="tetris-best">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Hàng</span>
+                  <strong id="tetris-lines">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Level</span>
+                  <strong id="tetris-level">1</strong>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div class="tetris-pad" aria-label="Điều khiển cảm ứng">
+            <button type="button" class="btn btn--ghost" data-tetris="rot" aria-label="Xoay">↻</button>
+            <button type="button" class="btn btn--ghost" data-tetris="left" aria-label="Trái">←</button>
+            <button type="button" class="btn btn--ghost" data-tetris="down" aria-label="Xuống">↓</button>
+            <button type="button" class="btn btn--ghost" data-tetris="right" aria-label="Phải">→</button>
+            <button type="button" class="btn btn--ghost" data-tetris="drop" aria-label="Thả nhanh">⬇</button>
+          </div>
+
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--primary btn--sm" id="tetris-start">Bắt đầu</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="tetris-pause">Tạm dừng</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="tetris-reset">Ván mới</button>
+          </div>
+          <p class="snake-hint">← → · ↑ xoay · ↓ · Space · P</p>
+        </div>
+      </div>

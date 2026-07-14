@@ -1,0 +1,35 @@
+---
+{
+  "title": "Dò mìn · Games",
+  "description": "Minesweeper — mở ô, tránh mìn. Click phải / long-press để cắm cờ.",
+  "page": "games",
+  "scripts": ["/js/minesweeper.js"]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Dò mìn</h1>
+          <p>Mở hết ô không mìn. Click phải (hoặc giữ) để cắm cờ. Click giữa / cả hai nút để mở quanh số.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <div class="ms-top">
+            <label class="tool-check">
+              Độ khó
+              <select id="ms-diff" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="easy">Dễ 9×9 · 10</option>
+                <option value="medium" selected>Vừa 12×12 · 24</option>
+                <option value="hard">Khó 16×16 · 40</option>
+              </select>
+            </label>
+            <div class="ms-meta">
+              <span>🚩 <strong id="ms-flags">0</strong>/<span id="ms-mines">24</span></span>
+              <span>⏱ <strong id="ms-time">0</strong>s</span>
+            </div>
+            <button type="button" class="btn btn--ghost btn--sm" id="ms-new">Ván mới</button>
+          </div>
+          <p id="ms-status" class="game-status">Click ô để bắt đầu</p>
+          <div id="ms-board" class="ms-board" role="grid" aria-label="Bàn dò mìn"></div>
+        </div>
+      </div>

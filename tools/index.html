@@ -77,6 +77,7 @@
               <button type="button" class="tools-chip is-active" data-cat="all">All</button>
               <button type="button" class="tools-chip" data-cat="string">String</button>
               <button type="button" class="tools-chip" data-cat="encode">Encode</button>
+              <button type="button" class="tools-chip" data-cat="2fa">2FA</button>
               <button type="button" class="tools-chip" data-cat="json">JSON</button>
               <button type="button" class="tools-chip" data-cat="number">Number</button>
               <button type="button" class="tools-chip" data-cat="browser">Browser</button>
@@ -171,13 +172,26 @@
               <span class="tool-link__icon">#</span>
               <span class="tool-link__body"><span class="tool-link__title">Hash</span><span class="tool-link__meta">SHA + file</span></span>
             </a>
-            <a class="tool-link" href="/tools/uuid.html" data-cat="encode" data-search="uuid guid v4 id generator" title="UUID v4">
+            <a class="tool-link" href="/tools/uuid.html" data-cat="encode" data-search="uuid guid v4 v7 ulid id generator time ordered monotonic" title="Sinh UUID v4, UUID v7 và ULID — offline trên trình duyệt">
               <span class="tool-link__icon">ID</span>
-              <span class="tool-link__body"><span class="tool-link__title">UUID v4</span><span class="tool-link__meta">Sinh hàng loạt</span></span>
+              <span class="tool-link__body"><span class="tool-link__title">UUID / ULID</span><span class="tool-link__meta">v4 · v7 · ULID</span></span>
             </a>
             <a class="tool-link" href="/tools/random-string.html" data-cat="encode" data-search="password random string token" title="Random string">
               <span class="tool-link__icon">*</span>
               <span class="tool-link__body"><span class="tool-link__title">Random string</span><span class="tool-link__meta">Password / token</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="2fa">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">2FA · Authenticator</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/totp.html" data-cat="2fa" data-search="2fa totp otp authenticator google secret key hotp mfa list multi" title="Sinh mã TOTP từ list secret Base32 hoặc otpauth:// — offline">
+              <span class="tool-link__icon">2FA</span>
+              <span class="tool-link__body"><span class="tool-link__title">Lấy Code từ KEY 2FA</span><span class="tool-link__meta">Nhiều key · TOTP</span></span>
             </a>
           </div>
         </section>
@@ -262,9 +276,9 @@
               <span class="tool-link__icon">UA</span>
               <span class="tool-link__body"><span class="tool-link__title">User-Agent</span><span class="tool-link__meta">navigator info</span></span>
             </a>
-            <a class="tool-link" href="/tools/my-ip.html" data-cat="browser" data-search="ip public network api" title="What is my IP">
+            <a class="tool-link" href="/tools/my-ip.html" data-cat="browser" data-search="ip ipv4 ipv6 public network api" title="Xem IPv4 &amp; IPv6 công khai hiện tại">
               <span class="tool-link__icon">IP</span>
-              <span class="tool-link__body"><span class="tool-link__title">What is my IP</span><span class="tool-link__meta">Cần API ngoài</span></span>
+              <span class="tool-link__body"><span class="tool-link__title">What is my IP</span><span class="tool-link__meta">IPv4 · IPv6</span></span>
             </a>
           </div>
         </section>

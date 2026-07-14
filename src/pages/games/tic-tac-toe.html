@@ -1,7 +1,7 @@
 ---
 {
   "title": "Tic-Tac-Toe · Games",
-  "description": "Chơi Tic-Tac-Toe — cờ caro 3×3.",
+  "description": "Cờ caro 3×3 — 2 người hoặc đấu máy (dễ / vừa / khó).",
   "page": "games",
   "scripts": [
     "/js/tic-tac-toe.js"
@@ -12,16 +12,38 @@
         <div class="game-header animate-in">
           <a class="game-header__back" href="/games/">← Games</a>
           <h1>Tic-Tac-Toe</h1>
-          <p>Hai người. X đi trước. Ba ô thẳng hàng = thắng.</p>
+          <p>3×3 classic. X đi trước. Chọn 2 người hoặc đấu máy.</p>
         </div>
 
         <div class="game-shell animate-in animate-in-delay-1">
-          <p id="ttt-status" class="game-status">Lượt <strong>X</strong></p>
-          <div id="ttt-board" class="ttt-board" role="grid" aria-label="Bàn cờ"></div>
-          <div class="game-toolbar">
-            <button type="button" class="btn btn--ghost btn--sm" id="ttt-reset">
-              Chơi lại
-            </button>
+          <div class="ttt-controls">
+            <div class="ttt-controls__row">
+              <span class="ttt-controls__label">Chế độ</span>
+              <div class="ttt-seg" role="group" aria-label="Chế độ chơi">
+                <button type="button" class="ttt-seg__btn" data-mode="pvp" id="ttt-mode-pvp">
+                  2 người
+                </button>
+                <button type="button" class="ttt-seg__btn is-active" data-mode="ai" id="ttt-mode-ai" aria-pressed="true">
+                  Đấu máy
+                </button>
+              </div>
+            </div>
+
+            <div class="ttt-controls__row" id="ttt-diff-row">
+              <span class="ttt-controls__label">Độ khó</span>
+              <div class="ttt-seg" role="group" aria-label="Độ khó máy">
+                <button type="button" class="ttt-seg__btn" data-diff="easy">Dễ</button>
+                <button type="button" class="ttt-seg__btn is-active" data-diff="medium" aria-pressed="true">Vừa</button>
+                <button type="button" class="ttt-seg__btn" data-diff="hard">Khó</button>
+              </div>
+            </div>
+
+            <div class="ttt-controls__actions">
+              <button type="button" class="btn btn--ghost btn--sm" id="ttt-reset">Chơi lại</button>
+            </div>
           </div>
+
+          <p id="ttt-status" class="game-status">Lượt bạn · <strong>X</strong></p>
+          <div id="ttt-board" class="ttt-board" role="grid" aria-label="Bàn cờ"></div>
         </div>
       </div>

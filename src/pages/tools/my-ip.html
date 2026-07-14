@@ -1,7 +1,7 @@
 ---
 {
   "title": "What is my IP · Tools",
-  "description": "Xem IP công khai hiện tại của bạn.",
+  "description": "Xem IPv4 & IPv6 công khai hiện tại của bạn.",
   "page": "tools",
   "scripts": [
     "/js/tools/my-ip.js"
@@ -12,18 +12,35 @@
         <div class="game-header">
           <a class="game-header__back" href="/tools/">← Tools</a>
           <h1>What is my IP</h1>
-          <p>IP công khai mà internet thấy từ máy bạn (không phải IP LAN).</p>
+          <p>IPv4 &amp; IPv6 công khai mà internet thấy từ máy bạn (không phải IP LAN).</p>
         </div>
 
         <div class="tool-shell">
           <div class="ip-card">
-            <div class="ip-card__label">Public IP</div>
-            <div class="ip-card__value" id="ip-value">…</div>
+            <div class="ip-stack">
+              <div class="ip-row">
+                <div class="ip-row__head">
+                  <span class="ip-card__label">IPv4</span>
+                  <button type="button" class="btn btn--ghost btn--sm ip-row__copy" id="ip-copy-v4" disabled>Copy</button>
+                </div>
+                <div class="ip-card__value" id="ip-v4">…</div>
+              </div>
+              <div class="ip-row">
+                <div class="ip-row__head">
+                  <span class="ip-card__label">IPv6</span>
+                  <button type="button" class="btn btn--ghost btn--sm ip-row__copy" id="ip-copy-v6" disabled>Copy</button>
+                </div>
+                <div class="ip-card__value ip-card__value--sm" id="ip-v6">…</div>
+              </div>
+            </div>
+
             <p class="ip-card__status" id="ip-status">Đang lấy IP…</p>
+
             <div class="tool-actions" style="justify-content: center; margin-top: 1rem">
               <button type="button" class="btn btn--primary btn--sm" id="ip-refresh">Làm mới</button>
-              <button type="button" class="btn btn--ghost btn--sm" id="ip-copy">Copy IP</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="ip-copy-both" disabled>Copy cả hai</button>
             </div>
+
             <dl class="ip-details" id="ip-details"></dl>
           </div>
         </div>

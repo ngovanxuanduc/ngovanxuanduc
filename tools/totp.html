@@ -6,8 +6,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta name="description" content="Xem IPv4 &amp; IPv6 công khai hiện tại của bạn." />
-    <title>What is my IP · Tools</title>
+    <meta name="description" content="Sinh mã TOTP từ list secret Base32 hoặc otpauth:// — nhiều key cùng lúc, 100% offline." />
+    <title>Lấy Code từ KEY 2FA · Tools</title>
     <link rel="icon" href="/favicon.ico" />
     <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
@@ -55,40 +55,63 @@
     </header>
 
     <main>
-<div class="container">
+<div class="container container--cal">
         <div class="game-header">
           <a class="game-header__back" href="/tools/">← Tools</a>
-          <h1>What is my IP</h1>
-          <p>IPv4 &amp; IPv6 công khai mà internet thấy từ máy bạn (không phải IP LAN).</p>
+          <h1>Lấy Code từ KEY 2FA</h1>
+          <p>Dán một hoặc nhiều KEY (mỗi dòng một secret / otpauth). Sinh mã TOTP đồng thời — chạy local, không gửi KEY đi đâu.</p>
         </div>
-
         <div class="tool-shell">
-          <div class="ip-card">
-            <div class="ip-stack">
-              <div class="ip-row">
-                <div class="ip-row__head">
-                  <span class="ip-card__label">IPv4</span>
-                  <button type="button" class="btn btn--ghost btn--sm ip-row__copy" id="ip-copy-v4" disabled>Copy</button>
-                </div>
-                <div class="ip-card__value" id="ip-v4">…</div>
-              </div>
-              <div class="ip-row">
-                <div class="ip-row__head">
-                  <span class="ip-card__label">IPv6</span>
-                  <button type="button" class="btn btn--ghost btn--sm ip-row__copy" id="ip-copy-v6" disabled>Copy</button>
-                </div>
-                <div class="ip-card__value ip-card__value--sm" id="ip-v6">…</div>
-              </div>
-            </div>
 
-            <p class="ip-card__status" id="ip-status">Đang lấy IP…</p>
+          <div class="tool-field">
+            <label for="totp-secret">List KEY 2FA (mỗi dòng một key)</label>
+            <textarea
+              id="totp-secret"
+              class="tool-textarea tool-textarea--tall"
+              placeholder="GitHub | JBSWY3DPEHPK3PXP&#10;Work: KVKFKRCPNZQUYMLXOVYDSQKJKZDTSRLD&#10;otpauth://totp/Issuer:user?secret=…&amp;issuer=…&#10;MFRGGZDFMZTWQ2LK"
+              spellcheck="false"
+              autocomplete="off"
+              autocapitalize="off"
+            ></textarea>
+            <p class="tool-field__hint">
+              Mỗi dòng: <code>secret</code> · <code>tên | secret</code> · <code>tên: secret</code> · hoặc full <code>otpauth://…</code>.
+              Secret Base32 có thể có khoảng trắng.
+            </p>
+          </div>
 
-            <div class="tool-actions" style="justify-content: center; margin-top: 1rem">
-              <button type="button" class="btn btn--primary btn--sm" id="ip-refresh">Làm mới</button>
-              <button type="button" class="btn btn--ghost btn--sm" id="ip-copy-both" disabled>Copy cả hai</button>
-            </div>
+          <div class="tool-actions">
+            <label class="tool-check">Digits
+              <select id="totp-digits" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="6" selected>6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <label class="tool-check">Period (s)
+              <input id="totp-period" class="tool-input" type="number" min="15" max="120" value="30" style="width:4.5rem;padding:0.35rem 0.5rem" />
+            </label>
+            <label class="tool-check">Algo
+              <select id="totp-algo" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="SHA-1" selected>SHA-1</option>
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-512">SHA-512</option>
+              </select>
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="totp-run">Lấy code</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="totp-copy-all">Copy tất cả</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="totp-clear">Xóa</button>
+            <span class="tool-meta" id="totp-meta"></span>
+          </div>
 
-            <dl class="ip-details" id="ip-details"></dl>
+          <div class="totp-list" id="totp-list" hidden></div>
+
+          <div class="tool-note">
+            <p><strong>Ghi chú</strong></p>
+            <ul>
+              <li>Chuẩn <strong>RFC 6238 TOTP</strong> (mặc định: 6 số · 30s · HMAC-SHA1) — tương thích Google Authenticator, Microsoft Authenticator, Authy…</li>
+              <li>Digits / period / algo bên trên áp dụng cho secret thuần. URI <code>otpauth://</code> tự mang tham số riêng (ưu tiên URI).</li>
+              <li>Không lưu KEY; không gọi API. Xóa list khi xong nếu dùng máy chung.</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -112,7 +135,8 @@
       })();
     </script>
     <script src="/js/main.js" defer></script>
-        <script src="/js/tools/my-ip.js" defer></script>
+        <script src="/js/tools/lib.js" defer></script>
+    <script src="/js/tools/totp.js" defer></script>
     <!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
     <script>
       (function (w, d, i) {

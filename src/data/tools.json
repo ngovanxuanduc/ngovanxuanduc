@@ -134,10 +134,11 @@
         },
         {
           "slug": "uuid",
-          "title": "UUID v4",
-          "meta": "Sinh hàng loạt",
+          "title": "UUID / ULID",
+          "meta": "v4 · v7 · ULID",
           "icon": "ID",
-          "search": "uuid guid v4 id generator"
+          "search": "uuid guid v4 v7 ulid id generator time ordered monotonic",
+          "description": "Sinh UUID v4, UUID v7 và ULID — offline trên trình duyệt"
         },
         {
           "slug": "random-string",
@@ -145,6 +146,21 @@
           "meta": "Password / token",
           "icon": "*",
           "search": "password random string token"
+        }
+      ]
+    },
+    {
+      "id": "2fa",
+      "label": "2FA",
+      "title": "2FA · Authenticator",
+      "tools": [
+        {
+          "slug": "totp",
+          "title": "Lấy Code từ KEY 2FA",
+          "meta": "Nhiều key · TOTP",
+          "icon": "2FA",
+          "search": "2fa totp otp authenticator google secret key hotp mfa list multi",
+          "description": "Sinh mã TOTP từ list secret Base32 hoặc otpauth:// — offline"
         }
       ]
     },
@@ -268,9 +284,10 @@
         {
           "slug": "my-ip",
           "title": "What is my IP",
-          "meta": "Cần API ngoài",
+          "meta": "IPv4 · IPv6",
           "icon": "IP",
-          "search": "ip public network api"
+          "search": "ip ipv4 ipv6 public network api",
+          "description": "Xem IPv4 & IPv6 công khai hiện tại"
         }
       ]
     },

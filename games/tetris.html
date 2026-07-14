@@ -6,8 +6,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta name="description" content="Cờ caro 3×3 — 2 người hoặc đấu máy (dễ / vừa / khó)." />
-    <title>Tic-Tac-Toe · Games</title>
+    <meta name="description" content="Xếp gạch (Tetris-style) — xoay, thả, xóa hàng. Offline trên trình duyệt." />
+    <title>Xếp gạch · Games</title>
     <link rel="icon" href="/favicon.ico" />
     <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
@@ -58,40 +58,57 @@
 <div class="container">
         <div class="game-header animate-in">
           <a class="game-header__back" href="/games/">← Games</a>
-          <h1>Tic-Tac-Toe</h1>
-          <p>3×3 classic. X đi trước. Chọn 2 người hoặc đấu máy.</p>
+          <h1>Xếp gạch</h1>
+          <p>Xếp tetromino, xóa hàng đầy. ← → di chuyển · ↑ / X xoay · ↓ rơi chậm · Space thả nhanh · P tạm dừng.</p>
         </div>
 
         <div class="game-shell animate-in animate-in-delay-1">
-          <div class="ttt-controls">
-            <div class="ttt-controls__row">
-              <span class="ttt-controls__label">Chế độ</span>
-              <div class="ttt-seg" role="group" aria-label="Chế độ chơi">
-                <button type="button" class="ttt-seg__btn" data-mode="pvp" id="ttt-mode-pvp">
-                  2 người
-                </button>
-                <button type="button" class="ttt-seg__btn is-active" data-mode="ai" id="ttt-mode-ai" aria-pressed="true">
-                  Đấu máy
-                </button>
-              </div>
-            </div>
+          <p id="tetris-status" class="game-status">Nhấn Bắt đầu</p>
 
-            <div class="ttt-controls__row" id="ttt-diff-row">
-              <span class="ttt-controls__label">Độ khó</span>
-              <div class="ttt-seg" role="group" aria-label="Độ khó máy">
-                <button type="button" class="ttt-seg__btn" data-diff="easy">Dễ</button>
-                <button type="button" class="ttt-seg__btn is-active" data-diff="medium" aria-pressed="true">Vừa</button>
-                <button type="button" class="ttt-seg__btn" data-diff="hard">Khó</button>
+          <div class="tetris-layout">
+            <div class="tetris-main">
+              <canvas id="tetris-canvas" width="240" height="480" aria-label="Xếp gạch"></canvas>
+            </div>
+            <aside class="tetris-side">
+              <div class="tetris-panel">
+                <span class="tetris-panel__label">Next</span>
+                <canvas id="tetris-next" width="96" height="96" aria-hidden="true"></canvas>
               </div>
-            </div>
-
-            <div class="ttt-controls__actions">
-              <button type="button" class="btn btn--ghost btn--sm" id="ttt-reset">Chơi lại</button>
-            </div>
+              <div class="tetris-panel tetris-panel--stats">
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Điểm</span>
+                  <strong id="tetris-score">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Best</span>
+                  <strong id="tetris-best">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Hàng</span>
+                  <strong id="tetris-lines">0</strong>
+                </div>
+                <div class="tetris-stat">
+                  <span class="tetris-panel__label">Level</span>
+                  <strong id="tetris-level">1</strong>
+                </div>
+              </div>
+            </aside>
           </div>
 
-          <p id="ttt-status" class="game-status">Lượt bạn · <strong>X</strong></p>
-          <div id="ttt-board" class="ttt-board" role="grid" aria-label="Bàn cờ"></div>
+          <div class="tetris-pad" aria-label="Điều khiển cảm ứng">
+            <button type="button" class="btn btn--ghost" data-tetris="rot" aria-label="Xoay">↻</button>
+            <button type="button" class="btn btn--ghost" data-tetris="left" aria-label="Trái">←</button>
+            <button type="button" class="btn btn--ghost" data-tetris="down" aria-label="Xuống">↓</button>
+            <button type="button" class="btn btn--ghost" data-tetris="right" aria-label="Phải">→</button>
+            <button type="button" class="btn btn--ghost" data-tetris="drop" aria-label="Thả nhanh">⬇</button>
+          </div>
+
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--primary btn--sm" id="tetris-start">Bắt đầu</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="tetris-pause">Tạm dừng</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="tetris-reset">Ván mới</button>
+          </div>
+          <p class="snake-hint">← → · ↑ xoay · ↓ · Space · P</p>
         </div>
       </div>
 
@@ -114,7 +131,7 @@
       })();
     </script>
     <script src="/js/main.js" defer></script>
-        <script src="/js/tic-tac-toe.js" defer></script>
+        <script src="/js/tetris.js" defer></script>
     <!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
     <script>
       (function (w, d, i) {

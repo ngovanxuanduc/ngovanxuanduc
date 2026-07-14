@@ -1,0 +1,30 @@
+---
+{
+  "title": "Phản xạ · Games",
+  "description": "Đo thời gian phản xạ — chờ xanh rồi click càng nhanh càng tốt.",
+  "page": "games",
+  "scripts": ["/js/reaction.js"]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Phản xạ</h1>
+          <p>Chờ vùng chuyển <strong>xanh</strong> rồi click / chạm ngay. Click sớm = lỗi.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <div class="rx-stats memory-stats">
+            <span>Lần này: <strong id="rx-last">—</strong></span>
+            <span>Best: <strong id="rx-best">—</strong></span>
+            <span>TB 5: <strong id="rx-avg">—</strong></span>
+          </div>
+          <button type="button" id="rx-pad" class="rx-pad is-idle" aria-live="polite">
+            <span id="rx-msg" class="rx-pad__msg">Click để bắt đầu</span>
+            <span id="rx-sub" class="rx-pad__sub">Rồi chờ xanh…</span>
+          </button>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--ghost btn--sm" id="rx-reset">Xóa best</button>
+          </div>
+        </div>
+      </div>

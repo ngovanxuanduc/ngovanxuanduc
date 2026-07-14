@@ -1,7 +1,7 @@
 ---
 {
   "title": "Chào mừng đến site mới · Articles",
-  "description": "Site cá nhân được làm lại — gọn, tối, có game và bài viết.",
+  "description": "Site cá nhân ngovanxuanduc.com — tools offline, lịch âm–dương, mini-game và vài ghi chú ngắn.",
   "page": "articles",
   "scripts": []
 }
@@ -10,36 +10,69 @@
         <header class="article-header animate-in">
           <a class="article-header__back" href="/articles/">← Articles</a>
           <h1>Chào mừng đến site mới</h1>
-          <p class="article-header__meta">2026-07-14 · ~2 phút đọc</p>
+          <p class="article-header__meta">2026-07-14 · ~3 phút đọc</p>
         </header>
 
         <div class="article-body animate-in animate-in-delay-1">
           <p>
-            Trước đây domain này chỉ là một trang countdown năm mới — nền ảnh,
-            chữ to, đếm ngày giờ. Vui một lúc rồi… hết việc để làm trên site.
+            Nếu bạn ghé đúng lúc domain này còn là một trang countdown năm mới —
+            nền ảnh, chữ to, đếm ngày giờ — thì đúng rồi, đó là phiên bản cũ.
+            Vui một lúc rồi… hết việc để làm trên site.
           </p>
           <p>
-            Lần này mình làm lại theo hướng <strong>trang cá nhân</strong>: tối,
-            gọn, có chỗ chơi vài game nhỏ và đọc vài bài viết ngắn. Không framework,
-            không build step — HTML/CSS/JS thuần để dễ deploy và dễ sửa.
+            Lần này mình làm lại theo hướng <strong>góc nhỏ trên web</strong>:
+            tối, gọn, có chỗ lấy tool khi cần, xem lịch âm–dương, chơi game vài
+            phút, và đọc vài note ngắn. Không sales pitch, không pop-up, không
+            “subscribe để nhận ebook”.
           </p>
 
           <h2>Có gì trên site?</h2>
           <ul>
-            <li><strong>Home</strong> — giới thiệu ngắn, link nhanh.</li>
-            <li><strong>Games</strong> — Tic-Tac-Toe, Memory, Snake.</li>
-            <li><strong>Articles</strong> — notes kiểu này.</li>
+            <li>
+              <strong><a href="/tools/">Tools</a></strong> — bộ utility chạy
+              offline trên trình duyệt: diff text, JSON, UUID/ULID, 2FA/TOTP,
+              JWT, hash, timestamp, IPv4/IPv6… Gõ <code>/</code> trên trang Tools
+              để tìm nhanh.
+            </li>
+            <li>
+              <strong><a href="/calendar.html">Lịch</a></strong> — Dương &amp; Âm
+              Việt Nam, countdown Tết Dương / Tết Âm.
+            </li>
+            <li>
+              <strong><a href="/games/">Games</a></strong> — Tic-Tac-Toe, Memory,
+              Snake. Không tài khoản, không quảng cáo.
+            </li>
+            <li>
+              <strong><a href="/articles/">Articles</a></strong> — ghi chú kiểu
+              trang này. Không formal.
+            </li>
           </ul>
+
+          <h2>Vì sao làm lại?</h2>
+          <p>
+            Mình hay cần vài tool “nhỏ mà gấp”: decode JWT, format JSON, lấy OTP
+            từ secret, sinh UUID… Mở tab random trên mạng được, nhưng muốn một
+            chỗ quen, sạch, và <strong>không gửi data đi đâu</strong> nếu không
+            cần. Hầu hết tool ở đây chạy local; tool IP là ngoại lệ (phải hỏi
+            API ngoài).
+          </p>
+          <p>
+            Stack cố ý giữ đơn giản: HTML / CSS / JS, build tĩnh, deploy nhẹ.
+            Dễ sửa lúc nửa đêm, không phải “nâng dependency” chỉ để đổi một dòng
+            chữ.
+          </p>
 
           <h2>Sẽ thêm gì tiếp?</h2>
           <p>
-            Chưa hứa roadmap. Có thể thêm game, có thể viết thêm, có thể gắn
-            social / project list khi cần. Mục tiêu là giữ site nhẹ và đáng ghé
-            lại thỉnh thoảng.
+            Chưa hứa roadmap. Có thể thêm tool, game, hoặc viết thêm khi có gì
+            đáng ghi. Mục tiêu vẫn là site nhẹ — đáng ghé lại thỉnh thoảng, chứ
+            không phải “product” phải update mỗi tuần.
           </p>
           <p>
-            Nếu bạn đang đọc dòng này: cảm ơn đã ghé.
-            Thử <a href="/games/tic-tac-toe.html">một ván caro</a> rồi đi cũng được.
+            Nếu bạn đang đọc dòng này: cảm ơn đã ghé. Thử
+            <a href="/tools/">một tool</a>,
+            <a href="/games/tic-tac-toe.html">một ván caro</a>, hoặc
+            <a href="/calendar.html">xem còn bao lâu đến Tết</a> rồi đi cũng được.
           </p>
         </div>
       </article>
