@@ -6,7 +6,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta name="description" content="Snake — game rắn săn mồi cổ điển." />
+    <meta name="description" content="Snake — rắn săn mồi cổ điển, chỉnh tốc độ chơi." />
     <title>Snake · Games</title>
     <link rel="icon" href="/favicon.ico" />
     <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
@@ -59,13 +59,23 @@
         <div class="game-header animate-in">
           <a class="game-header__back" href="/games/">← Games</a>
           <h1>Snake</h1>
-          <p>Mũi tên hoặc WASD. Ăn mồi tím, tránh tường và thân.</p>
+          <p>Mũi tên hoặc WASD. Ăn mồi tím, tránh tường và thân. Chỉnh tốc độ nếu thấy nhanh quá.</p>
         </div>
 
         <div class="game-shell animate-in animate-in-delay-1">
+          <div class="snake-speed">
+            <span class="snake-speed__label">Tốc độ</span>
+            <div class="ttt-seg snake-speed__seg" role="group" aria-label="Tốc độ rắn">
+              <button type="button" class="ttt-seg__btn" data-snake-speed="slow">Chậm</button>
+              <button type="button" class="ttt-seg__btn is-active" data-snake-speed="normal" aria-pressed="true">Vừa</button>
+              <button type="button" class="ttt-seg__btn" data-snake-speed="fast">Nhanh</button>
+            </div>
+          </div>
+
           <p id="snake-status" class="game-status">Nhấn Bắt đầu hoặc phím mũi tên.</p>
           <div class="memory-stats">
             <span>Điểm: <strong id="snake-score">0</strong></span>
+            <span>Tốc độ: <strong id="snake-speed-label">Vừa</strong></span>
           </div>
           <div class="snake-wrap">
             <canvas id="snake-canvas" width="288" height="288" aria-label="Snake game"></canvas>

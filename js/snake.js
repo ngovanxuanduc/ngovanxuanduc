@@ -1,18 +1,37 @@
 (function () {
-  const canvas = document.getElementById("snake-canvas");
-  const statusEl = document.getElementById("snake-status");
-  const scoreEl = document.getElementById("snake-score");
-  const startBtn = document.getElementById("snake-start");
-  const resetBtn = document.getElementById("snake-reset");
+  var canvas = document.getElementById("snake-canvas");
+  var statusEl = document.getElementById("snake-status");
+  var scoreEl = document.getElementById("snake-score");
+  var speedLabelEl = document.getElementById("snake-speed-label");
+  var startBtn = document.getElementById("snake-start");
+  var resetBtn = document.getElementById("snake-reset");
   if (!canvas) return;
 
-  const ctx = canvas.getContext("2d");
-  const GRID = 16;
-  const CELL = 18;
+  var ctx = canvas.getContext("2d");
+  var GRID = 16;
+  var CELL = 18;
   canvas.width = GRID * CELL;
   canvas.height = GRID * CELL;
 
-  let snake, dir, nextDir, food, score, tick, running, dead;
+  var SPEED_MS = {
+    slow: 220,
+    normal: 150,
+    fast: 95,
+  };
+  var SPEED_LABEL = {
+    slow: "Chậm",
+    normal: "Vừa",
+    fast: "Nhanh",
+  };
+  var SPEED_KEY = "game-snake-speed";
+
+  var speed = "normal";
+  try {
+    var saved = localStorage.getItem(SPEED_KEY);
+    if (saved && SPEED_MS[saved]) speed = saved;
+  } catch (e) {}
+
+  var snake, dir, nextDir, food, score, tick, running, dead;
 
   function setStatus(text, cls) {
     if (!statusEl) return;
@@ -24,6 +43,19 @@
     if (scoreEl) scoreEl.textContent = String(score);
   }
 
+  function updateSpeedUi() {
+    if (speedLabelEl) speedLabelEl.textContent = SPEED_LABEL[speed] || speed;
+    document.querySelectorAll("[data-snake-speed]").forEach(function (btn) {
+      var on = btn.getAttribute("data-snake-speed") === speed;
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function intervalMs() {
+    return SPEED_MS[speed] || SPEED_MS.normal;
+  }
+
   function randCell() {
     return {
       x: Math.floor(Math.random() * GRID),
@@ -32,18 +64,33 @@
   }
 
   function placeFood() {
-    let p;
+    var p;
     do {
       p = randCell();
-    } while (snake.some(function (s) {
-      return s.x === p.x && s.y === p.y;
-    }));
+    } while (
+      snake.some(function (s) {
+        return s.x === p.x && s.y === p.y;
+      })
+    );
     food = p;
   }
 
+  function stopTick() {
+    if (tick) {
+      clearInterval(tick);
+      tick = null;
+    }
+  }
+
+  function restartTick() {
+    stopTick();
+    if (running && !dead) {
+      tick = setInterval(step, intervalMs());
+    }
+  }
+
   function reset() {
-    clearInterval(tick);
-    tick = null;
+    stopTick();
     running = false;
     dead = false;
     snake = [
@@ -55,6 +102,7 @@
     nextDir = { x: 1, y: 0 };
     score = 0;
     updateScore();
+    updateSpeedUi();
     placeFood();
     setStatus("Nhấn Bắt đầu hoặc phím mũi tên / WASD.");
     draw();
@@ -69,10 +117,9 @@
     ctx.fillStyle = "#0a0a0b";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // subtle grid
     ctx.strokeStyle = "#16161a";
     ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID; i++) {
+    for (var i = 0; i <= GRID; i++) {
       ctx.beginPath();
       ctx.moveTo(i * CELL, 0);
       ctx.lineTo(i * CELL, GRID * CELL);
@@ -91,7 +138,7 @@
 
   function step() {
     dir = nextDir;
-    const head = {
+    var head = {
       x: snake[0].x + dir.x,
       y: snake[0].y + dir.y,
     };
@@ -107,8 +154,7 @@
     ) {
       dead = true;
       running = false;
-      clearInterval(tick);
-      tick = null;
+      stopTick();
       setStatus("Game over — điểm " + score + ".", "is-draw");
       draw();
       return;
@@ -130,20 +176,36 @@
     if (running) return;
     if (dead) reset();
     running = true;
-    setStatus("Đang chơi…");
-    tick = setInterval(step, 120);
+    setStatus("Đang chơi… (" + (SPEED_LABEL[speed] || speed) + ")");
+    tick = setInterval(step, intervalMs());
+  }
+
+  function setSpeed(next) {
+    if (!SPEED_MS[next] || next === speed) return;
+    speed = next;
+    try {
+      localStorage.setItem(SPEED_KEY, speed);
+    } catch (e) {}
+    updateSpeedUi();
+    if (running && !dead) {
+      restartTick();
+      setStatus("Đang chơi… (" + SPEED_LABEL[speed] + ")");
+    } else if (!dead) {
+      setStatus("Tốc độ: " + SPEED_LABEL[speed] + " · Nhấn Bắt đầu");
+    }
   }
 
   function setDir(nx, ny) {
-    // no reverse
     if (dir.x + nx === 0 && dir.y + ny === 0) return;
     nextDir = { x: nx, y: ny };
     if (!running && !dead) start();
   }
 
   document.addEventListener("keydown", function (e) {
-    const k = e.key.toLowerCase();
-    if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].indexOf(k) !== -1) {
+    var k = e.key.toLowerCase();
+    if (
+      ["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].indexOf(k) !== -1
+    ) {
       e.preventDefault();
     }
     if (k === "arrowup" || k === "w") setDir(0, -1);
@@ -154,7 +216,7 @@
 
   document.querySelectorAll("[data-snake-dir]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      const d = btn.dataset.snakeDir;
+      var d = btn.dataset.snakeDir;
       if (d === "up") setDir(0, -1);
       if (d === "down") setDir(0, 1);
       if (d === "left") setDir(-1, 0);
@@ -162,8 +224,15 @@
     });
   });
 
+  document.querySelectorAll("[data-snake-speed]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setSpeed(btn.getAttribute("data-snake-speed"));
+    });
+  });
+
   if (startBtn) startBtn.addEventListener("click", start);
   if (resetBtn) resetBtn.addEventListener("click", reset);
 
+  updateSpeedUi();
   reset();
 })();
