@@ -110,8 +110,9 @@ function renderNav(site, activePage) {
 
 function renderScripts(list) {
   if (!list || !list.length) return "";
+  // defer: không chặn first paint; vẫn chạy theo thứ tự sau khi parse HTML
   return list
-    .map((src) => `    <script src="${src}"></script>`)
+    .map((src) => `    <script src="${src}" defer></script>`)
     .join("\n");
 }
 
@@ -126,28 +127,6 @@ function buildPage(relPath, raw, site, layout) {
     ? `<meta name="robots" content="${escapeHtml(meta.robots)}" />`
     : "";
 
-  const html = apply(layout, {
-    lang: site.lang || "vi",
-    title: escapeHtml(title),
-    description: escapeHtml(description),
-    page: escapeHtml(page),
-    robots,
-    extraHead,
-    scripts,
-    content: content.replace(/^/gm, "      ").replace(/^\s+$/gm, ""),
-    gtmHead: apply(read(path.join(SRC, "partials", "gtm-head.html")), {
-      gtmId: site.gtmId,
-    }),
-    gtmBody: apply(read(path.join(SRC, "partials", "gtm-body.html")), {
-      gtmId: site.gtmId,
-    }),
-    nav: renderNav(site, page),
-    footer: apply(read(path.join(SRC, "partials", "footer.html")), {
-      name: site.name,
-    }),
-  });
-
-  // content indent fix: don't over-indent; re-render content cleanly
   return apply(layout, {
     lang: site.lang || "vi",
     title: escapeHtml(title),
@@ -161,6 +140,9 @@ function buildPage(relPath, raw, site, layout) {
       gtmId: site.gtmId,
     }),
     gtmBody: apply(read(path.join(SRC, "partials", "gtm-body.html")), {
+      gtmId: site.gtmId,
+    }),
+    gtmDeferred: apply(read(path.join(SRC, "partials", "gtm-deferred.html")), {
       gtmId: site.gtmId,
     }),
     nav: renderNav(site, page),
@@ -279,6 +261,7 @@ const ROOT_PUBLISH = [
   "serve.json",
   "css",
   "js",
+  "fonts",
   "tools",
   "games",
   "articles",

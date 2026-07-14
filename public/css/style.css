@@ -1,22 +1,51 @@
+/* ===== Fonts (self-hosted, latin variable — no Google CDN) ===== */
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/inter-latin-var.woff2") format("woff2-variations"),
+    url("/fonts/inter-latin-var.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin-var.woff2") format("woff2-variations"),
+    url("/fonts/jetbrains-mono-latin-var.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* ===== Base ===== */
 :root {
   --bg: #0a0a0b;
   --bg-elevated: #121214;
   --bg-hover: #1a1a1e;
-  --border: #222228;
-  --border-hover: #33333a;
-  --text: #e8e8ec;
-  --text-muted: #8b8b96;
-  --text-dim: #5c5c68;
-  --accent: #a78bfa;
-  --accent-soft: rgba(167, 139, 250, 0.12);
-  --accent-hover: #c4b5fd;
-  --success: #4ade80;
-  --danger: #f87171;
+  --border: #2a2a32;
+  --border-hover: #3d3d48;
+  /* WCAG AA on #0a0a0b: body ≥4.5:1, muted/dim ≥4.5:1 for small text */
+  --text: #f0f0f4;
+  --text-muted: #b0b0bc;
+  --text-dim: #9a9aa8;
+  /* Accent slightly brighter so links pass on dark bg */
+  --accent: #b8a4ff;
+  --accent-soft: rgba(184, 164, 255, 0.14);
+  --accent-hover: #d0c4ff;
+  --success: #5eea93;
+  --danger: #ff8f8f;
   --radius: 12px;
   --radius-sm: 8px;
-  --font: "DM Sans", system-ui, -apple-system, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Inter: sạch, hiện đại; fallback system ngay lập tức */
+  --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", Consolas,
+    monospace;
   --max: 720px;
   --max-wide: 960px;
   --nav-h: 64px;

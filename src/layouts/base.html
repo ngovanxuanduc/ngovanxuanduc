@@ -8,12 +8,15 @@
     <meta name="description" content="{{description}}" />
     <title>{{title}}</title>
     <link rel="icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/inter-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+    <link rel="preload" href="/css/style.css" as="style" />
     <link rel="stylesheet" href="/css/style.css" />
     {{extraHead}}
   </head>
@@ -30,7 +33,8 @@
         if (y) y.textContent = new Date().getFullYear();
       })();
     </script>
-    <script src="/js/main.js"></script>
+    <script src="/js/main.js" defer></script>
     {{scripts}}
+    {{gtmDeferred}}
   </body>
 </html>

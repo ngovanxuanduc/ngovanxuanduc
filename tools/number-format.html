@@ -1,20 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
   <head>
-    <!-- Google Tag Manager -->
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
-    </script>
-    <!-- End Google Tag Manager -->
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,12 +9,15 @@
     <meta name="description" content="Format số: grouping, decimals, percent, scientific — Intl local." />
     <title>Number format · Tools</title>
     <link rel="icon" href="/favicon.ico" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
+      rel="preload"
+      href="/fonts/inter-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
     />
+    <link rel="preload" href="/css/style.css" as="style" />
     <link rel="stylesheet" href="/css/style.css" />
     
   </head>
@@ -107,8 +97,34 @@
         if (y) y.textContent = new Date().getFullYear();
       })();
     </script>
-    <script src="/js/main.js"></script>
-        <script src="/js/tools/lib.js"></script>
-    <script src="/js/tools/number-format.js"></script>
+    <script src="/js/main.js" defer></script>
+        <script src="/js/tools/lib.js" defer></script>
+    <script src="/js/tools/number-format.js" defer></script>
+    <!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        function inject() {
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        function schedule() {
+          if ("requestIdleCallback" in w) {
+            w.requestIdleCallback(inject, { timeout: 3500 });
+          } else {
+            setTimeout(inject, 2000);
+          }
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
   </body>
 </html>

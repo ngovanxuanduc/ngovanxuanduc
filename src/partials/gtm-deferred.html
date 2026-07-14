@@ -1,0 +1,25 @@
+<!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        function inject() {
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        function schedule() {
+          if ("requestIdleCallback" in w) {
+            w.requestIdleCallback(inject, { timeout: 3500 });
+          } else {
+            setTimeout(inject, 2000);
+          }
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "{{gtmId}}");
+    </script>
+    <!-- End Google Tag Manager -->
