@@ -329,6 +329,37 @@ main {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     gap: 1.5rem 2.5rem;
     padding: 0.75rem 0 1.75rem;
+    /* same row height: About card matches hero (incl. buttons) */
+    align-items: stretch;
+  }
+
+  .home-top .hero--compact {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding-top: 0;
+    padding-bottom: 0;
+    align-items: flex-start; /* badge/button wrap theo nội dung, không full-width */
+  }
+
+  .home-top .hero--compact .hero__badge {
+    align-self: flex-start;
+    width: auto;
+  }
+
+  .home-top .hero--compact .hero__actions {
+    margin-top: auto;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .home-about {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    min-height: 100%;
+    box-sizing: border-box;
   }
 }
 
