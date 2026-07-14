@@ -146,6 +146,14 @@
           "meta": "Password / token",
           "icon": "*",
           "search": "password random string token"
+        },
+        {
+          "slug": "password-gen",
+          "title": "Tạo mật khẩu",
+          "meta": "Mạnh · crypto",
+          "icon": "🔑",
+          "search": "password generator mật khẩu strong secure pin entropy",
+          "description": "Sinh mật khẩu an toàn offline — charset, entropy, preset"
         }
       ]
     },
@@ -266,6 +274,37 @@
           "meta": "5-field",
           "icon": "cron",
           "search": "cron schedule explain"
+        }
+      ]
+    },
+    {
+      "id": "devops",
+      "label": "DevOps",
+      "title": "DevOps · Net · Config",
+      "tools": [
+        {
+          "slug": "yaml-json",
+          "title": "YAML ↔ JSON",
+          "meta": "K8s · compose · CI",
+          "icon": "YML",
+          "search": "yaml yml json k8s kubernetes compose config convert",
+          "description": "Đổi YAML ↔ JSON offline"
+        },
+        {
+          "slug": "regex-tester",
+          "title": "Regex tester",
+          "meta": "Match · group · replace",
+          "icon": ".*",
+          "search": "regex regexp regular expression match test replace",
+          "description": "Test regex, highlight match, replace — local"
+        },
+        {
+          "slug": "cidr",
+          "title": "CIDR calculator",
+          "meta": "IPv4 subnet",
+          "icon": "/24",
+          "search": "cidr subnet ip network mask wildcard vpc",
+          "description": "Tính network, mask, host range từ CIDR IPv4"
         }
       ]
     },

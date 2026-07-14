@@ -42,10 +42,13 @@
   inn.addEventListener("input", run);
   if (dec) dec.addEventListener("change", run);
   var btnCopy = document.getElementById("nf-copy");
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      var first = out.querySelector("input");
-      if (first && navigator.clipboard) navigator.clipboard.writeText(first.value);
+      var text = (out.querySelector("input") && out.querySelector("input").value) || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
+  }
   run();
 })();

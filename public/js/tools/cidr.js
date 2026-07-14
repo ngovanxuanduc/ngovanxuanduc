@@ -1,0 +1,218 @@
+/**
+ * IPv4 CIDR calculator — offline.
+ */
+(function () {
+  "use strict";
+
+  var inn = document.getElementById("cidr-in");
+  var checkEl = document.getElementById("cidr-check");
+  var out = document.getElementById("cidr-out");
+  var meta = document.getElementById("cidr-meta");
+  var btnRun = document.getElementById("cidr-run");
+  var btnCopy = document.getElementById("cidr-copy");
+  var btnClear = document.getElementById("cidr-clear");
+  if (!inn || !out) return;
+
+  var lastText = "";
+
+  function setMeta(msg, err) {
+    if (!meta) return;
+    meta.textContent = msg || "";
+    meta.style.color = err ? "var(--danger)" : "var(--text-dim)";
+  }
+
+  function parseIPv4(str) {
+    var s = String(str || "").trim();
+    var parts = s.split(".");
+    if (parts.length !== 4) return null;
+    var n = 0;
+    for (var i = 0; i < 4; i++) {
+      if (!/^\d{1,3}$/.test(parts[i])) return null;
+      var o = Number(parts[i]);
+      if (o > 255 || (parts[i].length > 1 && parts[i].charAt(0) === "0")) {
+        // allow 0 but not 01
+        if (parts[i] !== "0" && parts[i].charAt(0) === "0") return null;
+      }
+      if (o < 0 || o > 255 || !Number.isFinite(o)) return null;
+      n = ((n << 8) | o) >>> 0;
+    }
+    return n;
+  }
+
+  function toIPv4(n) {
+    n = n >>> 0;
+    return (
+      ((n >>> 24) & 255) +
+      "." +
+      ((n >>> 16) & 255) +
+      "." +
+      ((n >>> 8) & 255) +
+      "." +
+      (n & 255)
+    );
+  }
+
+  function parseCIDR(input) {
+    var s = String(input || "").trim();
+    var prefix = 32;
+    var ipPart = s;
+    var slash = s.indexOf("/");
+    if (slash !== -1) {
+      ipPart = s.slice(0, slash).trim();
+      var p = s.slice(slash + 1).trim();
+      if (!/^\d{1,2}$/.test(p)) throw new Error("Prefix không hợp lệ");
+      prefix = Number(p);
+      if (prefix < 0 || prefix > 32) throw new Error("Prefix 0–32");
+    }
+    // dotted mask as second form: ip mask
+    var sp = ipPart.split(/\s+/);
+    if (sp.length === 2 && slash === -1) {
+      ipPart = sp[0];
+      var maskIp = parseIPv4(sp[1]);
+      if (maskIp == null) throw new Error("Subnet mask không hợp lệ");
+      // count bits
+      var bits = 0;
+      var seenZero = false;
+      for (var b = 31; b >= 0; b--) {
+        if ((maskIp >>> b) & 1) {
+          if (seenZero) throw new Error("Subnet mask không contiguous");
+          bits++;
+        } else seenZero = true;
+      }
+      prefix = bits;
+    }
+    var ip = parseIPv4(ipPart);
+    if (ip == null) throw new Error("IPv4 không hợp lệ");
+    return { ip: ip, prefix: prefix };
+  }
+
+  function maskFromPrefix(prefix) {
+    if (prefix === 0) return 0;
+    if (prefix === 32) return 0xffffffff;
+    return ((0xffffffff << (32 - prefix)) >>> 0);
+  }
+
+  function row(label, value) {
+    return (
+      '<div class="cidr-row"><dt>' +
+      label +
+      "</dt><dd><code>" +
+      value +
+      "</code></dd></div>"
+    );
+  }
+
+  function run() {
+    try {
+      var c = parseCIDR(inn.value);
+      var mask = maskFromPrefix(c.prefix);
+      var wildcard = ~mask >>> 0;
+      var network = (c.ip & mask) >>> 0;
+      var broadcast = (network | wildcard) >>> 0;
+      var hostCount =
+        c.prefix >= 31 ? (c.prefix === 32 ? 1 : 2) : Math.pow(2, 32 - c.prefix) - 2;
+      var total = Math.pow(2, 32 - c.prefix);
+      var firstHost = c.prefix >= 31 ? network : (network + 1) >>> 0;
+      var lastHost = c.prefix >= 31 ? broadcast : (broadcast - 1) >>> 0;
+
+      var html = '<dl class="cidr-dl">';
+      html += row("CIDR", toIPv4(network) + "/" + c.prefix);
+      html += row("Address", toIPv4(c.ip));
+      html += row("Netmask", toIPv4(mask) + " (/" + c.prefix + ")");
+      html += row("Wildcard", toIPv4(wildcard));
+      html += row("Network", toIPv4(network));
+      html += row("Broadcast", toIPv4(broadcast));
+      if (c.prefix < 31) {
+        html += row("First host", toIPv4(firstHost));
+        html += row("Last host", toIPv4(lastHost));
+        html += row("Usable hosts", String(hostCount));
+      } else if (c.prefix === 31) {
+        html += row("Point-to-point", toIPv4(network) + " ↔ " + toIPv4(broadcast));
+        html += row("Addresses", "2 (RFC 3021)");
+      } else {
+        html += row("Host", toIPv4(network));
+        html += row("Addresses", "1");
+      }
+      html += row("Total addresses", String(total));
+      html += row("Binary mask", mask.toString(2).padStart(32, "0").replace(/(.{8})/g, "$1 ").trim());
+
+      var checkRaw = checkEl ? String(checkEl.value || "").trim() : "";
+      if (checkRaw) {
+        var cip = parseIPv4(checkRaw);
+        if (cip == null) {
+          html += row("Contains?", "IP check không hợp lệ");
+        } else {
+          var inNet = (cip & mask) >>> 0 === network;
+          html += row(
+            "Contains " + toIPv4(cip) + "?",
+            inNet ? "YES ✓" : "NO"
+          );
+        }
+      }
+      html += "</dl>";
+
+      out.innerHTML = html;
+      out.hidden = false;
+
+      lastText = [
+        "CIDR: " + toIPv4(network) + "/" + c.prefix,
+        "Netmask: " + toIPv4(mask),
+        "Wildcard: " + toIPv4(wildcard),
+        "Network: " + toIPv4(network),
+        "Broadcast: " + toIPv4(broadcast),
+        c.prefix < 31
+          ? "Hosts: " + toIPv4(firstHost) + " - " + toIPv4(lastHost) + " (" + hostCount + ")"
+          : "Addresses: " + total,
+      ].join("\n");
+
+      setMeta("OK · /" + c.prefix + " · " + total + " addr");
+    } catch (e) {
+      out.hidden = true;
+      out.innerHTML = "";
+      lastText = "";
+      setMeta("Lỗi: " + (e && e.message ? e.message : e), true);
+    }
+  }
+
+  if (btnRun) btnRun.addEventListener("click", run);
+  inn.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") run();
+  });
+  if (checkEl)
+    checkEl.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") run();
+    });
+  // live calc for CIDR field
+  var t = null;
+  inn.addEventListener("input", function () {
+    clearTimeout(t);
+    t = setTimeout(run, 250);
+  });
+  if (checkEl)
+    checkEl.addEventListener("input", function () {
+      clearTimeout(t);
+      t = setTimeout(run, 250);
+    });
+
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
+    btnCopy.addEventListener("click", function () {
+      var text = lastText || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
+    });
+  }
+    });
+
+  if (btnClear)
+    btnClear.addEventListener("click", function () {
+      inn.value = "";
+      if (checkEl) checkEl.value = "";
+      out.hidden = true;
+      out.innerHTML = "";
+      lastText = "";
+      setMeta("");
+    });
+
+  run();
+})();

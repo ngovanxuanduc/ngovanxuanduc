@@ -1,0 +1,52 @@
+---
+{
+  "title": "YAML ↔ JSON · Tools",
+  "description": "Đổi YAML ↔ JSON offline — K8s, docker-compose, CI config.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/yaml-json.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>YAML ↔ JSON</h1>
+          <p>Chuyển YAML ↔ JSON trên trình duyệt. Hỗ trợ map/list lồng nhau, scalar thường dùng (DevOps). Không gửi data đi đâu.</p>
+        </div>
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="yj-in">Input</label>
+              <textarea
+                id="yj-in"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="apiVersion: v1&#10;kind: ConfigMap&#10;metadata:&#10;  name: demo&#10;data:&#10;  env: prod"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="yj-out">Output</label>
+              <textarea id="yj-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="yj-to-json">YAML → JSON</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="yj-to-yaml">JSON → YAML</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="yj-swap">Đổi chiều</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="yj-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="yj-clear">Xóa</button>
+            <label class="tool-check">Indent
+              <select id="yj-indent" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="2" selected>2</option>
+                <option value="4">4</option>
+              </select>
+            </label>
+            <span class="tool-meta" id="yj-meta"></span>
+          </div>
+          <div class="tool-note">
+            <p><strong>Ghi chú</strong> — subset YAML thực dụng (map, list, string/number/bool/null, quote, flow <code>{}</code>/<code>[]</code>). Không cover full YAML 1.2 (anchor, tag phức tạp, multi-doc).</p>
+          </div>
+        </div>
+      </div>

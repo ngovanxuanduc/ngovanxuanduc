@@ -157,10 +157,14 @@
         setMeta("Lỗi: " + (e && e.message ? e.message : e));
       }
     });
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
+      var text = out.value || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
+  }
   if (btnClear)
     btnClear.addEventListener("click", function () {
       inn.value = out.value = "";

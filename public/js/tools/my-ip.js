@@ -34,6 +34,10 @@
   }
 
   function flashCopy(btn, label) {
+    if (window.ToolLib && ToolLib.flashCopied) {
+      ToolLib.flashCopied(btn, label || "Đã copy ✓");
+      return;
+    }
     if (!btn) return;
     if (btn._reset) clearTimeout(btn._reset);
     var prev = btn.getAttribute("data-label") || btn.textContent || "Copy";

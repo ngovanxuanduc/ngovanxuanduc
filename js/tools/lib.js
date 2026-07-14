@@ -208,6 +208,99 @@
     return el;
   }
 
+  /**
+   * Visual feedback on a copy button (label + accent flash).
+   * Safe to call repeatedly; restores original label after ms.
+   */
+  function flashCopied(btn, okLabel, ms) {
+    if (!btn) return;
+    if (btn._copyReset) clearTimeout(btn._copyReset);
+    var prev = btn.getAttribute("data-label");
+    if (prev == null || prev === "") {
+      prev = (btn.textContent || "Copy").replace(/\s+/g, " ").trim() || "Copy";
+      // don't store success labels as original
+      if (/^Đã copy/i.test(prev)) prev = "Copy";
+      btn.setAttribute("data-label", prev);
+    }
+    btn.textContent = okLabel || "Đã copy ✓";
+    btn.classList.add("is-copied");
+    btn.classList.remove("is-copy-fail");
+    btn._copyReset = setTimeout(function () {
+      btn.textContent = btn.getAttribute("data-label") || "Copy";
+      btn.classList.remove("is-copied");
+      btn._copyReset = null;
+    }, ms > 0 ? ms : 1300);
+  }
+
+  function flashCopyFail(btn, ms) {
+    if (!btn) return;
+    btn.classList.add("is-copy-fail");
+    setTimeout(function () {
+      btn.classList.remove("is-copy-fail");
+    }, ms > 0 ? ms : 900);
+  }
+
+  /**
+   * Copy text to clipboard + button feedback.
+   * opts: { okLabel, ms, onOk, onFail, emptyMsg }
+   * Returns Promise (always settles).
+   */
+  function copyText(text, btn, opts) {
+    opts = opts || {};
+    text = text == null ? "" : String(text);
+    if (!text && opts.allowEmpty !== true) {
+      flashCopyFail(btn);
+      if (opts.onFail) opts.onFail(new Error(opts.emptyMsg || "Trống"));
+      return Promise.resolve(false);
+    }
+
+    function ok() {
+      flashCopied(btn, opts.okLabel || "Đã copy ✓", opts.ms);
+      if (opts.onOk) opts.onOk();
+      return true;
+    }
+    function fail(err) {
+      flashCopyFail(btn);
+      if (opts.onFail) opts.onFail(err);
+      return false;
+    }
+
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(ok, fail);
+    }
+
+    // fallback
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      var done = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return Promise.resolve(done ? ok() : fail(new Error("execCommand failed")));
+    } catch (e) {
+      return Promise.resolve(fail(e));
+    }
+  }
+
+  /** Bind a copy button: getText() → string to copy */
+  function bindCopy(idOrEl, getText, opts) {
+    var el =
+      typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+    if (!el) return null;
+    if (!el.getAttribute("data-label")) {
+      el.setAttribute("data-label", (el.textContent || "Copy").trim() || "Copy");
+    }
+    el.addEventListener("click", function () {
+      var text = typeof getText === "function" ? getText() : getText;
+      copyText(text, el, opts);
+    });
+    return el;
+  }
+
   global.ToolLib = {
     AUTO_LINES: AUTO_LINES,
     AUTO_CHARS: AUTO_CHARS,
@@ -225,5 +318,9 @@
     formatCount: formatCount,
     setBusy: setBusy,
     onClick: onClick,
+    flashCopied: flashCopied,
+    flashCopyFail: flashCopyFail,
+    copyText: copyText,
+    bindCopy: bindCopy,
   };
 })(typeof window !== "undefined" ? window : globalThis);

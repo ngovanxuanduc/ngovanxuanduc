@@ -49,11 +49,14 @@
   }
 
   if (btnRun) btnRun.addEventListener("click", run);
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      if (payload && navigator.clipboard)
-        navigator.clipboard.writeText(payload.value || "");
+      var text = (payload && payload.value) || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
+  }
   if (btnClear)
     btnClear.addEventListener("click", function () {
       inn.value = "";

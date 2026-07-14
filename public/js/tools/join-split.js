@@ -28,7 +28,10 @@
     }
     if (meta) meta.textContent = "Split → lines";
   };
-  document.getElementById("js-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("js-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("js-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
 })();

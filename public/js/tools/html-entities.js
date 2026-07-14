@@ -29,9 +29,12 @@
     out.value = decode(inn.value);
     setMeta("Decoded");
   };
-  document.getElementById("he-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("he-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("he-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("he-clear").onclick = function () {
     inn.value = out.value = "";
     setMeta("");

@@ -22,9 +22,12 @@
       setMeta("Decode lỗi");
     }
   };
-  document.getElementById("url-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("url-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("url-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("url-clear").onclick = function () {
     inn.value = out.value = "";
     setMeta("");

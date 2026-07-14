@@ -1,0 +1,40 @@
+---
+{
+  "title": "CIDR calculator · Tools",
+  "description": "Tính network, mask, host range từ CIDR IPv4 — offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/cidr.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>CIDR calculator</h1>
+          <p>IPv4 CIDR → network, broadcast, mask, wildcard, host range. Kiểm tra IP có nằm trong dải không. 100% local.</p>
+        </div>
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="cidr-in">CIDR / IP</label>
+              <input id="cidr-in" class="tool-input" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.1.0/24 hoặc 10.0.0.5/16" value="192.168.1.0/24" />
+            </div>
+            <div class="tool-field">
+              <label for="cidr-check">Check IP (optional)</label>
+              <input id="cidr-check" class="tool-input" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.1.50" />
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="cidr-run">Tính</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="cidr-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="cidr-clear">Xóa</button>
+            <span class="tool-meta" id="cidr-meta"></span>
+          </div>
+          <div id="cidr-out" class="cidr-out" hidden></div>
+          <div class="tool-note">
+            <p><strong>Ví dụ nhanh:</strong> <code>10.0.0.0/8</code> · <code>172.16.0.0/12</code> · <code>192.168.0.0/16</code> · <code>192.168.1.10/32</code></p>
+          </div>
+        </div>
+      </div>

@@ -33,7 +33,10 @@
     out.value = res.join("\n");
     if (meta) meta.textContent = "Stripped " + res.length + " lines";
   };
-  document.getElementById("ps-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("ps-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("ps-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
 })();

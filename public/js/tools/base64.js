@@ -36,9 +36,12 @@
       setMeta("Lỗi decode — Base64 không hợp lệ");
     }
   };
-  document.getElementById("b64-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("b64-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("b64-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("b64-swap").onclick = function () {
     var t = inn.value;
     inn.value = out.value;

@@ -45,9 +45,12 @@
       out.value = e.message;
     }
   };
-  document.getElementById("jf-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("jf-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("jf-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("jf-clear").onclick = function () {
     inn.value = out.value = "";
     setMeta("");

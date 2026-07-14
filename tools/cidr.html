@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Tính network, mask, host range từ CIDR IPv4 — offline." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>CIDR calculator · Tools</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/tools/cidr.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/og-image.jpg" />
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="CIDR calculator · Tools" />
+    <meta property="og:description" content="Tính network, mask, host range từ CIDR IPv4 — offline." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/tools/cidr.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="CIDR calculator · Tools" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CIDR calculator · Tools" />
+    <meta name="twitter:description" content="Tính network, mask, host range từ CIDR IPv4 — offline." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="CIDR calculator · Tools" />
+
+    <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
+    <link
+      rel="preload"
+      href="/fonts/inter-latin-var.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="preload" href="/css/style.css" as="style" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="tools">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools" class="is-active">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>CIDR calculator</h1>
+          <p>IPv4 CIDR → network, broadcast, mask, wildcard, host range. Kiểm tra IP có nằm trong dải không. 100% local.</p>
+        </div>
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="cidr-in">CIDR / IP</label>
+              <input id="cidr-in" class="tool-input" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.1.0/24 hoặc 10.0.0.5/16" value="192.168.1.0/24" />
+            </div>
+            <div class="tool-field">
+              <label for="cidr-check">Check IP (optional)</label>
+              <input id="cidr-check" class="tool-input" type="text" spellcheck="false" autocomplete="off" placeholder="192.168.1.50" />
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="cidr-run">Tính</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="cidr-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="cidr-clear">Xóa</button>
+            <span class="tool-meta" id="cidr-meta"></span>
+          </div>
+          <div id="cidr-out" class="cidr-out" hidden></div>
+          <div class="tool-note">
+            <p><strong>Ví dụ nhanh:</strong> <code>10.0.0.0/8</code> · <code>172.16.0.0/12</code> · <code>192.168.0.0/16</code> · <code>192.168.1.10/32</code></p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+        <script src="/js/tools/lib.js" defer></script>
+    <script src="/js/tools/cidr.js" defer></script>
+    <!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        function inject() {
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        function schedule() {
+          if ("requestIdleCallback" in w) {
+            w.requestIdleCallback(inject, { timeout: 3500 });
+          } else {
+            setTimeout(inject, 2000);
+          }
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

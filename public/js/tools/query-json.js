@@ -45,10 +45,14 @@
     }
   };
   var btnCopy = document.getElementById("qj-copy");
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
+      var text = out.value || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
+  }
   var btnClear = document.getElementById("qj-clear");
   if (btnClear)
     btnClear.addEventListener("click", function () {

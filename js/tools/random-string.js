@@ -53,8 +53,12 @@
       if (meta) meta.textContent = n + " × " + len + " chars";
     });
   var btnCopy = document.getElementById("rs-copy");
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
+      var text = out.value || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
+  }
 })();

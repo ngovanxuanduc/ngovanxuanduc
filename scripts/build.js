@@ -116,16 +116,55 @@ function renderScripts(list) {
     .join("\n");
 }
 
+function siteOrigin(site) {
+  const base = (site.url || "https://" + (site.domain || "localhost")).replace(
+    /\/$/,
+    ""
+  );
+  return base;
+}
+
+/** Absolute public URL for a built page path (relative to dist/). */
+function pageCanonicalUrl(site, relPath) {
+  const origin = siteOrigin(site);
+  let p = String(relPath || "").replace(/\\/g, "/");
+  if (p === "index.html" || p === "/index.html" || p === "") return origin + "/";
+  if (p.endsWith("/index.html")) {
+    p = p.slice(0, -"index.html".length);
+    return origin + "/" + p.replace(/^\//, "");
+  }
+  if (!p.startsWith("/")) p = "/" + p;
+  return origin + p;
+}
+
+function absoluteAssetUrl(site, assetPath) {
+  const origin = siteOrigin(site);
+  const p = String(assetPath || "/og-image.jpg");
+  if (/^https?:\/\//i.test(p)) return p;
+  return origin + (p.startsWith("/") ? p : "/" + p);
+}
+
 function buildPage(relPath, raw, site, layout) {
   const { meta, content } = parsePage(raw);
   const title = meta.title || site.name;
-  const description = meta.description || site.name;
+  const description =
+    meta.description || site.description || site.name;
   const page = meta.page || "";
   const scripts = renderScripts(meta.scripts || []);
   const extraHead = meta.extraHead || "";
   const robots = meta.robots
     ? `<meta name="robots" content="${escapeHtml(meta.robots)}" />`
     : "";
+
+  const ogTitle = meta.ogTitle || title;
+  const ogDescription = meta.ogDescription || description;
+  const ogType = meta.ogType || (page === "home" || !page ? "website" : "website");
+  const canonicalUrl =
+    meta.canonical || pageCanonicalUrl(site, relPath);
+  const ogImage = absoluteAssetUrl(
+    site,
+    meta.ogImage || site.ogImage || "/og-image.jpg"
+  );
 
   return apply(layout, {
     lang: site.lang || "vi",
@@ -136,6 +175,12 @@ function buildPage(relPath, raw, site, layout) {
     extraHead,
     scripts,
     content,
+    siteName: escapeHtml(site.name || site.domain || ""),
+    canonicalUrl: escapeAttr(canonicalUrl),
+    ogTitle: escapeHtml(ogTitle),
+    ogDescription: escapeHtml(ogDescription),
+    ogType: escapeAttr(ogType),
+    ogImage: escapeAttr(ogImage),
     gtmHead: apply(read(path.join(SRC, "partials", "gtm-head.html")), {
       gtmId: site.gtmId,
     }),

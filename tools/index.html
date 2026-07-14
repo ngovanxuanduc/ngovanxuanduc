@@ -7,8 +7,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <meta name="description" content="Tools offline — string, encode, JSON, number, time. Chạy trên trình duyệt." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
     <title>Tools · Ngo Van Xuan Duc</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/tools/" />
     <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/og-image.jpg" />
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Tools · Ngo Van Xuan Duc" />
+    <meta property="og:description" content="Tools offline — string, encode, JSON, number, time. Chạy trên trình duyệt." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/tools/" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Tools · Ngo Van Xuan Duc" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tools · Ngo Van Xuan Duc" />
+    <meta name="twitter:description" content="Tools offline — string, encode, JSON, number, time. Chạy trên trình duyệt." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Tools · Ngo Van Xuan Duc" />
+
     <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
     <link
       rel="preload"
@@ -80,6 +106,7 @@
               <button type="button" class="tools-chip" data-cat="2fa">2FA</button>
               <button type="button" class="tools-chip" data-cat="json">JSON</button>
               <button type="button" class="tools-chip" data-cat="number">Number</button>
+              <button type="button" class="tools-chip" data-cat="devops">DevOps</button>
               <button type="button" class="tools-chip" data-cat="browser">Browser</button>
               <button type="button" class="tools-chip" data-cat="firebase">Firebase</button>
             </div>
@@ -180,6 +207,10 @@
               <span class="tool-link__icon">*</span>
               <span class="tool-link__body"><span class="tool-link__title">Random string</span><span class="tool-link__meta">Password / token</span></span>
             </a>
+            <a class="tool-link" href="/tools/password-gen.html" data-cat="encode" data-search="password generator mật khẩu strong secure pin entropy" title="Sinh mật khẩu an toàn offline — charset, entropy, preset">
+              <span class="tool-link__icon">🔑</span>
+              <span class="tool-link__body"><span class="tool-link__title">Tạo mật khẩu</span><span class="tool-link__meta">Mạnh · crypto</span></span>
+            </a>
           </div>
         </section>
 
@@ -262,6 +293,27 @@
             <a class="tool-link" href="/tools/cron-explain.html" data-cat="number" data-search="cron schedule explain" title="Cron explain">
               <span class="tool-link__icon">cron</span>
               <span class="tool-link__body"><span class="tool-link__title">Cron explain</span><span class="tool-link__meta">5-field</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="devops">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">DevOps · Net · Config</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/yaml-json.html" data-cat="devops" data-search="yaml yml json k8s kubernetes compose config convert" title="Đổi YAML ↔ JSON offline">
+              <span class="tool-link__icon">YML</span>
+              <span class="tool-link__body"><span class="tool-link__title">YAML ↔ JSON</span><span class="tool-link__meta">K8s · compose · CI</span></span>
+            </a>
+            <a class="tool-link" href="/tools/regex-tester.html" data-cat="devops" data-search="regex regexp regular expression match test replace" title="Test regex, highlight match, replace — local">
+              <span class="tool-link__icon">.*</span>
+              <span class="tool-link__body"><span class="tool-link__title">Regex tester</span><span class="tool-link__meta">Match · group · replace</span></span>
+            </a>
+            <a class="tool-link" href="/tools/cidr.html" data-cat="devops" data-search="cidr subnet ip network mask wildcard vpc" title="Tính network, mask, host range từ CIDR IPv4">
+              <span class="tool-link__icon">/24</span>
+              <span class="tool-link__body"><span class="tool-link__title">CIDR calculator</span><span class="tool-link__meta">IPv4 subnet</span></span>
             </a>
           </div>
         </section>

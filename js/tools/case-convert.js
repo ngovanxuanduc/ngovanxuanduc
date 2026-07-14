@@ -82,14 +82,14 @@
   });
 
   var btnCopy = document.getElementById("case-copy");
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      navigator.clipboard.writeText(output.value).then(function () {
-        btnCopy.textContent = "Đã copy";
-        setTimeout(function () {
-          btnCopy.textContent = "Copy";
-        }, 1200);
-      });
+      var text = output.value || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
+    });
+  }
     });
 
   input.addEventListener("input", function () {

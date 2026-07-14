@@ -36,9 +36,12 @@
       if (meta) meta.textContent = "Lỗi: " + e.message;
     });
   };
-  document.getElementById("hash-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("hash-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("hash-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("hash-clear").onclick = function () {
     inn.value = out.value = "";
     if (file) file.value = "";

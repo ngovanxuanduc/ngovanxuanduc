@@ -200,14 +200,14 @@
       });
   });
 
-  if (btnCopy)
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy");
     btnCopy.addEventListener("click", function () {
-      navigator.clipboard.writeText(fullResult || outEl.value).then(function () {
-        btnCopy.textContent = "Đã copy";
-        setTimeout(function () {
-          btnCopy.textContent = "Copy";
-        }, 1200);
-      });
+      var text = fullResult || outEl.value || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
+    });
+  }
     });
 
   if (btnClear)

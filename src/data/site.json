@@ -1,9 +1,13 @@
 {
   "name": "Ngo Van Xuan Duc",
   "domain": "ngovanxuanduc.com",
+  "url": "https://ngovanxuanduc.com",
   "logo": "ngovanxuanduc",
   "gtmId": "GTM-W4K2NDNC",
   "lang": "vi",
+  "description": "Trang cá nhân — tools offline, lịch âm–dương, mini-games, bài viết. Dark & minimal.",
+  "ogImage": "/og-image.jpg",
+  "twitter": "",
   "nav": [
     { "id": "home", "label": "Home", "href": "/" },
     { "id": "calendar", "label": "Lịch", "href": "/calendar.html" },

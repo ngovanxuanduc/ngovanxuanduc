@@ -243,22 +243,24 @@
     btnCopy.addEventListener("click", function () {
       if (!out.value) {
         if (meta) meta.textContent = "Chưa có output";
+        if (window.ToolLib) ToolLib.flashCopyFail(btnCopy);
         return;
       }
-      navigator.clipboard.writeText(out.value).then(
-        function () {
-          btnCopy.textContent = "Đã copy ✓";
-          btnCopy.classList.add("is-copied");
-          if (meta) meta.textContent = "Đã copy " + out.value.split("\n").length + " dòng";
-          setTimeout(function () {
-            btnCopy.textContent = "Copy";
-            btnCopy.classList.remove("is-copied");
-          }, 1200);
-        },
-        function () {
-          if (meta) meta.textContent = "Copy thất bại";
-        }
-      );
+      var text = out.value;
+      if (window.ToolLib) {
+        ToolLib.copyText(text, btnCopy, {
+          onOk: function () {
+            if (meta)
+              meta.textContent =
+                "Đã copy " + text.split("\n").length + " dòng";
+          },
+          onFail: function () {
+            if (meta) meta.textContent = "Copy thất bại";
+          },
+        });
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
     });
   }
 

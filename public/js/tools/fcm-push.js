@@ -249,6 +249,19 @@
   function copyToken() {
     if (!tokenEl || !tokenEl.value) {
       log("Chưa có token.", "err");
+      if (btnCopy && window.ToolLib) ToolLib.flashCopyFail(btnCopy);
+      return;
+    }
+    var btn = btnCopy;
+    if (window.ToolLib) {
+      ToolLib.copyText(tokenEl.value, btn, {
+        onOk: function () {
+          log("Đã copy FCM token.", "ok");
+        },
+        onFail: function () {
+          log("Copy thất bại.", "err");
+        },
+      });
       return;
     }
     navigator.clipboard.writeText(tokenEl.value).then(

@@ -66,8 +66,11 @@
   }
 
   document.getElementById("jd-run").onclick = run;
-  document.getElementById("jd-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("jd-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("jd-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   run();
 })();

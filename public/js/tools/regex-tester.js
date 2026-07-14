@@ -1,0 +1,212 @@
+/**
+ * Regex tester — match list, highlight, replace (offline).
+ */
+(function () {
+  "use strict";
+
+  var patternEl = document.getElementById("re-pattern");
+  var textEl = document.getElementById("re-text");
+  var replEl = document.getElementById("re-repl");
+  var outEl = document.getElementById("re-out");
+  var matchesEl = document.getElementById("re-matches");
+  var highlightEl = document.getElementById("re-highlight");
+  var metaEl = document.getElementById("re-meta");
+  var btnRun = document.getElementById("re-run");
+  var btnCopy = document.getElementById("re-copy-repl");
+  var btnClear = document.getElementById("re-clear");
+  if (!patternEl || !textEl) return;
+
+  var flagIds = ["re-g", "re-i", "re-m", "re-s", "re-u", "re-y"];
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function setMeta(msg, err) {
+    if (!metaEl) return;
+    metaEl.textContent = msg || "";
+    metaEl.style.color = err ? "var(--danger)" : "var(--text-dim)";
+  }
+
+  function flags() {
+    var f = "";
+    for (var i = 0; i < flagIds.length; i++) {
+      var el = document.getElementById(flagIds[i]);
+      if (el && el.checked) f += flagIds[i].slice(3); // re-g → g
+    }
+    return f;
+  }
+
+  function buildRe() {
+    var src = patternEl.value;
+    if (src === "") throw new Error("Pattern trống");
+    return new RegExp(src, flags());
+  }
+
+  function run() {
+    var text = textEl.value == null ? "" : String(textEl.value);
+    var repl = replEl ? String(replEl.value || "") : "";
+
+    try {
+      var re = buildRe();
+      var matches = [];
+      var m;
+      var guard = 0;
+      var maxMatches = 5000;
+
+      if (re.global || re.sticky) {
+        re.lastIndex = 0;
+        while ((m = re.exec(text)) !== null) {
+          matches.push({
+            index: m.index,
+            full: m[0],
+            groups: Array.prototype.slice.call(m, 1),
+            named: m.groups || null,
+          });
+          guard++;
+          if (m[0].length === 0) {
+            // avoid infinite loop on zero-length match
+            re.lastIndex = m.index + 1;
+          }
+          if (guard >= maxMatches) break;
+        }
+      } else {
+        m = re.exec(text);
+        if (m) {
+          matches.push({
+            index: m.index,
+            full: m[0],
+            groups: Array.prototype.slice.call(m, 1),
+            named: m.groups || null,
+          });
+        }
+      }
+
+      // Replace uses fresh regex (global if user set g)
+      var re2 = buildRe();
+      var replaced = text.replace(re2, repl);
+      if (outEl) outEl.value = replaced;
+
+      // Matches panel
+      if (matchesEl) {
+        if (!matches.length) {
+          matchesEl.innerHTML = "<p>Không có match.</p>";
+        } else {
+          var html = "<p><strong>" + matches.length + "</strong> match(es)" +
+            (guard >= maxMatches ? " (đã cap " + maxMatches + ")" : "") +
+            "</p><ol class='re-match-list'>";
+          var show = Math.min(matches.length, 200);
+          for (var i = 0; i < show; i++) {
+            var it = matches[i];
+            html +=
+              "<li><code>@" +
+              it.index +
+              "</code> <code class='re-full'>" +
+              escapeHtml(it.full) +
+              "</code>";
+            if (it.groups && it.groups.length) {
+              html += "<ul>";
+              for (var g = 0; g < it.groups.length; g++) {
+                html +=
+                  "<li>$" +
+                  (g + 1) +
+                  " = <code>" +
+                  escapeHtml(it.groups[g] == null ? "" : it.groups[g]) +
+                  "</code></li>";
+              }
+              html += "</ul>";
+            }
+            html += "</li>";
+          }
+          if (matches.length > show) {
+            html += "<li>… +" + (matches.length - show) + " match</li>";
+          }
+          html += "</ol>";
+          matchesEl.innerHTML = html;
+        }
+      }
+
+      // Highlight — merge ranges
+      if (highlightEl) {
+        if (!matches.length) {
+          highlightEl.innerHTML = escapeHtml(text) || " ";
+        } else {
+          var parts = [];
+          var cursor = 0;
+          // sort by index
+          matches.sort(function (a, b) {
+            return a.index - b.index;
+          });
+          for (var j = 0; j < matches.length; j++) {
+            var hit = matches[j];
+            if (hit.index < cursor) continue; // overlap skip
+            parts.push(escapeHtml(text.slice(cursor, hit.index)));
+            parts.push(
+              '<mark class="re-mark">' + escapeHtml(hit.full) + "</mark>"
+            );
+            cursor = hit.index + (hit.full ? hit.full.length : 0);
+          }
+          parts.push(escapeHtml(text.slice(cursor)));
+          highlightEl.innerHTML = parts.join("") || " ";
+        }
+      }
+
+      setMeta(
+        "/" +
+          patternEl.value.replace(/\//g, "\\/") +
+          "/" +
+          flags() +
+          " · " +
+          matches.length +
+          " match",
+        false
+      );
+    } catch (e) {
+      setMeta("Lỗi: " + (e && e.message ? e.message : e), true);
+      if (matchesEl) matchesEl.innerHTML = "<p>Pattern lỗi.</p>";
+      if (highlightEl) highlightEl.textContent = textEl.value || "";
+      if (outEl) outEl.value = "";
+    }
+  }
+
+  var debounceT = null;
+  function schedule() {
+    clearTimeout(debounceT);
+    debounceT = setTimeout(run, 200);
+  }
+
+  if (btnRun) btnRun.addEventListener("click", run);
+  patternEl.addEventListener("input", schedule);
+  textEl.addEventListener("input", schedule);
+  if (replEl) replEl.addEventListener("input", schedule);
+  flagIds.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener("change", schedule);
+  });
+
+  if (btnCopy) {
+    if (!btnCopy.getAttribute("data-label")) btnCopy.setAttribute("data-label", "Copy replace");
+    btnCopy.addEventListener("click", function () {
+      var text = (outEl && outEl.value) || "";
+      if (window.ToolLib) ToolLib.copyText(text, btnCopy);
+      else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
+    });
+  }
+    });
+
+  if (btnClear)
+    btnClear.addEventListener("click", function () {
+      patternEl.value = "";
+      textEl.value = "";
+      if (replEl) replEl.value = "";
+      if (outEl) outEl.value = "";
+      if (matchesEl) matchesEl.innerHTML = "Chưa chạy.";
+      if (highlightEl) highlightEl.textContent = "";
+      setMeta("");
+    });
+
+  run();
+})();

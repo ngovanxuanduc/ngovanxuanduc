@@ -28,8 +28,11 @@
     }
     out.value = paras.join("\n\n");
   };
-  document.getElementById("lo-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("lo-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("lo-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
   document.getElementById("lo-gen").click();
 })();

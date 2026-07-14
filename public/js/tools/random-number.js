@@ -44,7 +44,10 @@
       if (meta) meta.textContent = e.message;
     }
   };
-  document.getElementById("rn-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  if (window.ToolLib) {
+    ToolLib.bindCopy("rn-copy", function () { return out.value || ""; });
+  } else {
+    var _c = document.getElementById("rn-copy");
+    if (_c) _c.onclick = function () { navigator.clipboard.writeText(out.value || ""); };
+  }
 })();
