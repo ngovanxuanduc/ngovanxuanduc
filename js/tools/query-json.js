@@ -1,0 +1,48 @@
+(function () {
+  var inn = document.getElementById("qj-in");
+  var out = document.getElementById("qj-out");
+  var meta = document.getElementById("qj-meta");
+  if (!inn || !out) return;
+
+  document.getElementById("qj-to-json").onclick = function () {
+    try {
+      var q = inn.value.trim();
+      if (q.charAt(0) === "?") q = q.slice(1);
+      var params = new URLSearchParams(q);
+      var obj = {};
+      params.forEach(function (v, k) {
+        if (Object.prototype.hasOwnProperty.call(obj, k)) {
+          if (!Array.isArray(obj[k])) obj[k] = [obj[k]];
+          obj[k].push(v);
+        } else obj[k] = v;
+      });
+      out.value = JSON.stringify(obj, null, 2);
+      if (meta) meta.textContent = "Query → JSON";
+    } catch (e) {
+      if (meta) meta.textContent = "Lỗi: " + e.message;
+    }
+  };
+  document.getElementById("qj-to-query").onclick = function () {
+    try {
+      var obj = JSON.parse(inn.value);
+      var p = new URLSearchParams();
+      Object.keys(obj).forEach(function (k) {
+        var v = obj[k];
+        if (Array.isArray(v)) v.forEach(function (x) { p.append(k, x); });
+        else if (v != null && typeof v === "object") p.append(k, JSON.stringify(v));
+        else p.append(k, v == null ? "" : String(v));
+      });
+      out.value = p.toString();
+      if (meta) meta.textContent = "JSON → Query";
+    } catch (e) {
+      if (meta) meta.textContent = "Lỗi JSON: " + e.message;
+    }
+  };
+  document.getElementById("qj-copy").onclick = function () {
+    navigator.clipboard.writeText(out.value);
+  };
+  document.getElementById("qj-clear").onclick = function () {
+    inn.value = out.value = "";
+    if (meta) meta.textContent = "";
+  };
+})();

@@ -1,0 +1,66 @@
+(function () {
+  var inn = document.getElementById("hash-in");
+  var out = document.getElementById("hash-out");
+  var algo = document.getElementById("hash-algo");
+  var meta = document.getElementById("hash-meta");
+  var file = document.getElementById("hash-file");
+  if (!inn || !out || !window.crypto || !crypto.subtle) {
+    if (meta) meta.textContent = "Web Crypto không khả dụng.";
+    return;
+  }
+
+  function bufToHex(buf) {
+    var a = new Uint8Array(buf);
+    var s = "";
+    for (var i = 0; i < a.length; i++) {
+      s += a[i].toString(16).padStart(2, "0");
+    }
+    return s;
+  }
+
+  async function hashBytes(bytes, name) {
+    var dig = await crypto.subtle.digest(name, bytes);
+    return bufToHex(dig);
+  }
+
+  async function runText() {
+    var name = algo.value;
+    var bytes = new TextEncoder().encode(inn.value);
+    out.value = await hashBytes(bytes, name);
+    if (meta)
+      meta.textContent = name + " · " + bytes.length + " bytes UTF-8";
+  }
+
+  document.getElementById("hash-run").onclick = function () {
+    runText().catch(function (e) {
+      if (meta) meta.textContent = "Lỗi: " + e.message;
+    });
+  };
+  document.getElementById("hash-copy").onclick = function () {
+    navigator.clipboard.writeText(out.value);
+  };
+  document.getElementById("hash-clear").onclick = function () {
+    inn.value = out.value = "";
+    if (file) file.value = "";
+    if (meta) meta.textContent = "";
+  };
+  if (file)
+    file.addEventListener("change", function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      if (meta) meta.textContent = "Đang hash file…";
+      f.arrayBuffer()
+        .then(function (buf) {
+          return hashBytes(buf, algo.value);
+        })
+        .then(function (hex) {
+          out.value = hex;
+          if (meta)
+            meta.textContent =
+              algo.value + " · file “" + f.name + "” · " + f.size + " bytes";
+        })
+        .catch(function (e) {
+          if (meta) meta.textContent = "Lỗi file: " + e.message;
+        });
+    });
+})();

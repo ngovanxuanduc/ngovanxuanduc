@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Bài viết ngắn — notes &amp; thoughts." />
+    <title>Articles · Ngo Van Xuan Duc</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container">
+        <div class="page-intro animate-in">
+          <h1>Articles</h1>
+          <p>
+            Ghi chú ngắn, không formal. Khi có gì đáng viết sẽ thêm vào đây.
+          </p>
+        </div>
+
+        <ul class="article-list animate-in animate-in-delay-1">
+          <li>
+            <a href="/articles/chao-mung.html">
+              <span class="article-list__title">Chào mừng đến site mới</span>
+              <span class="article-list__date">2026-07-14</span>
+            </a>
+          </li>
+          <li>
+            <a href="/articles/mini-games.html">
+              <span class="article-list__title"
+                >Vì sao mình để mini-game trên trang cá nhân</span
+              >
+              <span class="article-list__date">2026-07-14</span>
+            </a>
+          </li>
+          <li>
+            <a href="/articles/dark-minimal.html">
+              <span class="article-list__title"
+                >Dark &amp; minimal — vài lựa chọn thiết kế</span
+              >
+              <span class="article-list__date">2026-07-14</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+    
+  </body>
+</html>

@@ -262,6 +262,51 @@ ${content}
   return buildPage("tools/index.html", pageRaw, site, layout);
 }
 
+/**
+ * GitHub Pages "Deploy from a branch / root" (cách code cũ):
+ * publish bản build ra root repo (cạnh src/), không chỉ dist/.
+ * Không đụng src/, scripts/, .git, package.json, README, v.v.
+ */
+const ROOT_PUBLISH = [
+  "index.html",
+  "calendar.html",
+  "404.html",
+  "favicon.ico",
+  "CNAME",
+  "firebase-messaging-sw.js",
+  "_redirects",
+  ".nojekyll",
+  "serve.json",
+  "css",
+  "js",
+  "tools",
+  "games",
+  "articles",
+];
+
+function cleanRootPublish() {
+  for (const name of ROOT_PUBLISH) {
+    const p = path.join(ROOT, name);
+    if (fs.existsSync(p)) rmrf(p);
+  }
+}
+
+function publishRoot() {
+  cleanRootPublish();
+  for (const name of ROOT_PUBLISH) {
+    const from = path.join(DIST, name);
+    const to = path.join(ROOT, name);
+    if (!fs.existsSync(from)) continue;
+    const st = fs.statSync(from);
+    if (st.isDirectory()) copyDir(from, to);
+    else {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.copyFileSync(from, to);
+    }
+  }
+  console.log("Published → repo root (GitHub Pages branch/root ready)");
+}
+
 function main() {
   const site = JSON.parse(read(path.join(SRC, "data", "site.json")));
   const toolsData = JSON.parse(read(path.join(SRC, "data", "tools.json")));
@@ -291,6 +336,9 @@ function main() {
   count++;
 
   console.log(`Built ${count} pages + public assets → dist/`);
+
+  // 4) copy ra root — tương thích Pages deploy branch (như code cũ)
+  publishRoot();
 }
 
 main();

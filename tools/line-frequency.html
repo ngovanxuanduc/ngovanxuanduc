@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Đếm tần suất mỗi dòng trong danh sách." />
+    <title>Đếm tần suất dòng · Tools</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="tools">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools" class="is-active">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Đếm tần suất dòng</h1>
+          <p>
+            Đếm mỗi dòng xuất hiện bao nhiêu lần. Output dạng
+            <code>số lần + tab + nội dung</code>.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="lf-input">Input</label>
+              <textarea
+                id="lf-input"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="red&#10;blue&#10;red&#10;green&#10;blue&#10;blue"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="lf-out">Output</label>
+              <textarea
+                id="lf-out"
+                class="tool-textarea tool-textarea--tall tool-textarea--result"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="lf-run">Chạy</button>
+            <label class="tool-check">
+              Sort
+              <select id="lf-sort" class="tool-select" style="width: auto; padding: 0.35rem 0.5rem">
+                <option value="freq-desc">Nhiều → ít</option>
+                <option value="freq-asc">Ít → nhiều</option>
+                <option value="alpha">A → Z</option>
+                <option value="first">Thứ tự lần đầu</option>
+              </select>
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-only-dup" />
+              Chỉ dòng trùng (≥2)
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-ignore-case" />
+              Ignore case
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="lf-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="lf-clear">Xóa</button>
+            <span class="tool-meta" id="lf-meta"></span>
+          </div>
+        </div>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+        <script src="/js/tools/lib.js"></script>
+    <script src="/js/tools/line-frequency.js"></script>
+  </body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Lịch Dương &amp; Âm Việt Nam, countdown Tết Dương lịch." />
+    <title>Lịch &amp; Countdown · Ngo Van Xuan Duc</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="calendar">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar" class="is-active">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container container--cal">
+        <div class="page-intro animate-in">
+          <h1>Lịch &amp; Countdown</h1>
+          <p>
+            Đếm ngược Tết Dương lịch và xem lịch tháng — mỗi ngày có cả
+            <strong>dương</strong> và <strong>âm</strong> (can chi).
+          </p>
+        </div>
+
+        <!-- New Year countdowns -->
+        <div class="countdown-grid animate-in animate-in-delay-1" style="margin-bottom: 1.5rem">
+          <section class="countdown-block">
+            <div class="countdown-block__head">
+              <h2 class="countdown-block__title">Tết Dương lịch</h2>
+              <p class="countdown-block__sub" id="cd-label">Đến 1/1</p>
+            </div>
+            <div class="countdown countdown--lg" aria-live="polite">
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-days">00</div>
+                <span class="countdown__label">Ngày</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-hours">00</div>
+                <span class="countdown__label">Giờ</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-minutes">00</div>
+                <span class="countdown__label">Phút</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-seconds">00</div>
+                <span class="countdown__label">Giây</span>
+              </div>
+            </div>
+          </section>
+          <section class="countdown-block countdown-block--accent">
+            <div class="countdown-block__head">
+              <h2 class="countdown-block__title" id="cd-ln-title">Tết Âm lịch</h2>
+              <p class="countdown-block__sub" id="cd-ln-label">Đến mùng 1 Tết</p>
+            </div>
+            <div class="countdown countdown--lg" aria-live="polite">
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-ln-days">00</div>
+                <span class="countdown__label">Ngày</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-ln-hours">00</div>
+                <span class="countdown__label">Giờ</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-ln-minutes">00</div>
+                <span class="countdown__label">Phút</span>
+              </div>
+              <div class="countdown__unit">
+                <div class="countdown__num" id="cd-ln-seconds">00</div>
+                <span class="countdown__label">Giây</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Solar + Lunar calendar -->
+        <section class="animate-in animate-in-delay-2">
+          <div class="cal-layout">
+            <div class="cal-panel">
+              <div class="cal-toolbar">
+                <div class="cal-toolbar__nav">
+                  <button type="button" class="btn btn--ghost btn--sm" id="cal-prev" aria-label="Tháng trước">
+                    ←
+                  </button>
+                  <button type="button" class="btn btn--ghost btn--sm" id="cal-today">
+                    Hôm nay
+                  </button>
+                </div>
+                <h2 class="cal-toolbar__title" id="cal-title">Tháng</h2>
+                <div class="cal-toolbar__nav">
+                  <button type="button" class="btn btn--ghost btn--sm" id="cal-next" aria-label="Tháng sau">
+                    →
+                  </button>
+                </div>
+              </div>
+
+              <div id="cal-grid" class="cal-grid" role="grid" aria-label="Lịch tháng"></div>
+
+              <div class="cal-legend">
+                <span><i class="lg-today"></i> Hôm nay</span>
+                <span><i class="lg-mung1"></i> Mùng 1 âm</span>
+                <span><i class="lg-ram"></i> Rằm (15)</span>
+              </div>
+            </div>
+
+            <aside class="cal-detail" id="cal-detail" aria-live="polite">
+              <!-- filled by JS -->
+            </aside>
+          </div>
+        </section>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+        <script src="/js/lunar.js"></script>
+    <script src="/js/countdown.js"></script>
+    <script src="/js/calendar.js"></script>
+  </body>
+</html>

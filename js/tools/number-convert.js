@@ -1,0 +1,122 @@
+(function () {
+  var fields = {
+    bin: document.getElementById("num-bin"),
+    oct: document.getElementById("num-oct"),
+    dec: document.getElementById("num-dec"),
+    hex: document.getElementById("num-hex"),
+  };
+  var status = document.getElementById("num-status");
+  var btnClear = document.getElementById("num-clear");
+  if (!fields.dec) return;
+
+  var updating = false;
+
+  function clean(str, base) {
+    str = (str || "").trim().replace(/\s+/g, "");
+    if (base === 16) str = str.replace(/^0x/i, "");
+    if (base === 2) str = str.replace(/^0b/i, "");
+    if (base === 8) str = str.replace(/^0o/i, "");
+    return str;
+  }
+
+  function validForBase(str, base) {
+    if (!str) return true;
+    var re =
+      base === 2
+        ? /^[01]+$/i
+        : base === 8
+          ? /^[0-7]+$/i
+          : base === 10
+            ? /^-?[0-9]+$/
+            : /^[0-9a-f]+$/i;
+    return re.test(str);
+  }
+
+  function setAll(n, except) {
+    updating = true;
+    if (except !== "bin" && fields.bin) {
+      fields.bin.value = n >= 0 ? n.toString(2) : "";
+    }
+    if (except !== "oct" && fields.oct) {
+      fields.oct.value = n >= 0 ? n.toString(8) : "";
+    }
+    if (except !== "dec" && fields.dec) {
+      fields.dec.value = String(n);
+    }
+    if (except !== "hex" && fields.hex) {
+      fields.hex.value = n >= 0 ? n.toString(16).toUpperCase() : "";
+    }
+    updating = false;
+  }
+
+  function clearOthers(except) {
+    updating = true;
+    Object.keys(fields).forEach(function (k) {
+      if (k !== except && fields[k]) fields[k].value = "";
+    });
+    updating = false;
+  }
+
+  function onInput(base, key) {
+    return function () {
+      if (updating) return;
+      var raw = clean(fields[key].value, base);
+      if (!raw) {
+        clearOthers(key);
+        if (status) status.textContent = "";
+        return;
+      }
+      if (!validForBase(raw, base)) {
+        if (status) {
+          status.textContent = "Giá trị không hợp lệ cho hệ " + base + ".";
+          status.style.color = "var(--danger)";
+        }
+        return;
+      }
+      var n;
+      try {
+        if (base === 10) {
+          n = parseInt(raw, 10);
+        } else {
+          n = parseInt(raw, base);
+        }
+      } catch (e) {
+        n = NaN;
+      }
+      if (!Number.isFinite(n) || n > Number.MAX_SAFE_INTEGER) {
+        if (status) {
+          status.textContent = "Số quá lớn hoặc không hợp lệ.";
+          status.style.color = "var(--danger)";
+        }
+        return;
+      }
+      if (n < 0 && base !== 10) {
+        if (status) {
+          status.textContent = "Bin/Oct/Hex chỉ hỗ trợ số không âm.";
+          status.style.color = "var(--danger)";
+        }
+        return;
+      }
+      setAll(n, key);
+      if (status) {
+        status.textContent = "OK · " + n.toLocaleString("en-US");
+        status.style.color = "var(--text-dim)";
+      }
+    };
+  }
+
+  if (fields.bin) fields.bin.addEventListener("input", onInput(2, "bin"));
+  if (fields.oct) fields.oct.addEventListener("input", onInput(8, "oct"));
+  if (fields.dec) fields.dec.addEventListener("input", onInput(10, "dec"));
+  if (fields.hex) fields.hex.addEventListener("input", onInput(16, "hex"));
+
+  if (btnClear)
+    btnClear.addEventListener("click", function () {
+      updating = true;
+      Object.keys(fields).forEach(function (k) {
+        if (fields[k]) fields[k].value = "";
+      });
+      updating = false;
+      if (status) status.textContent = "";
+    });
+})();

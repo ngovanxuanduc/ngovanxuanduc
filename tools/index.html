@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Tools offline — string, encode, JSON, number, time. Chạy trên trình duyệt." />
+    <title>Tools · Ngo Van Xuan Duc</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="tools">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools" class="is-active">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+      <div class="container container--tools" id="tools-hub">
+        <div class="page-intro" style="margin-bottom: 0.75rem">
+          <h1>Tools</h1>
+          <p>
+            Offline trên trình duyệt. Gõ <kbd style="font-family:var(--mono);font-size:0.8em;padding:0.1em 0.35em;border:1px solid var(--border);border-radius:4px">/</kbd> để tìm nhanh.
+          </p>
+        </div>
+
+        <div class="tools-bar">
+          <div class="tools-bar__row">
+            <input
+              type="search"
+              id="tools-search"
+              class="tools-search"
+              placeholder="Tìm tool… (diff, base64, json…)"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <div class="tools-chips" role="tablist" aria-label="Categories">
+              <button type="button" class="tools-chip is-active" data-cat="all">All</button>
+              <button type="button" class="tools-chip" data-cat="string">String</button>
+              <button type="button" class="tools-chip" data-cat="encode">Encode</button>
+              <button type="button" class="tools-chip" data-cat="json">JSON</button>
+              <button type="button" class="tools-chip" data-cat="number">Number</button>
+              <button type="button" class="tools-chip" data-cat="browser">Browser</button>
+              <button type="button" class="tools-chip" data-cat="firebase">Firebase</button>
+            </div>
+            <span class="tools-count" id="tools-count"></span>
+          </div>
+        </div>
+
+        <div class="tools-empty" id="tools-empty">Không có tool khớp — thử từ khóa khác.</div>
+
+        <section class="tools-group" data-group="string">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">String · lines</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/string-diff.html" data-cat="string" data-search="diff string compare lines myers" title="So sánh hai đoạn text theo dòng">
+              <span class="tool-link__icon">↔</span>
+              <span class="tool-link__body"><span class="tool-link__title">Diff string</span><span class="tool-link__meta">So sánh theo dòng</span></span>
+            </a>
+            <a class="tool-link" href="/tools/line-sets.html" data-cat="string" data-search="set intersect union difference list 2" title="So sánh 2 list">
+              <span class="tool-link__icon">∩</span>
+              <span class="tool-link__body"><span class="tool-link__title">So sánh 2 list</span><span class="tool-link__meta">Giao · hiệu · hợp</span></span>
+            </a>
+            <a class="tool-link" href="/tools/line-sets-3.html" data-cat="string" data-search="set three 3 list intersect" title="So sánh 3 list">
+              <span class="tool-link__icon">∩∩</span>
+              <span class="tool-link__body"><span class="tool-link__title">So sánh 3 list</span><span class="tool-link__meta">A ∩ B ∩ C…</span></span>
+            </a>
+            <a class="tool-link" href="/tools/fuzzy-lines.html" data-cat="string" data-search="fuzzy similarity levenshtein typo" title="Fuzzy match">
+              <span class="tool-link__icon">≈</span>
+              <span class="tool-link__body"><span class="tool-link__title">Fuzzy match</span><span class="tool-link__meta">Dòng gần giống</span></span>
+            </a>
+            <a class="tool-link" href="/tools/line-frequency.html" data-cat="string" data-search="frequency count duplicate occurrences" title="Tần suất dòng">
+              <span class="tool-link__icon">#</span>
+              <span class="tool-link__body"><span class="tool-link__title">Tần suất dòng</span><span class="tool-link__meta">Đếm số lần xuất hiện</span></span>
+            </a>
+            <a class="tool-link" href="/tools/sort-lines.html" data-cat="string" data-search="sort reverse shuffle unique" title="Sort lines">
+              <span class="tool-link__icon">↕</span>
+              <span class="tool-link__body"><span class="tool-link__title">Sort lines</span><span class="tool-link__meta">Sort · shuffle · unique</span></span>
+            </a>
+            <a class="tool-link" href="/tools/remove-duplicates.html" data-cat="string" data-search="dedupe remove duplicate unique" title="Remove duplicates">
+              <span class="tool-link__icon">⧉</span>
+              <span class="tool-link__body"><span class="tool-link__title">Remove duplicates</span><span class="tool-link__meta">Gỡ dòng trùng</span></span>
+            </a>
+            <a class="tool-link" href="/tools/case-convert.html" data-cat="string" data-search="case upper lower camel snake kebab" title="Case / format">
+              <span class="tool-link__icon">Aa</span>
+              <span class="tool-link__body"><span class="tool-link__title">Case / format</span><span class="tool-link__meta">camel · snake · UPPER</span></span>
+            </a>
+            <a class="tool-link" href="/tools/join-split.html" data-cat="string" data-search="join split delimiter" title="Join / Split">
+              <span class="tool-link__icon">⊕</span>
+              <span class="tool-link__body"><span class="tool-link__title">Join / Split</span><span class="tool-link__meta">Delimiter</span></span>
+            </a>
+            <a class="tool-link" href="/tools/find-replace.html" data-cat="string" data-search="find replace regex" title="Find &amp; replace">
+              <span class="tool-link__icon">/</span>
+              <span class="tool-link__body"><span class="tool-link__title">Find &amp; replace</span><span class="tool-link__meta">Text / regex</span></span>
+            </a>
+            <a class="tool-link" href="/tools/prefix-suffix.html" data-cat="string" data-search="prefix suffix wrap lines" title="Prefix / suffix">
+              <span class="tool-link__icon">«»</span>
+              <span class="tool-link__body"><span class="tool-link__title">Prefix / suffix</span><span class="tool-link__meta">Thêm / gỡ đầu cuối</span></span>
+            </a>
+            <a class="tool-link" href="/tools/text-stats.html" data-cat="string" data-search="stats counter words characters bytes" title="Text stats">
+              <span class="tool-link__icon">Σ</span>
+              <span class="tool-link__body"><span class="tool-link__title">Text stats</span><span class="tool-link__meta">Ký tự · từ · dòng</span></span>
+            </a>
+            <a class="tool-link" href="/tools/lorem.html" data-cat="string" data-search="lorem ipsum placeholder dummy" title="Lorem ipsum">
+              <span class="tool-link__icon">¶</span>
+              <span class="tool-link__body"><span class="tool-link__title">Lorem ipsum</span><span class="tool-link__meta">Sinh text mẫu</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="encode">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">Encode · Hash · ID</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/base64.html" data-cat="encode" data-search="base64 encode decode" title="Base64">
+              <span class="tool-link__icon">64</span>
+              <span class="tool-link__body"><span class="tool-link__title">Base64</span><span class="tool-link__meta">Encode / decode</span></span>
+            </a>
+            <a class="tool-link" href="/tools/url-codec.html" data-cat="encode" data-search="url encode percent uri" title="URL encode">
+              <span class="tool-link__icon">%</span>
+              <span class="tool-link__body"><span class="tool-link__title">URL encode</span><span class="tool-link__meta">encodeURIComponent</span></span>
+            </a>
+            <a class="tool-link" href="/tools/html-entities.html" data-cat="encode" data-search="html entities escape lt gt" title="HTML entities">
+              <span class="tool-link__icon">&</span>
+              <span class="tool-link__body"><span class="tool-link__title">HTML entities</span><span class="tool-link__meta">Escape markup</span></span>
+            </a>
+            <a class="tool-link" href="/tools/hash.html" data-cat="encode" data-search="hash sha256 sha1 sha512 file crypto" title="Hash">
+              <span class="tool-link__icon">#</span>
+              <span class="tool-link__body"><span class="tool-link__title">Hash</span><span class="tool-link__meta">SHA + file</span></span>
+            </a>
+            <a class="tool-link" href="/tools/uuid.html" data-cat="encode" data-search="uuid guid v4 id generator" title="UUID v4">
+              <span class="tool-link__icon">ID</span>
+              <span class="tool-link__body"><span class="tool-link__title">UUID v4</span><span class="tool-link__meta">Sinh hàng loạt</span></span>
+            </a>
+            <a class="tool-link" href="/tools/random-string.html" data-cat="encode" data-search="password random string token" title="Random string">
+              <span class="tool-link__icon">*</span>
+              <span class="tool-link__body"><span class="tool-link__title">Random string</span><span class="tool-link__meta">Password / token</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="json">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">JSON · Data</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/json-format.html" data-cat="json" data-search="json pretty minify validate format" title="JSON format">
+              <span class="tool-link__icon">{ }</span>
+              <span class="tool-link__body"><span class="tool-link__title">JSON format</span><span class="tool-link__meta">Pretty · minify</span></span>
+            </a>
+            <a class="tool-link" href="/tools/json-csv.html" data-cat="json" data-search="csv convert table" title="JSON ↔ CSV">
+              <span class="tool-link__icon">⇄</span>
+              <span class="tool-link__body"><span class="tool-link__title">JSON ↔ CSV</span><span class="tool-link__meta">Đổi bảng</span></span>
+            </a>
+            <a class="tool-link" href="/tools/json-diff.html" data-cat="json" data-search="diff compare keys path" title="JSON diff">
+              <span class="tool-link__icon">Δ</span>
+              <span class="tool-link__body"><span class="tool-link__title">JSON diff</span><span class="tool-link__meta">So key path</span></span>
+            </a>
+            <a class="tool-link" href="/tools/query-json.html" data-cat="json" data-search="query string params urlsearchparams" title="Query ↔ JSON">
+              <span class="tool-link__icon">?&</span>
+              <span class="tool-link__body"><span class="tool-link__title">Query ↔ JSON</span><span class="tool-link__meta">Query string</span></span>
+            </a>
+            <a class="tool-link" href="/tools/jwt-decode.html" data-cat="json" data-search="jwt token decode payload header" title="JWT decode">
+              <span class="tool-link__icon">JWT</span>
+              <span class="tool-link__body"><span class="tool-link__title">JWT decode</span><span class="tool-link__meta">Không verify</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="number">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">Number · Time · Color</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/number-convert.html" data-cat="number" data-search="binary octal hex decimal base" title="Base convert">
+              <span class="tool-link__icon">01</span>
+              <span class="tool-link__body"><span class="tool-link__title">Base convert</span><span class="tool-link__meta">Bin · Oct · Dec · Hex</span></span>
+            </a>
+            <a class="tool-link" href="/tools/number-format.html" data-cat="number" data-search="format locale percent scientific" title="Number format">
+              <span class="tool-link__icon">1,0</span>
+              <span class="tool-link__body"><span class="tool-link__title">Number format</span><span class="tool-link__meta">Grouped · %</span></span>
+            </a>
+            <a class="tool-link" href="/tools/byte-size.html" data-cat="number" data-search="bytes kb mb gb size" title="Byte size">
+              <span class="tool-link__icon">KB</span>
+              <span class="tool-link__body"><span class="tool-link__title">Byte size</span><span class="tool-link__meta">B → TB</span></span>
+            </a>
+            <a class="tool-link" href="/tools/percentage.html" data-cat="number" data-search="percent percentage math" title="Percentage">
+              <span class="tool-link__icon">%</span>
+              <span class="tool-link__body"><span class="tool-link__title">Percentage</span><span class="tool-link__meta">% của · % đổi</span></span>
+            </a>
+            <a class="tool-link" href="/tools/random-number.html" data-cat="number" data-search="random rng integer" title="Random number">
+              <span class="tool-link__icon">#?</span>
+              <span class="tool-link__body"><span class="tool-link__title">Random number</span><span class="tool-link__meta">Trong khoảng</span></span>
+            </a>
+            <a class="tool-link" href="/tools/timestamp.html" data-cat="number" data-search="unix timestamp epoch iso date time" title="Timestamp">
+              <span class="tool-link__icon">⏱</span>
+              <span class="tool-link__body"><span class="tool-link__title">Timestamp</span><span class="tool-link__meta">Unix ↔ ISO</span></span>
+            </a>
+            <a class="tool-link" href="/tools/color-convert.html" data-cat="number" data-search="color hex rgb hsl" title="Color convert">
+              <span class="tool-link__icon">◉</span>
+              <span class="tool-link__body"><span class="tool-link__title">Color convert</span><span class="tool-link__meta">HEX · RGB · HSL</span></span>
+            </a>
+            <a class="tool-link" href="/tools/cron-explain.html" data-cat="number" data-search="cron schedule explain" title="Cron explain">
+              <span class="tool-link__icon">cron</span>
+              <span class="tool-link__body"><span class="tool-link__title">Cron explain</span><span class="tool-link__meta">5-field</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="browser">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">Browser</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/user-agent.html" data-cat="browser" data-search="user agent navigator platform" title="User-Agent">
+              <span class="tool-link__icon">UA</span>
+              <span class="tool-link__body"><span class="tool-link__title">User-Agent</span><span class="tool-link__meta">navigator info</span></span>
+            </a>
+            <a class="tool-link" href="/tools/my-ip.html" data-cat="browser" data-search="ip public network api" title="What is my IP">
+              <span class="tool-link__icon">IP</span>
+              <span class="tool-link__body"><span class="tool-link__title">What is my IP</span><span class="tool-link__meta">Cần API ngoài</span></span>
+            </a>
+          </div>
+        </section>
+
+        <section class="tools-group" data-group="firebase">
+          <div class="tools-group__head">
+            <h2 class="tools-group__title">Firebase</h2>
+            <span class="tools-group__n"></span>
+          </div>
+          <div class="tools-list">
+            <a class="tool-link" href="/tools/fcm-push.html" data-cat="firebase" data-search="fcm firebase push notification web messaging token vapid" title="FCM Web Push test">
+              <span class="tool-link__icon">FCM</span>
+              <span class="tool-link__body"><span class="tool-link__title">FCM Web Push test</span><span class="tool-link__meta">Token + nhận noti</span></span>
+            </a>
+          </div>
+        </section>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+        <script src="/js/tools/hub.js"></script>
+  </body>
+</html>

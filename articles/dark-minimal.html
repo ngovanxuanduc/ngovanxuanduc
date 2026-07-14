@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Ghi chú về lựa chọn dark &amp; minimal cho site." />
+    <title>Dark &amp; minimal — vài lựa chọn thiết kế · Articles</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Dark &amp; minimal — vài lựa chọn thiết kế</h1>
+          <p class="article-header__meta">2026-07-14 · ~3 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            “Dark mode + minimal” dễ rơi vào template giống nhau. Dưới đây là vài
+            quyết định cụ thể trên site này — không phải quy tắc chung, chỉ là
+            lựa chọn hiện tại.
+          </p>
+
+          <h2>Nền gần đen, không thuần <code>#000</code></h2>
+          <p>
+            Background dùng khoảng <code>#0a0a0b</code>. Đen tuyệt đối trên OLED
+            đẹp, nhưng dễ làm chữ và border “nổi” quá gắt. Một chút ấm/xám giúp
+            hierarchy mềm hơn.
+          </p>
+
+          <h2>Một accent, dùng tiết kiệm</h2>
+          <p>
+            Accent tím nhạt (<code>#a78bfa</code>) cho link, nút primary, và điểm
+            nhấn trong game. Hầu hết UI vẫn xám — accent chỉ xuất hiện khi cần
+            action hoặc focus.
+          </p>
+
+          <h2>Typography hẹp, độ rộng đọc thoải mái</h2>
+          <p>
+            Nội dung bài viết giới hạn ~720px. Card grid rộng hơn một chút. Font
+            <strong>DM Sans</strong> cho UI, <strong>JetBrains Mono</strong> cho
+            meta/date — đủ “dev” mà không ồn.
+          </p>
+
+          <h2>Border thay vì shadow</h2>
+          <p>
+            Card và panel tách bằng border 1px tối. Shadow trên nền dark thường
+            bẩn hoặc vô hình; border rẻ, rõ, dễ maintain.
+          </p>
+
+          <h2>Animation tối thiểu</h2>
+          <p>
+            Chỉ fade-up nhẹ khi load, hover card nhích 2px. Không parallax, không
+            confetti. Site cá nhân không cần “wow” 5 giây đầu — cần cảm giác
+            ổn định.
+          </p>
+
+          <p>
+            Nếu sau này đổi sang light mode: token CSS đã gom trong
+            <code>:root</code>, đổi biến là xong phần lớn.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+    
+  </body>
+</html>

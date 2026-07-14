@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Trang cá nhân của Ngo Van Xuan Duc — lịch âm dương, countdown năm mới, game nhỏ, bài viết." />
+    <title>Ngo Van Xuan Duc</title>
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="home">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home" class="is-active">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container">
+        <section class="hero animate-in">
+          <div class="hero__badge">Online · building things</div>
+          <h1>Ngo Van Xuan Duc</h1>
+          <p class="hero__tagline">
+            Personal corner on the web — dark, minimal, and a little playful.
+            Game nhỏ, bài viết ngắn, lịch âm–dương khi cần.
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="/games/">Chơi game</a>
+            <a class="btn btn--ghost" href="/articles/">Đọc bài viết</a>
+          </div>
+        </section>
+
+        <section class="section animate-in animate-in-delay-1">
+          <div class="section__header">
+            <h2 class="section__title">About</h2>
+          </div>
+          <div class="prose">
+            <p>
+              Xin chào — mình là <strong>Đức</strong>. Đây là trang cá nhân đơn
+              giản: không sales pitch, không pop-up. Vài mini-game, vài ghi chú,
+              và trang lịch nếu muốn xem âm–dương hay đếm ngày tới Tết.
+            </p>
+            <p>
+              Stack hiện tại: HTML, CSS, JavaScript thuần — deploy tĩnh, load
+              nhanh, dễ sửa.
+            </p>
+          </div>
+        </section>
+
+        <section class="section animate-in animate-in-delay-2">
+          <div class="section__header">
+            <h2 class="section__title">Năm mới</h2>
+            <a class="section__link" href="/calendar.html">Lịch đầy đủ →</a>
+          </div>
+          <div class="countdown-grid">
+            <div class="countdown-block">
+              <div class="countdown-block__head">
+                <h3 class="countdown-block__title">Tết Dương lịch</h3>
+                <p class="countdown-block__sub" id="ny-label">Đến 1/1</p>
+              </div>
+              <div class="countdown" aria-live="polite">
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-days">00</div>
+                  <span class="countdown__label">Ngày</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-hours">00</div>
+                  <span class="countdown__label">Giờ</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-minutes">00</div>
+                  <span class="countdown__label">Phút</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-seconds">00</div>
+                  <span class="countdown__label">Giây</span>
+                </div>
+              </div>
+            </div>
+            <div class="countdown-block countdown-block--accent">
+              <div class="countdown-block__head">
+                <h3 class="countdown-block__title" id="ny-ln-title">
+                  Tết Âm lịch
+                </h3>
+                <p class="countdown-block__sub" id="ny-ln-label">
+                  Đến mùng 1 Tết
+                </p>
+              </div>
+              <div class="countdown" aria-live="polite">
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-ln-days">00</div>
+                  <span class="countdown__label">Ngày</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-ln-hours">00</div>
+                  <span class="countdown__label">Giờ</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-ln-minutes">00</div>
+                  <span class="countdown__label">Phút</span>
+                </div>
+                <div class="countdown__unit">
+                  <div class="countdown__num" id="ny-ln-seconds">00</div>
+                  <span class="countdown__label">Giây</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section animate-in animate-in-delay-3">
+          <div class="section__header">
+            <h2 class="section__title">Tools</h2>
+            <a class="section__link" href="/tools/">Xem tất cả →</a>
+          </div>
+          <div class="grid grid--3">
+            <a class="card" href="/tools/string-diff.html">
+              <div class="card__icon">↔</div>
+              <h3 class="card__title">Diff string</h3>
+              <p class="card__desc">So sánh hai đoạn text theo dòng.</p>
+              <p class="card__meta">string</p>
+            </a>
+            <a class="card" href="/tools/number-convert.html">
+              <div class="card__icon">123</div>
+              <h3 class="card__title">Number convert</h3>
+              <p class="card__desc">Binary · Octal · Decimal · Hex.</p>
+              <p class="card__meta">number</p>
+            </a>
+            <a class="card" href="/tools/my-ip.html">
+              <div class="card__icon">🌐</div>
+              <h3 class="card__title">What is my IP</h3>
+              <p class="card__desc">Xem IP công khai hiện tại.</p>
+              <p class="card__meta">network</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section__header">
+            <h2 class="section__title">Games</h2>
+            <a class="section__link" href="/games/">Xem tất cả →</a>
+          </div>
+          <div class="grid grid--3">
+            <a class="card" href="/games/tic-tac-toe.html">
+              <div class="card__icon">✕○</div>
+              <h3 class="card__title">Tic-Tac-Toe</h3>
+              <p class="card__desc">Cờ caro 3×3 classic. Hai người trên một máy.</p>
+              <p class="card__meta">2 players · instant</p>
+            </a>
+            <a class="card" href="/games/memory.html">
+              <div class="card__icon">🃏</div>
+              <h3 class="card__title">Memory</h3>
+              <p class="card__desc">Lật thẻ, tìm cặp giống nhau. Đếm số lượt.</p>
+              <p class="card__meta">solo · puzzle</p>
+            </a>
+            <a class="card" href="/games/snake.html">
+              <div class="card__icon">🐍</div>
+              <h3 class="card__title">Snake</h3>
+              <p class="card__desc">Rắn săn mồi cổ điển. Mũi tên hoặc WASD.</p>
+              <p class="card__meta">solo · arcade</p>
+            </a>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section__header">
+            <h2 class="section__title">Articles</h2>
+            <a class="section__link" href="/articles/">Xem tất cả →</a>
+          </div>
+          <ul class="article-list">
+            <li>
+              <a href="/articles/chao-mung.html">
+                <span class="article-list__title">Chào mừng đến site mới</span>
+                <span class="article-list__date">2026-07-14</span>
+              </a>
+            </li>
+            <li>
+              <a href="/articles/mini-games.html">
+                <span class="article-list__title"
+                  >Vì sao mình để mini-game trên trang cá nhân</span
+                >
+                <span class="article-list__date">2026-07-14</span>
+              </a>
+            </li>
+            <li>
+              <a href="/articles/dark-minimal.html">
+                <span class="article-list__title"
+                  >Dark &amp; minimal — vài lựa chọn thiết kế</span
+                >
+                <span class="article-list__date">2026-07-14</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js"></script>
+        <script src="/js/lunar.js"></script>
+    <script src="/js/countdown.js"></script>
+  </body>
+</html>
