@@ -14,8 +14,9 @@
   var fullResult = "";
 
   function process() {
+    try {
     var t0 = performance.now();
-    var lines = L.splitLines(input.value);
+    var lines = L.splitLines(input.value) || [];
     var trim = trimLines && trimLines.checked;
     var keepEmp = keepEmpty && keepEmpty.checked;
     var ic = ignoreCase && ignoreCase.checked;
@@ -54,6 +55,11 @@
         Math.round(performance.now() - t0) +
         "ms" +
         (capped.truncated ? " · UI cap (Copy = full)" : "");
+    }
+    } catch (e) {
+      fullResult = "";
+      output.value = "";
+      if (meta) meta.textContent = "Lỗi: " + (e && e.message ? e.message : e);
     }
   }
 

@@ -37,12 +37,15 @@
     if (meta) meta.textContent = "n = " + n;
   }
 
-  document.getElementById("nf-run").onclick = run;
+  var btnRun = document.getElementById("nf-run");
+  if (btnRun) btnRun.addEventListener("click", run);
   inn.addEventListener("input", run);
-  dec.addEventListener("change", run);
-  document.getElementById("nf-copy").onclick = function () {
-    var first = out.querySelector("input");
-    if (first) navigator.clipboard.writeText(first.value);
-  };
+  if (dec) dec.addEventListener("change", run);
+  var btnCopy = document.getElementById("nf-copy");
+  if (btnCopy)
+    btnCopy.addEventListener("click", function () {
+      var first = out.querySelector("input");
+      if (first && navigator.clipboard) navigator.clipboard.writeText(first.value);
+    });
   run();
 })();

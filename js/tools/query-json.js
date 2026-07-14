@@ -24,25 +24,35 @@
   };
   document.getElementById("qj-to-query").onclick = function () {
     try {
-      var obj = JSON.parse(inn.value);
+      var obj = JSON.parse(inn.value || "null");
+      if (obj == null || typeof obj !== "object") {
+        throw new Error("Cần object hoặc array JSON");
+      }
       var p = new URLSearchParams();
       Object.keys(obj).forEach(function (k) {
         var v = obj[k];
-        if (Array.isArray(v)) v.forEach(function (x) { p.append(k, x); });
+        if (Array.isArray(v))
+          v.forEach(function (x) {
+            p.append(k, x == null ? "" : String(x));
+          });
         else if (v != null && typeof v === "object") p.append(k, JSON.stringify(v));
         else p.append(k, v == null ? "" : String(v));
       });
       out.value = p.toString();
       if (meta) meta.textContent = "JSON → Query";
     } catch (e) {
-      if (meta) meta.textContent = "Lỗi JSON: " + e.message;
+      if (meta) meta.textContent = "Lỗi JSON: " + (e && e.message ? e.message : e);
     }
   };
-  document.getElementById("qj-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
-  document.getElementById("qj-clear").onclick = function () {
-    inn.value = out.value = "";
-    if (meta) meta.textContent = "";
-  };
+  var btnCopy = document.getElementById("qj-copy");
+  if (btnCopy)
+    btnCopy.addEventListener("click", function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
+    });
+  var btnClear = document.getElementById("qj-clear");
+  if (btnClear)
+    btnClear.addEventListener("click", function () {
+      inn.value = out.value = "";
+      if (meta) meta.textContent = "";
+    });
 })();

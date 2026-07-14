@@ -31,9 +31,11 @@
 
   function toKeyMap(lines) {
     var map = new Map();
+    if (!lines || !lines.length) return map;
     for (var i = 0; i < lines.length; i++) {
-      var k = keyOf(lines[i]);
-      if (!map.has(k)) map.set(k, lines[i]);
+      var line = lines[i] == null ? "" : String(lines[i]);
+      var k = keyOf(line);
+      if (!map.has(k)) map.set(k, line);
     }
     return map;
   }
@@ -70,14 +72,15 @@
   }
 
   function run() {
+    try {
     var t0 = performance.now();
     var m = ensureMaps();
     var aMap = m.aMap;
     var bMap = m.bMap;
     var cMap = m.cMap;
-    var aKeys = m.aKeys;
-    var bKeys = m.bKeys;
-    var cKeys = m.cKeys;
+    var aKeys = m.aKeys || [];
+    var bKeys = m.bKeys || [];
+    var cKeys = m.cKeys || [];
     var out = [];
     var label = "";
     var i, k, inB, inC;
@@ -211,6 +214,11 @@
         ms +
         "ms" +
         (capped.truncated ? " · UI cap" : "");
+    }
+    } catch (e) {
+      fullResult = "";
+      outEl.value = "";
+      if (meta) meta.textContent = "Lỗi: " + (e && e.message ? e.message : e);
     }
   }
 

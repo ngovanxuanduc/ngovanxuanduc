@@ -94,6 +94,15 @@
   }
 
   function prepare(lines) {
+    if (!lines || !lines.length) {
+      return {
+        lines: [],
+        norms: [],
+        lens: [],
+        byExact: new Map(),
+        byLen: new Map(),
+      };
+    }
     var ic = ignoreCase && ignoreCase.checked;
     var norms = new Array(lines.length);
     var lens = new Array(lines.length);
@@ -101,7 +110,8 @@
     // length buckets for candidate pruning
     var byLen = new Map();
     for (var i = 0; i < lines.length; i++) {
-      var n = ic ? lines[i].toLowerCase() : lines[i];
+      var raw = lines[i] == null ? "" : String(lines[i]);
+      var n = ic ? raw.toLowerCase() : raw;
       norms[i] = n;
       lens[i] = n.length;
       if (!byExact.has(n)) byExact.set(n, i);

@@ -18,16 +18,17 @@
   function setFromBytes(bytes, except) {
     lock = true;
     var b = base();
-    if (except !== "b") fields.b.value = String(bytes);
-    if (except !== "kb") fields.kb.value = String(bytes / b);
-    if (except !== "mb") fields.mb.value = String(bytes / (b * b));
-    if (except !== "gb") fields.gb.value = String(bytes / (b * b * b));
-    if (except !== "tb") fields.tb.value = String(bytes / (b * b * b * b));
+    if (except !== "b" && fields.b) fields.b.value = String(bytes);
+    if (except !== "kb" && fields.kb) fields.kb.value = String(bytes / b);
+    if (except !== "mb" && fields.mb) fields.mb.value = String(bytes / (b * b));
+    if (except !== "gb" && fields.gb) fields.gb.value = String(bytes / (b * b * b));
+    if (except !== "tb" && fields.tb) fields.tb.value = String(bytes / (b * b * b * b));
     lock = false;
     if (meta) meta.textContent = Math.round(bytes).toLocaleString("en-US") + " bytes";
   }
 
   function on(key, pow) {
+    if (!fields[key]) return;
     fields[key].addEventListener("input", function () {
       if (lock) return;
       var n = Number(fields[key].value);
@@ -49,12 +50,14 @@
       if (Number.isFinite(n)) setFromBytes(n, null);
     });
   });
-  document.getElementById("bs-clear").onclick = function () {
-    lock = true;
-    Object.keys(fields).forEach(function (k) {
-      fields[k].value = "";
+  var btnClear = document.getElementById("bs-clear");
+  if (btnClear)
+    btnClear.addEventListener("click", function () {
+      lock = true;
+      Object.keys(fields).forEach(function (k) {
+        if (fields[k]) fields[k].value = "";
+      });
+      lock = false;
+      if (meta) meta.textContent = "";
     });
-    lock = false;
-    if (meta) meta.textContent = "";
-  };
 })();

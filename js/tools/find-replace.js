@@ -4,58 +4,68 @@
   var find = document.getElementById("fr-find");
   var repl = document.getElementById("fr-repl");
   var meta = document.getElementById("fr-meta");
-  if (!inn || !out) return;
+  var btnRun = document.getElementById("fr-run");
+  var btnCopy = document.getElementById("fr-copy");
+  if (!inn || !out || !find || !repl) return;
 
-  document.getElementById("fr-run").onclick = function () {
+  function setMeta(msg) {
+    if (meta) meta.textContent = msg || "";
+  }
+
+  function run() {
     try {
-      var text = inn.value;
-      var f = find.value;
-      var r = repl.value;
+      var text = inn.value == null ? "" : String(inn.value);
+      var f = find.value == null ? "" : String(find.value);
+      var r = repl.value == null ? "" : String(repl.value);
       var count = 0;
       var result;
 
-      if (document.getElementById("fr-regex").checked) {
+      var useRegex = document.getElementById("fr-regex");
+      if (useRegex && useRegex.checked) {
+        if (f === "") {
+          setMeta("Regex trống");
+          return;
+        }
         var flags = "g";
-        if (document.getElementById("fr-i").checked) flags += "i";
-        if (document.getElementById("fr-m").checked) flags += "m";
-        if (document.getElementById("fr-s").checked) flags += "s";
+        if (document.getElementById("fr-i") && document.getElementById("fr-i").checked)
+          flags += "i";
+        if (document.getElementById("fr-m") && document.getElementById("fr-m").checked)
+          flags += "m";
+        if (document.getElementById("fr-s") && document.getElementById("fr-s").checked)
+          flags += "s";
         var re = new RegExp(f, flags);
-        result = text.replace(re, function () {
-          count++;
-          // rebuild args for $n replacement via native replace
-          return String.prototype.replace.apply(
-            // use a single replace with function below
-            "",
-            []
-          );
-        });
-        // proper replace with count
-        count = 0;
         result = text.replace(re, function (match) {
           count++;
           var args = arguments;
-          return r.replace(/\$(\d+)/g, function (_, n) {
-            var idx = Number(n);
-            return args[idx] != null ? args[idx] : "";
-          }).replace(/\$&/g, match);
+          // support $&, $1, $2… in replacement
+          return r
+            .replace(/\$(\d+)/g, function (_, n) {
+              var idx = Number(n);
+              return args[idx] != null ? String(args[idx]) : "";
+            })
+            .replace(/\$&/g, match);
         });
       } else {
         if (f === "") {
           result = text;
           count = 0;
         } else {
+          // split is fast for plain string find
           var parts = text.split(f);
           count = parts.length - 1;
           result = parts.join(r);
         }
       }
       out.value = result;
-      if (meta) meta.textContent = "Replaced " + count + " occurrence(s)";
+      setMeta("Replaced " + count + " occurrence(s)");
     } catch (e) {
-      if (meta) meta.textContent = "Lỗi regex: " + e.message;
+      setMeta("Lỗi regex: " + (e && e.message ? e.message : e));
     }
-  };
-  document.getElementById("fr-copy").onclick = function () {
-    navigator.clipboard.writeText(out.value);
-  };
+  }
+
+  if (btnRun) btnRun.addEventListener("click", run);
+  if (btnCopy)
+    btnCopy.addEventListener("click", function () {
+      if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
+    });
 })();

@@ -17,7 +17,10 @@
     return ignore ? line.replace(/[ \t]+/g, " ").trim() : line;
   }
 
-  /** Myers O(ND) — only for moderate-sized segments */
+  /**
+   * Myers O(ND) line diff — only for moderate-sized segments.
+   * Returns ops: { type: 'same'|'add'|'del', text: string }[]
+   */
   function myersDiff(a, b) {
     var N = a.length;
     var M = b.length;
@@ -35,19 +38,24 @@
 
     var max = N + M;
     var offset = max;
-    var v = new Int32Array(2 * max + 1);
-    for (var z = 0; z < v.length; z++) v[z] = -1;
-    v[offset + 1] = 0;
+    // sparse-ish V on diagonals k; use plain array for simpler snapshot
+    var v = new Array(2 * max + 1);
     var trace = [];
+    var d;
+    var k;
+    var x;
+    var y;
+    var found = false;
 
-    var d, k, x, y;
     outer: for (d = 0; d <= max; d++) {
-      trace.push(Int32Array.from(v));
       for (k = -d; k <= d; k += 2) {
-        if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
-          x = v[offset + k + 1];
+        if (
+          k === -d ||
+          (k !== d && (v[offset + k - 1] || 0) < (v[offset + k + 1] || 0))
+        ) {
+          x = v[offset + k + 1] || 0; // down → insert from b
         } else {
-          x = v[offset + k - 1] + 1;
+          x = (v[offset + k - 1] || 0) + 1; // right → delete from a
         }
         y = x - k;
         while (x < N && y < M && a[x] === b[y]) {
@@ -55,53 +63,63 @@
           y++;
         }
         v[offset + k] = x;
-        if (x >= N && y >= M) break outer;
+        if (x >= N && y >= M) {
+          found = true;
+          trace.push(v.slice());
+          break outer;
+        }
       }
+      trace.push(v.slice());
     }
 
-    var opsRev = [];
+    if (!found) return greedyDiff(a, b);
+
+    // Backtrack: rebuild ops front-to-back via unshift
+    var ops = [];
     x = N;
     y = M;
     for (d = trace.length - 1; d > 0; d--) {
       var vPrev = trace[d - 1];
       k = x - y;
       var prevK =
-        k === -d || (k !== d && vPrev[offset + k - 1] < vPrev[offset + k + 1])
+        k === -d ||
+        (k !== d && (vPrev[offset + k - 1] || 0) < (vPrev[offset + k + 1] || 0))
           ? k + 1
           : k - 1;
-      var prevX = vPrev[offset + prevK];
+      var prevX = vPrev[offset + prevK] || 0;
       var prevY = prevX - prevK;
+
       while (x > prevX && y > prevY) {
-        opsRev.push({ type: "same", text: a[x - 1] });
+        ops.unshift({ type: "same", text: a[x - 1] });
         x--;
         y--;
       }
       if (x === prevX) {
-        opsRev.push({ type: "add", text: b[y - 1] });
-        y = prevY;
+        ops.unshift({ type: "add", text: b[y - 1] });
       } else {
-        opsRev.push({ type: "del", text: a[x - 1] });
-        x = prevX;
+        ops.unshift({ type: "del", text: a[x - 1] });
       }
-      // continue from prev
       x = prevX;
       y = prevY;
     }
     while (x > 0 && y > 0) {
-      opsRev.push({ type: "same", text: a[x - 1] });
+      ops.unshift({ type: "same", text: a[x - 1] });
       x--;
       y--;
     }
     while (x > 0) {
-      opsRev.push({ type: "del", text: a[x - 1] });
+      ops.unshift({ type: "del", text: a[x - 1] });
       x--;
     }
     while (y > 0) {
-      opsRev.push({ type: "add", text: b[y - 1] });
+      ops.unshift({ type: "add", text: b[y - 1] });
       y--;
     }
-    opsRev.reverse();
-    return opsRev;
+
+    for (var i = 0; i < ops.length; i++) {
+      if (ops[i].text == null) ops[i].text = "";
+    }
+    return ops;
   }
 
   /**
@@ -203,11 +221,21 @@
   }
 
   function renderOps(ops, aLen, bLen, ms, mode) {
+    if (!ops || !ops.length) {
+      out.innerHTML = '<div class="diff-empty">Không có khác biệt.</div>';
+      if (meta) {
+        meta.textContent =
+          "A:" + L.formatCount(aLen) + " B:" + L.formatCount(bLen) + " · " + ms + "ms · " + mode;
+      }
+      return;
+    }
+
     var adds = 0;
     var dels = 0;
     var sames = 0;
     var i;
     for (i = 0; i < ops.length; i++) {
+      if (!ops[i]) continue;
       if (ops[i].type === "add") adds++;
       else if (ops[i].type === "del") dels++;
       else sames++;
@@ -216,9 +244,10 @@
     var limit = Math.min(ops.length, MAX_RENDER);
     var parts = new Array(limit + (ops.length > MAX_RENDER ? 1 : 0));
     for (i = 0; i < limit; i++) {
-      var op = ops[i];
+      var op = ops[i] || { type: "same", text: "" };
       var mark = op.type === "add" ? "+" : op.type === "del" ? "−" : "·";
-      var text = op.text.length ? L.escapeHtml(op.text) : " ";
+      var raw = op.text == null ? "" : String(op.text);
+      var text = raw.length ? L.escapeHtml(raw) : " ";
       parts[i] =
         '<div class="diff-line diff-line--' +
         op.type +

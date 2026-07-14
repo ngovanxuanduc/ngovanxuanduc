@@ -1,5 +1,6 @@
 /**
  * Shared helpers for string tools — tuned for large inputs.
+ * Entry guards are O(1); hot loops stay allocation-light.
  */
 (function (global) {
   "use strict";
@@ -9,10 +10,15 @@
   var AUTO_CHARS = 1.5e6;
   var RENDER_LINES_MAX = 4000;
 
+  function asString(text) {
+    if (text == null) return "";
+    return typeof text === "string" ? text : String(text);
+  }
+
   function splitLines(text) {
-    if (!text) return [];
+    var s = asString(text);
+    if (!s) return [];
     // Normalize CRLF once; split is native & fast
-    var s = text;
     if (s.indexOf("\r") !== -1) {
       s = s.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
     }
@@ -25,6 +31,7 @@
     var lines = splitLines(text);
     var trim = !!opts.trim;
     var dropEmpty = !!opts.dropEmpty;
+    if (!trim && !dropEmpty) return lines;
     var out = new Array(lines.length);
     var n = 0;
     for (var i = 0; i < lines.length; i++) {
@@ -37,22 +44,27 @@
   }
 
   function shouldAutoRun(textA, textB, textC) {
-    var chars = (textA ? textA.length : 0) + (textB ? textB.length : 0) + (textC ? textC.length : 0);
+    var chars =
+      (textA ? asString(textA).length : 0) +
+      (textB ? asString(textB).length : 0) +
+      (textC ? asString(textC).length : 0);
     if (chars > AUTO_CHARS) return false;
-    // cheap line estimate: count \n
-    var lines = 0;
     function countNL(t) {
       if (!t) return 0;
+      t = asString(t);
       var c = 1;
       for (var i = 0; i < t.length; i++) if (t.charCodeAt(i) === 10) c++;
       return c;
     }
-    lines = countNL(textA) + countNL(textB) + countNL(textC);
-    return lines <= AUTO_LINES;
+    return countNL(textA) + countNL(textB) + countNL(textC) <= AUTO_LINES;
   }
 
   function debounce(fn, ms) {
     var t = null;
+    if (typeof fn !== "function") {
+      return function () {};
+    }
+    ms = ms > 0 ? ms : 0;
     var wrapped = function () {
       var ctx = this;
       var args = arguments;
@@ -85,11 +97,19 @@
    * Returns Promise.
    */
   function mapChunked(items, chunkSize, fn, onProgress) {
+    if (!items || typeof items.length !== "number" || !items.length) {
+      return Promise.resolve([]);
+    }
+    chunkSize = chunkSize > 0 ? chunkSize | 0 : 256;
+    if (typeof fn !== "function") {
+      return Promise.reject(new Error("mapChunked: fn required"));
+    }
     return new Promise(function (resolve, reject) {
       var i = 0;
-      var results = new Array(items.length);
+      var len = items.length;
+      var results = new Array(len);
       function step() {
-        var end = Math.min(i + chunkSize, items.length);
+        var end = Math.min(i + chunkSize, len);
         try {
           for (; i < end; i++) {
             results[i] = fn(items[i], i);
@@ -98,8 +118,8 @@
           reject(e);
           return;
         }
-        if (onProgress) onProgress(i, items.length);
-        if (i >= items.length) {
+        if (onProgress) onProgress(i, len);
+        if (i >= len) {
           resolve(results);
           return;
         }
@@ -110,6 +130,12 @@
   }
 
   function forChunked(length, chunkSize, fn, onProgress) {
+    length = Number(length) || 0;
+    if (length <= 0) return Promise.resolve();
+    chunkSize = chunkSize > 0 ? chunkSize | 0 : 256;
+    if (typeof fn !== "function") {
+      return Promise.reject(new Error("forChunked: fn required"));
+    }
     return new Promise(function (resolve, reject) {
       var i = 0;
       function step() {
@@ -132,15 +158,18 @@
   }
 
   function escapeHtml(s) {
-    return String(s)
+    return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
   }
 
-  /** Cap rendered rows; return { text, truncated, total } */
+  /** Cap rendered rows; return { text, truncated, total, shown } */
   function joinCapped(lines, max) {
     max = max || RENDER_LINES_MAX;
+    if (!lines || typeof lines.length !== "number" || !lines.length) {
+      return { text: "", truncated: false, total: 0, shown: 0 };
+    }
     var total = lines.length;
     if (total <= max) {
       return { text: lines.join("\n"), truncated: false, total: total, shown: total };
@@ -154,6 +183,8 @@
   }
 
   function formatCount(n) {
+    n = Number(n);
+    if (!Number.isFinite(n)) return "0";
     return n.toLocaleString("en-US");
   }
 
@@ -169,10 +200,19 @@
     }
   }
 
+  /** Null-safe click binding (id string or element). */
+  function onClick(idOrEl, fn) {
+    var el =
+      typeof idOrEl === "string" ? document.getElementById(idOrEl) : idOrEl;
+    if (el && typeof fn === "function") el.addEventListener("click", fn);
+    return el;
+  }
+
   global.ToolLib = {
     AUTO_LINES: AUTO_LINES,
     AUTO_CHARS: AUTO_CHARS,
     RENDER_LINES_MAX: RENDER_LINES_MAX,
+    asString: asString,
     splitLines: splitLines,
     parseLines: parseLines,
     shouldAutoRun: shouldAutoRun,
@@ -184,5 +224,6 @@
     joinCapped: joinCapped,
     formatCount: formatCount,
     setBusy: setBusy,
+    onClick: onClick,
   };
 })(typeof window !== "undefined" ? window : globalThis);

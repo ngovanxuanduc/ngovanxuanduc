@@ -31,8 +31,9 @@
   }
 
   function apply(mode) {
+    try {
     var t0 = performance.now();
-    var lines = linesOf();
+    var lines = linesOf() || [];
     var result = lines.slice();
     var i, k, seen;
 
@@ -98,6 +99,11 @@
         Math.round(performance.now() - t0) +
         "ms" +
         (capped.truncated ? " · UI cap (Copy=full)" : "");
+    }
+    } catch (e) {
+      fullResult = "";
+      out.value = "";
+      if (meta) meta.textContent = "Lỗi: " + (e && e.message ? e.message : e);
     }
   }
 
