@@ -208,7 +208,6 @@
       else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
   }
-    });
 
   if (btnClear)
     btnClear.addEventListener("click", function () {

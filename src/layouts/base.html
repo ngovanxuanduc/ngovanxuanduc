@@ -11,7 +11,7 @@
     <title>{{title}}</title>
     <link rel="canonical" href="{{canonicalUrl}}" />
     <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/og-image.jpg" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
 
     <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
     <meta property="og:type" content="{{ogType}}" />
@@ -34,16 +34,8 @@
     <meta name="twitter:image" content="{{ogImage}}" />
     <meta name="twitter:image:alt" content="{{ogTitle}}" />
 
-    <!-- Self-hosted Inter (UI) — 1 request, same-origin, no Google Fonts -->
-    <link
-      rel="preload"
-      href="/fonts/inter-latin-var.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
-    <link rel="preload" href="/css/style.css" as="style" />
-    <link rel="stylesheet" href="/css/style.css" />
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+    {{stylesheets}}
     {{extraHead}}
   </head>
   <body data-page="{{page}}">

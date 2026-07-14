@@ -90,7 +90,6 @@
       else if (navigator.clipboard) navigator.clipboard.writeText(text || "");
     });
   }
-    });
 
   input.addEventListener("input", function () {
     if (meta) {

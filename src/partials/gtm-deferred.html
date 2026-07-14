@@ -1,9 +1,17 @@
-<!-- Google Tag Manager — delayed until after load (avoids main-thread reflow on first paint) -->
+<!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
     <script>
       (function (w, d, i) {
         w.dataLayer = w.dataLayer || [];
         w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
         function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
           if (d.getElementById("gtm-js")) return;
           var j = d.createElement("script");
           j.id = "gtm-js";
@@ -11,12 +19,12 @@
           j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
           d.head.appendChild(j);
         }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
         function schedule() {
-          if ("requestIdleCallback" in w) {
-            w.requestIdleCallback(inject, { timeout: 3500 });
-          } else {
-            setTimeout(inject, 2000);
-          }
+          timer = setTimeout(inject, 12000);
         }
         if (d.readyState === "complete") schedule();
         else w.addEventListener("load", schedule);

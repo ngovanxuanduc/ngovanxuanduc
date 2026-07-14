@@ -529,7 +529,6 @@
       else if (navigator.clipboard) navigator.clipboard.writeText(out.value || "");
     });
   }
-    });
   if (btnClear)
     btnClear.addEventListener("click", function () {
       inn.value = out.value = "";
