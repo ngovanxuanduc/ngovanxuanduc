@@ -1,0 +1,40 @@
+---
+{
+  "title": "Random string / password · Tools",
+  "description": "Sinh chuỗi ngẫu nhiên an toàn (crypto) — chọn charset & độ dài.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/random-string.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Random string / password</h1>
+          <p>Sinh chuỗi ngẫu nhiên an toàn (crypto) — chọn charset & độ dài.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-actions">
+            <label class="tool-check">Độ dài
+              <input id="rs-len" class="tool-input" type="number" min="1" max="1024" value="16" style="width:5rem;padding:0.35rem 0.5rem" />
+            </label>
+            <label class="tool-check">Số lượng
+              <input id="rs-n" class="tool-input" type="number" min="1" max="500" value="5" style="width:5rem;padding:0.35rem 0.5rem" />
+            </label>
+            <label class="tool-check"><input type="checkbox" id="rs-lower" checked /> a-z</label>
+            <label class="tool-check"><input type="checkbox" id="rs-upper" checked /> A-Z</label>
+            <label class="tool-check"><input type="checkbox" id="rs-digit" checked /> 0-9</label>
+            <label class="tool-check"><input type="checkbox" id="rs-symbol" /> !@#…</label>
+            <button type="button" class="btn btn--primary btn--sm" id="rs-gen">Generate</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="rs-copy">Copy</button>
+            <span class="tool-meta" id="rs-meta"></span>
+          </div>
+          <div class="tool-field">
+            <label for="rs-out">Output</label>
+            <textarea id="rs-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>

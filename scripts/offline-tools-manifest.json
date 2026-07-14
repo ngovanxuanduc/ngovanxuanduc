@@ -1,0 +1,122 @@
+[
+  {
+    "slug": "base64",
+    "title": "Base64",
+    "description": "Encode / decode Base64 hoàn toàn trên trình duyệt (UTF-8)."
+  },
+  {
+    "slug": "url-codec",
+    "title": "URL encode / decode",
+    "description": "Percent-encoding (encodeURIComponent) — không cần API."
+  },
+  {
+    "slug": "html-entities",
+    "title": "HTML entities",
+    "description": "Encode / decode HTML entities (&lt; &gt; &amp; …)."
+  },
+  {
+    "slug": "hash",
+    "title": "Hash",
+    "description": "SHA-1 / SHA-256 / SHA-384 / SHA-512 qua Web Crypto — offline."
+  },
+  {
+    "slug": "uuid",
+    "title": "UUID generator",
+    "description": "Sinh UUID v4 (crypto.getRandomValues) — hàng loạt, offline."
+  },
+  {
+    "slug": "random-string",
+    "title": "Random string / password",
+    "description": "Sinh chuỗi ngẫu nhiên an toàn (crypto) — chọn charset & độ dài."
+  },
+  {
+    "slug": "json-format",
+    "title": "JSON format / minify",
+    "description": "Pretty-print, minify, validate JSON — 100% local."
+  },
+  {
+    "slug": "json-csv",
+    "title": "JSON ↔ CSV",
+    "description": "Đổi mảng object JSON sang CSV và ngược lại — offline."
+  },
+  {
+    "slug": "query-json",
+    "title": "Query string ↔ JSON",
+    "description": "a=1&amp;b=hello ↔ object JSON."
+  },
+  {
+    "slug": "jwt-decode",
+    "title": "JWT decode",
+    "description": "Decode header & payload (Base64URL). Không verify chữ ký — offline."
+  },
+  {
+    "slug": "timestamp",
+    "title": "Timestamp convert",
+    "description": "Unix seconds/ms ↔ datetime local & UTC — không API."
+  },
+  {
+    "slug": "number-format",
+    "title": "Number format",
+    "description": "Format số: grouping, decimals, percent, scientific — Intl local."
+  },
+  {
+    "slug": "byte-size",
+    "title": "Byte size convert",
+    "description": "B / KB / MB / GB / TB (1024 hoặc 1000)."
+  },
+  {
+    "slug": "percentage",
+    "title": "Percentage calculator",
+    "description": "X% của Y, X là bao nhiêu % của Y, tăng/giảm % — offline."
+  },
+  {
+    "slug": "random-number",
+    "title": "Random number",
+    "description": "Sinh số ngẫu nhiên trong khoảng (crypto), hàng loạt."
+  },
+  {
+    "slug": "text-stats",
+    "title": "Text stats",
+    "description": "Đếm ký tự, từ, dòng, byte UTF-8 — realtime, offline."
+  },
+  {
+    "slug": "join-split",
+    "title": "Join / Split lines",
+    "description": "Gộp dòng bằng delimiter hoặc tách chuỗi thành nhiều dòng."
+  },
+  {
+    "slug": "find-replace",
+    "title": "Find & replace",
+    "description": "Tìm/thay text hoặc regex (capture $1…) — chạy local."
+  },
+  {
+    "slug": "prefix-suffix",
+    "title": "Prefix / suffix lines",
+    "description": "Thêm hoặc gỡ chuỗi đầu/cuối mỗi dòng."
+  },
+  {
+    "slug": "lorem",
+    "title": "Lorem ipsum",
+    "description": "Sinh đoạn lorem giả lập — số paragraph / sentence tùy chọn."
+  },
+  {
+    "slug": "cron-explain",
+    "title": "Cron explain",
+    "description": "Giải thích cron 5-field (min hour dom mon dow) — rule local, không API."
+  },
+  {
+    "slug": "color-convert",
+    "title": "Color convert",
+    "description": "HEX ↔ RGB ↔ HSL + preview — offline."
+  },
+  {
+    "slug": "json-diff",
+    "title": "JSON diff",
+    "description": "So 2 JSON (key path) — thêm/xóa/đổi giá trị. Offline."
+  },
+  {
+    "slug": "user-agent",
+    "title": "User-Agent viewer",
+    "description": "Xem User-Agent và vài tín hiệu trình duyệt — navigator only."
+  }
+]

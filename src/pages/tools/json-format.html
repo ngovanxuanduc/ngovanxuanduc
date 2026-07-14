@@ -1,0 +1,47 @@
+---
+{
+  "title": "JSON format / minify · Tools",
+  "description": "Pretty-print, minify, validate JSON — 100% local.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/json-format.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>JSON format / minify</h1>
+          <p>Pretty-print, minify, validate JSON — 100% local.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="jf-in">Input</label>
+              <textarea id="jf-in" class="tool-textarea tool-textarea--tall" placeholder="{"a":1}" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="jf-out">Output</label>
+              <textarea id="jf-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="Formatted…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="jf-pretty">Pretty</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jf-minify">Minify</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jf-validate">Validate</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jf-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jf-clear">Xóa</button>
+            <label class="tool-check">Indent
+              <select id="jf-indent" class="tool-select" style="width:auto;padding:0.35rem 0.5rem">
+                <option value="2">2 spaces</option>
+                <option value="4">4 spaces</option>
+                <option value="tab">tab</option>
+              </select>
+            </label>
+            <span class="tool-meta" id="jf-meta"></span>
+          </div>
+        </div>
+      </div>

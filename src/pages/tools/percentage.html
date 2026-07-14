@@ -1,0 +1,41 @@
+---
+{
+  "title": "Percentage calculator · Tools",
+  "description": "X% của Y, X là bao nhiêu % của Y, tăng/giảm % — offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/percentage.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Percentage calculator</h1>
+          <p>X% của Y, X là bao nhiêu % của Y, tăng/giảm % — offline.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="convert-grid">
+            <div class="tool-field">
+              <label><span id="pct-l1">X</span></label>
+              <input id="pct-a" class="tool-input" type="text" inputmode="decimal" placeholder="25" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label><span id="pct-l2">Y</span></label>
+              <input id="pct-b" class="tool-input" type="text" inputmode="decimal" placeholder="200" autocomplete="off" />
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" data-pct="of">X% của Y</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-pct="is">X là % của Y</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-pct="change">% đổi từ X → Y</button>
+            <span class="tool-meta" id="pct-meta"></span>
+          </div>
+          <div class="ip-card" style="margin-top:0.5rem">
+            <div class="ip-card__label">Kết quả</div>
+            <div class="ip-card__value" id="pct-out">—</div>
+          </div>
+        </div>
+      </div>

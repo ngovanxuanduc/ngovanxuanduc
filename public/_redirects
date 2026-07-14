@@ -1,0 +1,14 @@
+# Cloudflare Pages redirects (ignored by GitHub Pages)
+# Site is static HTML at domain root (custom domain / Pages project root).
+
+/tools            /tools/index.html      200
+/games            /games/index.html      200
+/articles         /articles/index.html   200
+
+# Pretty tool URLs without .html (optional)
+/tools/:page      /tools/:page.html      200
+/games/:page      /games/:page.html      200
+/articles/:page   /articles/:page.html   200
+
+# Custom not-found page
+/*                /404.html              404

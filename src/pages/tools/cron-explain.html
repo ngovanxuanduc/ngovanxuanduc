@@ -1,0 +1,33 @@
+---
+{
+  "title": "Cron explain · Tools",
+  "description": "Giải thích cron 5-field (min hour dom mon dow) — rule local, không API.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/cron-explain.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Cron explain</h1>
+          <p>Giải thích cron 5-field (min hour dom mon dow) — rule local, không API.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-field">
+            <label for="cron-in">Cron expression</label>
+            <input id="cron-in" class="tool-input" type="text" value="*/5 * * * *" spellcheck="false" autocomplete="off" />
+            <p class="tool-field__hint">Format: minute hour day-of-month month day-of-week</p>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="cron-run">Explain</button>
+            <span class="tool-meta" id="cron-meta"></span>
+          </div>
+          <div class="ip-card" style="text-align:left">
+            <pre id="cron-out" style="margin:0;white-space:pre-wrap;font-family:var(--mono);font-size:0.85rem;color:var(--text-muted);line-height:1.6"></pre>
+          </div>
+        </div>
+      </div>

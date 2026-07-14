@@ -1,0 +1,39 @@
+---
+{
+  "title": "HTML entities · Tools",
+  "description": "Encode / decode HTML entities (&lt; &gt; &amp; …).",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/html-entities.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>HTML entities</h1>
+          <p>Encode / decode HTML entities (&lt; &gt; &amp; …).</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="he-in">Input</label>
+              <textarea id="he-in" class="tool-textarea tool-textarea--tall" placeholder="<div class="x">…</div>" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="he-out">Output</label>
+              <textarea id="he-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="Kết quả…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="he-enc">Encode</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="he-dec">Decode</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="he-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="he-clear">Xóa</button>
+            <span class="tool-meta" id="he-meta"></span>
+          </div>
+        </div>
+      </div>

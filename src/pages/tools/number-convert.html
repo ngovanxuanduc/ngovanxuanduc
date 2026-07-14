@@ -1,0 +1,43 @@
+---
+{
+  "title": "Number convert · Tools",
+  "description": "Chuyển đổi số Binary, Octal, Decimal, Hex.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/number-convert.js"
+  ]
+}
+---
+<div class="container">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Number convert</h1>
+          <p>Gõ một ô — các hệ còn lại cập nhật realtime. Decimal hỗ trợ số âm.</p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="convert-grid">
+            <div class="tool-field">
+              <label for="num-bin">Binary (base 2)</label>
+              <input id="num-bin" class="tool-input" type="text" inputmode="numeric" placeholder="1010" spellcheck="false" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="num-oct">Octal (base 8)</label>
+              <input id="num-oct" class="tool-input" type="text" inputmode="numeric" placeholder="12" spellcheck="false" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="num-dec">Decimal (base 10)</label>
+              <input id="num-dec" class="tool-input" type="text" inputmode="numeric" placeholder="10" spellcheck="false" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="num-hex">Hex (base 16)</label>
+              <input id="num-hex" class="tool-input" type="text" inputmode="text" placeholder="A" spellcheck="false" autocomplete="off" />
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--ghost btn--sm" id="num-clear">Xóa</button>
+            <span class="tool-meta" id="num-status"></span>
+          </div>
+        </div>
+      </div>

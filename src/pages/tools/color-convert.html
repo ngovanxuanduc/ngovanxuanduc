@@ -1,0 +1,33 @@
+---
+{
+  "title": "Color convert · Tools",
+  "description": "HEX ↔ RGB ↔ HSL + preview — offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/color-convert.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Color convert</h1>
+          <p>HEX ↔ RGB ↔ HSL + preview — offline.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-actions" style="align-items:stretch">
+            <div style="width:64px;height:64px;border-radius:12px;border:1px solid var(--border);background:#a78bfa" id="co-swatch"></div>
+          </div>
+          <div class="convert-grid">
+            <div class="tool-field"><label for="co-hex">HEX</label><input id="co-hex" class="tool-input" type="text" value="#a78bfa" autocomplete="off" /></div>
+            <div class="tool-field"><label for="co-rgb">RGB</label><input id="co-rgb" class="tool-input" type="text" value="167, 139, 250" autocomplete="off" /></div>
+            <div class="tool-field"><label for="co-hsl">HSL</label><input id="co-hsl" class="tool-input" type="text" value="255, 91%, 76%" autocomplete="off" /></div>
+          </div>
+          <div class="tool-actions">
+            <input id="co-picker" type="color" value="#a78bfa" style="width:48px;height:36px;border:none;background:transparent;cursor:pointer" />
+            <span class="tool-meta" id="co-meta"></span>
+          </div>
+        </div>
+      </div>

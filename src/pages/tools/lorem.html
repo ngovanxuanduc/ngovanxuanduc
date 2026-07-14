@@ -1,0 +1,35 @@
+---
+{
+  "title": "Lorem ipsum · Tools",
+  "description": "Sinh đoạn lorem giả lập — số paragraph / sentence tùy chọn.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/lorem.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Lorem ipsum</h1>
+          <p>Sinh đoạn lorem giả lập — số paragraph / sentence tùy chọn.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-actions">
+            <label class="tool-check">Paragraphs
+              <input id="lo-p" class="tool-input" type="number" min="1" max="50" value="3" style="width:4rem;padding:0.35rem 0.5rem" />
+            </label>
+            <label class="tool-check">Sentences / p
+              <input id="lo-s" class="tool-input" type="number" min="1" max="20" value="4" style="width:4rem;padding:0.35rem 0.5rem" />
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="lo-gen">Generate</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="lo-copy">Copy</button>
+          </div>
+          <div class="tool-field">
+            <label for="lo-out">Output</label>
+            <textarea id="lo-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,212 @@
+(function () {
+  if (!window.LunarVN) return;
+
+  var yearEl = document.getElementById("cal-year");
+  var monthEl = document.getElementById("cal-month");
+  var gridEl = document.getElementById("cal-grid");
+  var titleEl = document.getElementById("cal-title");
+  var detailEl = document.getElementById("cal-detail");
+  var prevBtn = document.getElementById("cal-prev");
+  var nextBtn = document.getElementById("cal-next");
+  var todayBtn = document.getElementById("cal-today");
+  if (!gridEl) return;
+
+  var now = new Date();
+  var viewYear = now.getFullYear();
+  var viewMonth = now.getMonth() + 1; // 1-12
+  var selected = {
+    day: now.getDate(),
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+  };
+
+  function isSameDay(info, d, m, y) {
+    return info && info.solar.day === d && info.solar.month === m && info.solar.year === y;
+  }
+
+  function renderDetail(info) {
+    if (!detailEl || !info) return;
+    var leap = info.lunar.leap ? " (tháng nhuận)" : "";
+    detailEl.innerHTML =
+      '<div class="cal-detail__solar">' +
+      "<strong>" +
+      info.weekdayName +
+      "</strong> · " +
+      info.solar.day +
+      "/" +
+      info.solar.month +
+      "/" +
+      info.solar.year +
+      "</div>" +
+      '<div class="cal-detail__lunar">' +
+      info.lunarFull +
+      leap +
+      "</div>" +
+      '<div class="cal-detail__canchi">' +
+      "<span>Ngày <strong>" +
+      info.canChiDay +
+      "</strong></span>" +
+      "<span>Tháng <strong>" +
+      info.canChiMonth +
+      "</strong></span>" +
+      "<span>Năm <strong>" +
+      info.canChiYear +
+      "</strong></span>" +
+      "</div>" +
+      (info.isTet
+        ? '<p class="cal-detail__badge">🌸 Mùng 1 Tết</p>'
+        : info.isRam
+          ? '<p class="cal-detail__badge">🌕 Rằm</p>'
+          : info.isMung1
+            ? '<p class="cal-detail__badge">🌙 Mùng 1 âm</p>'
+            : "");
+  }
+
+  function render() {
+    if (titleEl) {
+      titleEl.textContent =
+        LunarVN.THANG_DUONG[viewMonth - 1] + " " + viewYear;
+    }
+    if (yearEl) yearEl.textContent = String(viewYear);
+    if (monthEl) monthEl.textContent = String(viewMonth);
+
+    var matrix = LunarVN.getMonthMatrix(viewYear, viewMonth);
+    gridEl.innerHTML = "";
+
+    // weekday headers
+    LunarVN.THU.forEach(function (name, i) {
+      var h = document.createElement("div");
+      h.className = "cal-dow" + (i === 0 ? " is-sun" : "");
+      h.textContent = name;
+      gridEl.appendChild(h);
+    });
+
+    matrix.forEach(function (info) {
+      var cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "cal-day";
+
+      if (!info) {
+        cell.classList.add("is-empty");
+        cell.disabled = true;
+        cell.innerHTML = "<span></span>";
+        gridEl.appendChild(cell);
+        return;
+      }
+
+      var today = new Date();
+      if (
+        isSameDay(
+          info,
+          today.getDate(),
+          today.getMonth() + 1,
+          today.getFullYear()
+        )
+      ) {
+        cell.classList.add("is-today");
+      }
+      if (isSameDay(info, selected.day, selected.month, selected.year)) {
+        cell.classList.add("is-selected");
+      }
+      if (info.weekday === 0) cell.classList.add("is-sun");
+      if (info.isMung1) cell.classList.add("is-mung1");
+      if (info.isRam) cell.classList.add("is-ram");
+      if (info.isTet) cell.classList.add("is-tet");
+
+      var lunarText =
+        info.lunar.day === 1
+          ? info.lunar.day + "/" + info.lunar.month + (info.lunar.leap ? "+" : "")
+          : String(info.lunar.day);
+
+      cell.innerHTML =
+        '<span class="cal-day__solar">' +
+        info.solar.day +
+        "</span>" +
+        '<span class="cal-day__lunar">' +
+        lunarText +
+        "</span>";
+
+      cell.setAttribute(
+        "aria-label",
+        info.solar.day +
+          "/" +
+          info.solar.month +
+          " — âm " +
+          info.lunar.day +
+          "/" +
+          info.lunar.month
+      );
+
+      cell.addEventListener("click", function () {
+        selected = {
+          day: info.solar.day,
+          month: info.solar.month,
+          year: info.solar.year,
+        };
+        render();
+        renderDetail(info);
+      });
+
+      gridEl.appendChild(cell);
+    });
+
+    // detail for selected if in view, else first of month / today
+    var detailInfo = LunarVN.getDayInfo(
+      selected.month === viewMonth && selected.year === viewYear
+        ? selected.day
+        : isSameDay(
+              {
+                solar: {
+                  day: now.getDate(),
+                  month: now.getMonth() + 1,
+                  year: now.getFullYear(),
+                },
+              },
+              now.getDate(),
+              viewMonth,
+              viewYear
+            )
+          ? now.getDate()
+          : 1,
+      viewMonth,
+      viewYear
+    );
+    if (selected.month === viewMonth && selected.year === viewYear) {
+      detailInfo = LunarVN.getDayInfo(selected.day, viewMonth, viewYear);
+    }
+    renderDetail(detailInfo);
+  }
+
+  function shiftMonth(delta) {
+    viewMonth += delta;
+    if (viewMonth < 1) {
+      viewMonth = 12;
+      viewYear -= 1;
+    } else if (viewMonth > 12) {
+      viewMonth = 1;
+      viewYear += 1;
+    }
+    render();
+  }
+
+  if (prevBtn) prevBtn.addEventListener("click", function () {
+    shiftMonth(-1);
+  });
+  if (nextBtn) nextBtn.addEventListener("click", function () {
+    shiftMonth(1);
+  });
+  if (todayBtn)
+    todayBtn.addEventListener("click", function () {
+      var t = new Date();
+      viewYear = t.getFullYear();
+      viewMonth = t.getMonth() + 1;
+      selected = {
+        day: t.getDate(),
+        month: t.getMonth() + 1,
+        year: t.getFullYear(),
+      };
+      render();
+    });
+
+  render();
+})();

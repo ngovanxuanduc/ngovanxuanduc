@@ -1,0 +1,34 @@
+---
+{
+  "title": "Number format · Tools",
+  "description": "Format số: grouping, decimals, percent, scientific — Intl local.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/number-format.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Number format</h1>
+          <p>Format số: grouping, decimals, percent, scientific — Intl local.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-field">
+            <label for="nf-in">Number</label>
+            <input id="nf-in" class="tool-input" type="text" inputmode="decimal" placeholder="1234567.89" autocomplete="off" />
+          </div>
+          <div class="tool-actions">
+            <label class="tool-check">Decimals
+              <input id="nf-dec" class="tool-input" type="number" min="0" max="12" value="2" style="width:4rem;padding:0.35rem 0.5rem" />
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="nf-run">Format</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="nf-copy">Copy</button>
+            <span class="tool-meta" id="nf-meta"></span>
+          </div>
+          <div class="convert-grid" id="nf-out"></div>
+        </div>
+      </div>

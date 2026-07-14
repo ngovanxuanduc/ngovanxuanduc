@@ -1,0 +1,60 @@
+---
+{
+  "title": "Remove duplicate lines · Tools",
+  "description": "Gỡ dòng trùng trong danh sách text.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/remove-duplicates.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Remove duplicate lines</h1>
+          <p>Giữ lần xuất hiện đầu tiên, bỏ các dòng trùng phía sau.</p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="rd-input">Input</label>
+              <textarea
+                id="rd-input"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="Mỗi dòng một giá trị…"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="rd-output">Output</label>
+              <textarea
+                id="rd-output"
+                class="tool-textarea tool-textarea--tall tool-textarea--result"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="rd-run">Chạy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="rd-copy">Copy kết quả</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="rd-clear">Xóa</button>
+            <label class="tool-check">
+              <input type="checkbox" id="rd-ignore-case" />
+              Không phân biệt hoa/thường
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="rd-trim" checked />
+              Trim khoảng trắng
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="rd-keep-empty" />
+              Giữ dòng trống
+            </label>
+            <span class="tool-meta" id="rd-meta"></span>
+          </div>
+        </div>
+      </div>

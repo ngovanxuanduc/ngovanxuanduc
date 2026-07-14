@@ -1,0 +1,30 @@
+---
+{
+  "title": "What is my IP · Tools",
+  "description": "Xem IP công khai hiện tại của bạn.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/my-ip.js"
+  ]
+}
+---
+<div class="container">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>What is my IP</h1>
+          <p>IP công khai mà internet thấy từ máy bạn (không phải IP LAN).</p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="ip-card">
+            <div class="ip-card__label">Public IP</div>
+            <div class="ip-card__value" id="ip-value">…</div>
+            <p class="ip-card__status" id="ip-status">Đang lấy IP…</p>
+            <div class="tool-actions" style="justify-content: center; margin-top: 1rem">
+              <button type="button" class="btn btn--primary btn--sm" id="ip-refresh">Làm mới</button>
+              <button type="button" class="btn btn--ghost btn--sm" id="ip-copy">Copy IP</button>
+            </div>
+            <dl class="ip-details" id="ip-details"></dl>
+          </div>
+        </div>
+      </div>

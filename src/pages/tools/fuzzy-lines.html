@@ -1,0 +1,98 @@
+---
+{
+  "title": "Fuzzy match dòng · Tools",
+  "description": "Fuzzy match — tìm dòng gần giống giữa hai list (Levenshtein).",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/fuzzy-lines.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Fuzzy match dòng</h1>
+          <p>
+            Tìm dòng gần giống giữa list A và B (Levenshtein similarity). Hữu
+            ích khi text lệch nhẹ: typo, hoa/thường, thiếu ký tự…
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="fz-a">List A</label>
+              <textarea
+                id="fz-a"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="Nguyen Van A&#10;Tran Thi B&#10;Le Van C"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="fz-b">List B</label>
+              <textarea
+                id="fz-b"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="Nguyen Van A.&#10;Tran Thi Be&#10;Pham Van D"
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <label class="tool-check">
+              Mode
+              <select id="fz-mode" class="tool-select" style="width: auto; padding: 0.35rem 0.5rem">
+                <option value="best">Best match mỗi dòng A</option>
+                <option value="all">Mọi cặp ≥ ngưỡng</option>
+                <option value="unmatched-a">A không khớp B</option>
+                <option value="unmatched-b">B không khớp A</option>
+              </select>
+            </label>
+            <label class="tool-check" style="min-width: 200px">
+              Ngưỡng
+              <input
+                type="range"
+                id="fz-threshold"
+                min="40"
+                max="100"
+                value="70"
+                style="width: 120px; accent-color: var(--accent)"
+              />
+              <span id="fz-threshold-val" class="tool-meta">70%</span>
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="fz-ignore-case" checked />
+              Ignore case
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="fz-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="fz-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="fz-run">Chạy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fz-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fz-clear">Xóa</button>
+            <span class="tool-meta" id="fz-meta"></span>
+          </div>
+
+          <div class="tool-field">
+            <label for="fz-out">Kết quả (điểm % · A · ≈ · B)</label>
+            <textarea
+              id="fz-out"
+              class="tool-textarea tool-textarea--tall tool-textarea--result"
+              readonly
+              spellcheck="false"
+            ></textarea>
+            <p class="tool-field__hint">
+              Tối ưu cho list lớn (exact map, bucket độ dài, early-exit). Dataset
+              lớn: bấm «Chạy». Copy vẫn lấy full dù UI truncate.
+            </p>
+          </div>
+        </div>
+      </div>

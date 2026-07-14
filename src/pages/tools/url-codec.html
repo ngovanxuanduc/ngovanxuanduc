@@ -1,0 +1,40 @@
+---
+{
+  "title": "URL encode / decode · Tools",
+  "description": "Percent-encoding (encodeURIComponent) — không cần API.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/url-codec.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>URL encode / decode</h1>
+          <p>Percent-encoding (encodeURIComponent) — không cần API.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="url-in">Input</label>
+              <textarea id="url-in" class="tool-textarea tool-textarea--tall" placeholder="https://…?q=xin chào" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="url-out">Output</label>
+              <textarea id="url-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="Kết quả…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="url-enc">Encode</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="url-dec">Decode</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="url-enc-full">encodeURI</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="url-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="url-clear">Xóa</button>
+            <span class="tool-meta" id="url-meta"></span>
+          </div>
+        </div>
+      </div>

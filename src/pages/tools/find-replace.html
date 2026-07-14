@@ -1,0 +1,48 @@
+---
+{
+  "title": "Find & replace · Tools",
+  "description": "Tìm/thay text hoặc regex (capture $1…) — chạy local.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/find-replace.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Find & replace</h1>
+          <p>Tìm/thay text hoặc regex (capture $1…) — chạy local.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-field">
+            <label for="fr-in">Input</label>
+            <textarea id="fr-in" class="tool-textarea tool-textarea--tall" spellcheck="false"></textarea>
+          </div>
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="fr-find">Find</label>
+              <input id="fr-find" class="tool-input" type="text" placeholder="pattern" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="fr-repl">Replace</label>
+              <input id="fr-repl" class="tool-input" type="text" placeholder="replacement" autocomplete="off" />
+            </div>
+          </div>
+          <div class="tool-actions">
+            <label class="tool-check"><input type="checkbox" id="fr-regex" /> Regex</label>
+            <label class="tool-check"><input type="checkbox" id="fr-i" /> i (ignore case)</label>
+            <label class="tool-check"><input type="checkbox" id="fr-m" /> m (multiline)</label>
+            <label class="tool-check"><input type="checkbox" id="fr-s" /> s (dotAll)</label>
+            <button type="button" class="btn btn--primary btn--sm" id="fr-run">Replace all</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fr-copy">Copy</button>
+            <span class="tool-meta" id="fr-meta"></span>
+          </div>
+          <div class="tool-field">
+            <label for="fr-out">Output</label>
+            <textarea id="fr-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>

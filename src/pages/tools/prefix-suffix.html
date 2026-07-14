@@ -1,0 +1,40 @@
+---
+{
+  "title": "Prefix / suffix lines · Tools",
+  "description": "Thêm hoặc gỡ chuỗi đầu/cuối mỗi dòng.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/prefix-suffix.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Prefix / suffix lines</h1>
+          <p>Thêm hoặc gỡ chuỗi đầu/cuối mỗi dòng.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="ps-in">Input</label>
+              <textarea id="ps-in" class="tool-textarea tool-textarea--tall" placeholder="one\ntwo\nthree" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="ps-out">Output</label>
+              <textarea id="ps-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="Kết quả…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <label class="tool-check">Prefix <input id="ps-pre" class="tool-input" type="text" value="" style="width:8rem;padding:0.35rem 0.5rem" placeholder="• " /></label>
+            <label class="tool-check">Suffix <input id="ps-suf" class="tool-input" type="text" value="" style="width:8rem;padding:0.35rem 0.5rem" placeholder=";" /></label>
+            <button type="button" class="btn btn--primary btn--sm" id="ps-add">Thêm</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ps-strip">Gỡ nếu khớp</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ps-copy">Copy</button>
+            <span class="tool-meta" id="ps-meta"></span>
+          </div>
+        </div>
+      </div>

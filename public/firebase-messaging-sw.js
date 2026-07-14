@@ -1,0 +1,59 @@
+/* FCM background SW — config qua ?cfg= base64(JSON firebaseConfig) khi register */
+/* eslint-disable no-undef */
+importScripts(
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"
+);
+importScripts(
+  "https://www.gstatic.com/firebasejs/11.6.0/firebase-messaging-compat.js"
+);
+
+function loadConfig() {
+  try {
+    var params = new URL(self.location.href).searchParams;
+    var raw = params.get("cfg");
+    if (!raw) return null;
+    return JSON.parse(atob(decodeURIComponent(raw)));
+  } catch (e) {
+    console.error("[FCM SW] bad cfg", e);
+    return null;
+  }
+}
+
+var firebaseConfig = loadConfig();
+
+if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    var messaging = firebase.messaging();
+
+    messaging.onBackgroundMessage(function (payload) {
+      console.log("[FCM SW] background", payload);
+      var n = (payload && payload.notification) || {};
+      var title = n.title || "FCM Test";
+      var options = {
+        body: n.body || (payload.data ? JSON.stringify(payload.data) : "Background message"),
+        icon: n.icon || "/favicon.ico",
+        badge: n.badge || "/favicon.ico",
+        data: (payload && payload.data) || {},
+        tag: "fcm-test-" + Date.now(),
+      };
+      return self.registration.showNotification(title, options);
+    });
+  } catch (e) {
+    console.error("[FCM SW] init failed", e);
+  }
+} else {
+  console.warn("[FCM SW] no firebase config — register with ?cfg=");
+}
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (list) {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].url && "focus" in list[i]) return list[i].focus();
+      }
+      if (clients.openWindow) return clients.openWindow("/tools/fcm-push.html");
+    })
+  );
+});

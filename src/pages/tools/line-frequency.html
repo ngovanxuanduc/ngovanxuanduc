@@ -1,0 +1,76 @@
+---
+{
+  "title": "Đếm tần suất dòng · Tools",
+  "description": "Đếm tần suất mỗi dòng trong danh sách.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/line-frequency.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Đếm tần suất dòng</h1>
+          <p>
+            Đếm mỗi dòng xuất hiện bao nhiêu lần. Output dạng
+            <code>số lần + tab + nội dung</code>.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="lf-input">Input</label>
+              <textarea
+                id="lf-input"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="red&#10;blue&#10;red&#10;green&#10;blue&#10;blue"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="lf-out">Output</label>
+              <textarea
+                id="lf-out"
+                class="tool-textarea tool-textarea--tall tool-textarea--result"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="lf-run">Chạy</button>
+            <label class="tool-check">
+              Sort
+              <select id="lf-sort" class="tool-select" style="width: auto; padding: 0.35rem 0.5rem">
+                <option value="freq-desc">Nhiều → ít</option>
+                <option value="freq-asc">Ít → nhiều</option>
+                <option value="alpha">A → Z</option>
+                <option value="first">Thứ tự lần đầu</option>
+              </select>
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-only-dup" />
+              Chỉ dòng trùng (≥2)
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-ignore-case" />
+              Ignore case
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="lf-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="lf-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="lf-clear">Xóa</button>
+            <span class="tool-meta" id="lf-meta"></span>
+          </div>
+        </div>
+      </div>

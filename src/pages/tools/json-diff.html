@@ -1,0 +1,40 @@
+---
+{
+  "title": "JSON diff · Tools",
+  "description": "So 2 JSON (key path) — thêm/xóa/đổi giá trị. Offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/json-diff.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>JSON diff</h1>
+          <p>So 2 JSON (key path) — thêm/xóa/đổi giá trị. Offline.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="jd-a">JSON A</label>
+              <textarea id="jd-a" class="tool-textarea tool-textarea--tall" spellcheck="false">{"a":1,"b":{"c":2}}</textarea>
+            </div>
+            <div class="tool-field">
+              <label for="jd-b">JSON B</label>
+              <textarea id="jd-b" class="tool-textarea tool-textarea--tall" spellcheck="false">{"a":1,"b":{"c":3},"d":true}</textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="jd-run">Diff</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jd-copy">Copy</button>
+            <span class="tool-meta" id="jd-meta"></span>
+          </div>
+          <div class="tool-field">
+            <label for="jd-out">Diff</label>
+            <textarea id="jd-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>

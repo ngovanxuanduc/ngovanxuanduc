@@ -1,0 +1,79 @@
+---
+{
+  "title": "So sánh 3 list · Tools",
+  "description": "So sánh 3 danh sách dòng: A ∩ B ∩ C và các phép lọc.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/line-sets-3.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>So sánh 3 list</h1>
+          <p>
+            Ba danh sách dòng — giao cả ba, cặp đôi, chỉ một list, đúng 2 list,
+            hợp…
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
+            <div class="tool-field">
+              <label for="ls3-a">List A</label>
+              <textarea id="ls3-a" class="tool-textarea tool-textarea--tall" placeholder="a&#10;b&#10;c" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="ls3-b">List B</label>
+              <textarea id="ls3-b" class="tool-textarea tool-textarea--tall" placeholder="b&#10;c&#10;d" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="ls3-c">List C</label>
+              <textarea id="ls3-c" class="tool-textarea tool-textarea--tall" placeholder="c&#10;d&#10;e" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" data-ls3-op="abc">A ∩ B ∩ C</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="ab">A ∩ B</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="ac">A ∩ C</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="bc">B ∩ C</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="ab-not-c">(A ∩ B) − C</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="only-a">Chỉ A</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="only-b">Chỉ B</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="only-c">Chỉ C</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="exactly-two">Đúng 2</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="exactly-one">Đúng 1</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls3-op="union">Hợp ∪</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ls3-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ls3-clear">Xóa</button>
+          </div>
+
+          <div class="tool-actions">
+            <label class="tool-check">
+              <input type="checkbox" id="ls3-ignore-case" />
+              Ignore case
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls3-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls3-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls3-sort" />
+              Sort kết quả
+            </label>
+            <span class="tool-meta" id="ls3-meta"></span>
+          </div>
+
+          <div class="tool-field">
+            <label for="ls3-out">Kết quả</label>
+            <textarea id="ls3-out" class="tool-textarea tool-textarea--result" readonly spellcheck="false"></textarea>
+          </div>
+        </div>
+      </div>

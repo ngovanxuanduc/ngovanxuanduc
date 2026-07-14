@@ -1,0 +1,48 @@
+---
+{
+  "title": "Timestamp convert · Tools",
+  "description": "Unix seconds/ms ↔ datetime local & UTC — không API.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/timestamp.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Timestamp convert</h1>
+          <p>Unix seconds/ms ↔ datetime local & UTC — không API.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="convert-grid">
+            <div class="tool-field">
+              <label for="ts-unix">Unix (seconds)</label>
+              <input id="ts-unix" class="tool-input" type="text" inputmode="numeric" placeholder="1700000000" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="ts-ms">Unix (milliseconds)</label>
+              <input id="ts-ms" class="tool-input" type="text" inputmode="numeric" placeholder="1700000000000" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="ts-iso">ISO / datetime</label>
+              <input id="ts-iso" class="tool-input" type="text" placeholder="2024-01-01T00:00:00.000Z" autocomplete="off" />
+            </div>
+            <div class="tool-field">
+              <label for="ts-local">Local (máy bạn)</label>
+              <input id="ts-local" class="tool-input" type="text" readonly />
+            </div>
+            <div class="tool-field">
+              <label for="ts-utc">UTC string</label>
+              <input id="ts-utc" class="tool-input" type="text" readonly />
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="ts-now">Now</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ts-clear">Xóa</button>
+            <span class="tool-meta" id="ts-meta"></span>
+          </div>
+        </div>
+      </div>

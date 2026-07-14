@@ -1,0 +1,39 @@
+---
+{
+  "title": "Query string ↔ JSON · Tools",
+  "description": "a=1&amp;b=hello ↔ object JSON.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/query-json.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Query string ↔ JSON</h1>
+          <p>a=1&amp;b=hello ↔ object JSON.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="qj-in">Input</label>
+              <textarea id="qj-in" class="tool-textarea tool-textarea--tall" placeholder="foo=1&bar=xin+chao" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="qj-out">Output</label>
+              <textarea id="qj-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="JSON hoặc query…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="qj-to-json">Query → JSON</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="qj-to-query">JSON → Query</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="qj-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="qj-clear">Xóa</button>
+            <span class="tool-meta" id="qj-meta"></span>
+          </div>
+        </div>
+      </div>

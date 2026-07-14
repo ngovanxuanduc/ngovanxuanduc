@@ -1,0 +1,53 @@
+---
+{
+  "title": "Case / format text · Tools",
+  "description": "Đổi kiểu chữ: upper, lower, camel, snake…",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/case-convert.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Case / format text</h1>
+          <p>Chuyển đổi kiểu chữ và format identifier nhanh.</p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="case-input">Input</label>
+              <textarea
+                id="case-input"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="Nhập text…"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="case-output">Output</label>
+              <textarea
+                id="case-output"
+                class="tool-textarea tool-textarea--tall tool-textarea--result"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--ghost btn--sm" data-case="upper">UPPER</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="lower">lower</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="title">Title Case</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="camel">camelCase</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="snake">snake_case</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="kebab">kebab-case</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-case="reverse">Reverse</button>
+            <button type="button" class="btn btn--primary btn--sm" id="case-copy">Copy</button>
+            <span class="tool-meta" id="case-meta"></span>
+          </div>
+        </div>
+      </div>

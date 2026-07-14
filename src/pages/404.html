@@ -1,0 +1,30 @@
+---
+{
+  "title": "404 · Not found",
+  "description": "Page not found — ngovanxuanduc.com",
+  "page": "home",
+  "scripts": [],
+  "robots": "noindex",
+  "extraHead": "<style>\n      .nf {\n        min-height: calc(100vh - var(--nav-h) - 5rem);\n        display: flex;\n        flex-direction: column;\n        align-items: center;\n        justify-content: center;\n        text-align: center;\n        padding: 2.5rem 1.25rem 3rem;\n        gap: 0;\n      }\n      .nf__code {\n        font-family: var(--mono);\n        font-size: clamp(4.5rem, 16vw, 7.5rem);\n        font-weight: 500;\n        letter-spacing: -0.06em;\n        line-height: 1;\n        color: var(--text);\n        margin: 0 0 0.75rem;\n        background: linear-gradient(180deg, var(--text) 0%, var(--text-dim) 100%);\n        -webkit-background-clip: text;\n        background-clip: text;\n        -webkit-text-fill-color: transparent;\n      }\n      .nf__title {\n        font-size: clamp(1.25rem, 3vw, 1.5rem);\n        font-weight: 600;\n        letter-spacing: -0.02em;\n        margin: 0 0 0.65rem;\n      }\n      .nf__desc {\n        color: var(--text-muted);\n        max-width: 36ch;\n        margin: 0 auto 1.75rem;\n        line-height: 1.6;\n        font-size: 0.95rem;\n      }\n      .nf__path {\n        display: inline-block;\n        font-family: var(--mono);\n        font-size: 0.8rem;\n        color: var(--text-dim);\n        background: var(--bg-elevated);\n        border: 1px solid var(--border);\n        border-radius: 999px;\n        padding: 0.35rem 0.85rem;\n        margin-bottom: 1.75rem;\n        max-width: min(100%, 28rem);\n        overflow: hidden;\n        text-overflow: ellipsis;\n        white-space: nowrap;\n        vertical-align: middle;\n      }\n      .nf__actions {\n        display: flex;\n        flex-wrap: wrap;\n        gap: 0.65rem;\n        justify-content: center;\n      }\n      .nf__links {\n        margin-top: 2rem;\n        display: flex;\n        flex-wrap: wrap;\n        gap: 0.75rem 1.25rem;\n        justify-content: center;\n        font-size: 0.85rem;\n      }\n      .nf__links a {\n        color: var(--text-muted);\n      }\n      .nf__links a:hover {\n        color: var(--accent);\n      }\n    </style>"
+}
+---
+<div class="nf">
+        <p class="nf__code" aria-hidden="true">404</p>
+        <h1 class="nf__title">Page not found</h1>
+        <p class="nf__desc">
+          Trang này không tồn tại, đã đổi URL, hoặc link bị gãy. Kiểm tra lại
+          đường dẫn hoặc về trang chính.
+        </p>
+        <code class="nf__path" id="nf-path" title="Requested path">/…</code>
+        <div class="nf__actions">
+          <a class="btn btn--primary" href="/">Về Home</a>
+          <a class="btn btn--ghost" href="/tools/">Tools</a>
+          <button type="button" class="btn btn--ghost" id="nf-back">Quay lại</button>
+        </div>
+        <div class="nf__links">
+          <a href="/calendar.html">Lịch</a>
+          <a href="/games/">Games</a>
+          <a href="/articles/">Articles</a>
+          <a href="/tools/fcm-push.html">FCM test</a>
+        </div>
+      </div>

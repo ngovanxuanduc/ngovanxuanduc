@@ -1,0 +1,39 @@
+---
+{
+  "title": "JSON ↔ CSV · Tools",
+  "description": "Đổi mảng object JSON sang CSV và ngược lại — offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/json-csv.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>JSON ↔ CSV</h1>
+          <p>Đổi mảng object JSON sang CSV và ngược lại — offline.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="jc-in">Input</label>
+              <textarea id="jc-in" class="tool-textarea tool-textarea--tall" placeholder="[{"name":"A","age":1}]" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="jc-out">Output</label>
+              <textarea id="jc-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="CSV hoặc JSON…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="jc-to-csv">JSON → CSV</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jc-to-json">CSV → JSON</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jc-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jc-clear">Xóa</button>
+            <span class="tool-meta" id="jc-meta"></span>
+          </div>
+        </div>
+      </div>

@@ -1,0 +1,76 @@
+---
+{
+  "title": "Sort lines · Tools",
+  "description": "Sort, reverse, shuffle, unique lines.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/sort-lines.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Sort lines</h1>
+          <p>Sắp xếp, đảo, xáo, hoặc unique danh sách dòng.</p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="sl-input">Input</label>
+              <textarea
+                id="sl-input"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="Mỗi dòng một item…"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="sl-out">Output</label>
+              <textarea
+                id="sl-out"
+                class="tool-textarea tool-textarea--tall tool-textarea--result"
+                readonly
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" data-sl-op="asc">A → Z</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-sl-op="desc">Z → A</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-sl-op="reverse">Reverse</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-sl-op="shuffle">Shuffle</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-sl-op="unique-keep-order">
+              Unique (giữ thứ tự)
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-sl-op="unique-sort">
+              Unique + sort
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="sl-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="sl-clear">Xóa</button>
+          </div>
+
+          <div class="tool-actions">
+            <label class="tool-check">
+              <input type="checkbox" id="sl-ignore-case" />
+              Ignore case
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="sl-numeric" checked />
+              Numeric sort (item2 &lt; item10)
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="sl-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="sl-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <span class="tool-meta" id="sl-meta"></span>
+          </div>
+        </div>
+      </div>

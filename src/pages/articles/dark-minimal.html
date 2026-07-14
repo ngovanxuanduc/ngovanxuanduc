@@ -1,0 +1,62 @@
+---
+{
+  "title": "Dark &amp; minimal — vài lựa chọn thiết kế · Articles",
+  "description": "Ghi chú về lựa chọn dark &amp; minimal cho site.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Dark &amp; minimal — vài lựa chọn thiết kế</h1>
+          <p class="article-header__meta">2026-07-14 · ~3 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            “Dark mode + minimal” dễ rơi vào template giống nhau. Dưới đây là vài
+            quyết định cụ thể trên site này — không phải quy tắc chung, chỉ là
+            lựa chọn hiện tại.
+          </p>
+
+          <h2>Nền gần đen, không thuần <code>#000</code></h2>
+          <p>
+            Background dùng khoảng <code>#0a0a0b</code>. Đen tuyệt đối trên OLED
+            đẹp, nhưng dễ làm chữ và border “nổi” quá gắt. Một chút ấm/xám giúp
+            hierarchy mềm hơn.
+          </p>
+
+          <h2>Một accent, dùng tiết kiệm</h2>
+          <p>
+            Accent tím nhạt (<code>#a78bfa</code>) cho link, nút primary, và điểm
+            nhấn trong game. Hầu hết UI vẫn xám — accent chỉ xuất hiện khi cần
+            action hoặc focus.
+          </p>
+
+          <h2>Typography hẹp, độ rộng đọc thoải mái</h2>
+          <p>
+            Nội dung bài viết giới hạn ~720px. Card grid rộng hơn một chút. Font
+            <strong>DM Sans</strong> cho UI, <strong>JetBrains Mono</strong> cho
+            meta/date — đủ “dev” mà không ồn.
+          </p>
+
+          <h2>Border thay vì shadow</h2>
+          <p>
+            Card và panel tách bằng border 1px tối. Shadow trên nền dark thường
+            bẩn hoặc vô hình; border rẻ, rõ, dễ maintain.
+          </p>
+
+          <h2>Animation tối thiểu</h2>
+          <p>
+            Chỉ fade-up nhẹ khi load, hover card nhích 2px. Không parallax, không
+            confetti. Site cá nhân không cần “wow” 5 giây đầu — cần cảm giác
+            ổn định.
+          </p>
+
+          <p>
+            Nếu sau này đổi sang light mode: token CSS đã gom trong
+            <code>:root</code>, đổi biến là xong phần lớn.
+          </p>
+        </div>
+      </article>

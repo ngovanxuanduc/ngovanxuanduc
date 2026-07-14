@@ -1,0 +1,136 @@
+---
+{
+  "title": "FCM Web Push test · Tools",
+  "description": "Test Firebase Cloud Messaging (FCM) Web Push — lấy token, nhận notification.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/fcm-push.js"
+  ],
+  "extraHead": "<style>\n      .fcm-log {\n        background: var(--bg);\n        border: 1px solid var(--border);\n        border-radius: var(--radius-sm);\n        padding: 0.75rem;\n        max-height: 220px;\n        overflow-y: auto;\n        font-family: var(--mono);\n        font-size: 0.75rem;\n        line-height: 1.5;\n        color: var(--text-muted);\n      }\n      .fcm-log__line {\n        margin-bottom: 0.25rem;\n        word-break: break-word;\n      }\n      .fcm-log__line--ok {\n        color: var(--success);\n      }\n      .fcm-log__line--err {\n        color: var(--danger);\n      }\n    </style>"
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>FCM Web Push test</h1>
+          <p>
+            Dán Firebase web config + VAPID key → xin permission → lấy FCM token →
+            gửi test message từ Console để xem có nhận noti không.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="ip-card tool-note" style="text-align: left">
+            <p>
+              <strong>Lưu ý:</strong> Tool này <em>có</em> dùng Firebase CDN + FCM
+              (đúng mục đích test). Cần HTTPS hoặc localhost. Config chỉ lưu
+              <code>localStorage</code> trên máy bạn.
+            </p>
+            <ol>
+              <li>Firebase Console → Project settings → Your apps → Web config</li>
+              <li>
+                Cloud Messaging → Web Push certificates → Key pair (VAPID
+                <code>Key pair</code>)
+              </li>
+              <li>Bấm <strong>Start / Get token</strong>, cho phép Notification</li>
+              <li>
+                Console → Messaging → tạo campaign / Send test message → dán
+                token
+              </li>
+              <li>
+                Tab đang mở: foreground payload hiện bên dưới. Tab ẩn / nền: SW
+                hiện system notification.
+              </li>
+            </ol>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--ghost btn--sm" id="fcm-paste-json">
+              Paste firebaseConfig JSON
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fcm-save">
+              Save local
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fcm-clear-cfg">
+              Clear config
+            </button>
+            <span class="tool-meta" id="fcm-status">—</span>
+          </div>
+
+          <div class="convert-grid">
+            <div class="tool-field">
+              <label for="fcm-apiKey">apiKey</label>
+              <input id="fcm-apiKey" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-authDomain">authDomain</label>
+              <input id="fcm-authDomain" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-projectId">projectId</label>
+              <input id="fcm-projectId" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-storageBucket">storageBucket</label>
+              <input id="fcm-storageBucket" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-messagingSenderId">messagingSenderId</label>
+              <input id="fcm-messagingSenderId" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-appId">appId</label>
+              <input id="fcm-appId" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-measurementId">measurementId (optional)</label>
+              <input id="fcm-measurementId" class="tool-input" type="text" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="tool-field">
+              <label for="fcm-vapidKey">VAPID key (Web Push certificates)</label>
+              <input id="fcm-vapidKey" class="tool-input" type="text" autocomplete="off" spellcheck="false" placeholder="BNxxxx… public key" />
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary" id="fcm-start">
+              Start / Get token
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fcm-copy-token">
+              Copy token
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="fcm-clear-log">
+              Clear log
+            </button>
+          </div>
+
+          <div class="tool-field">
+            <label for="fcm-token">FCM registration token</label>
+            <textarea
+              id="fcm-token"
+              class="tool-textarea tool-textarea--result"
+              readonly
+              rows="3"
+              spellcheck="false"
+              placeholder="Token sẽ hiện sau khi Start thành công…"
+            ></textarea>
+          </div>
+
+          <div class="tool-field">
+            <label for="fcm-last-payload">Last foreground payload</label>
+            <textarea
+              id="fcm-last-payload"
+              class="tool-textarea tool-textarea--result"
+              readonly
+              rows="6"
+              spellcheck="false"
+              placeholder="Payload khi nhận message lúc tab đang mở…"
+            ></textarea>
+          </div>
+
+          <div class="tool-field">
+            <label>Log</label>
+            <div id="fcm-log" class="fcm-log" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>

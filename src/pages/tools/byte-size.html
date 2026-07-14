@@ -1,0 +1,40 @@
+---
+{
+  "title": "Byte size convert · Tools",
+  "description": "B / KB / MB / GB / TB (1024 hoặc 1000).",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/byte-size.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Byte size convert</h1>
+          <p>B / KB / MB / GB / TB (1024 hoặc 1000).</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-actions">
+            <label class="tool-check">
+              <input type="radio" name="bs-base" value="1024" checked /> Binary (1024)
+            </label>
+            <label class="tool-check">
+              <input type="radio" name="bs-base" value="1000" /> Decimal (1000)
+            </label>
+            <span class="tool-meta" id="bs-meta"></span>
+          </div>
+          <div class="convert-grid">
+            <div class="tool-field"><label for="bs-b">Bytes</label><input id="bs-b" class="tool-input" type="text" inputmode="decimal" autocomplete="off" /></div>
+            <div class="tool-field"><label for="bs-kb">KB</label><input id="bs-kb" class="tool-input" type="text" inputmode="decimal" autocomplete="off" /></div>
+            <div class="tool-field"><label for="bs-mb">MB</label><input id="bs-mb" class="tool-input" type="text" inputmode="decimal" autocomplete="off" /></div>
+            <div class="tool-field"><label for="bs-gb">GB</label><input id="bs-gb" class="tool-input" type="text" inputmode="decimal" autocomplete="off" /></div>
+            <div class="tool-field"><label for="bs-tb">TB</label><input id="bs-tb" class="tool-input" type="text" inputmode="decimal" autocomplete="off" /></div>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--ghost btn--sm" id="bs-clear">Xóa</button>
+          </div>
+        </div>
+      </div>

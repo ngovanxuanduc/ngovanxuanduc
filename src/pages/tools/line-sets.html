@@ -1,0 +1,94 @@
+---
+{
+  "title": "So sánh list dòng · Tools",
+  "description": "So sánh hai danh sách dòng: giao, hiệu, hợp, đối xứng.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/line-sets.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>So sánh list dòng</h1>
+          <p>
+            Hai danh sách (mỗi dòng một item) — tìm dòng chung, chỉ A, chỉ B, hợp,
+            hoặc có ở đúng một bên.
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="ls-a">List A</label>
+              <textarea
+                id="ls-a"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="apple&#10;banana&#10;cherry"
+                spellcheck="false"
+              ></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="ls-b">List B</label>
+              <textarea
+                id="ls-b"
+                class="tool-textarea tool-textarea--tall"
+                placeholder="banana&#10;date&#10;apple"
+                spellcheck="false"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" data-ls-op="intersect">
+              Giao ∩
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls-op="only-a">
+              Chỉ A
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls-op="only-b">
+              Chỉ B
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls-op="union">
+              Hợp ∪
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" data-ls-op="symdiff">
+              Đối xứng
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ls-copy">Copy</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="ls-clear">Xóa</button>
+          </div>
+
+          <div class="tool-actions">
+            <label class="tool-check">
+              <input type="checkbox" id="ls-ignore-case" />
+              Không phân biệt hoa/thường
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls-trim" checked />
+              Trim
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls-drop-empty" checked />
+              Bỏ dòng trống
+            </label>
+            <label class="tool-check">
+              <input type="checkbox" id="ls-sort" />
+              Sort kết quả
+            </label>
+            <span class="tool-meta" id="ls-meta"></span>
+          </div>
+
+          <div class="tool-field">
+            <label for="ls-out">Kết quả</label>
+            <textarea
+              id="ls-out"
+              class="tool-textarea tool-textarea--result"
+              readonly
+              spellcheck="false"
+            ></textarea>
+          </div>
+        </div>
+      </div>

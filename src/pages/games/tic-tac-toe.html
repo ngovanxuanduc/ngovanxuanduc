@@ -1,0 +1,27 @@
+---
+{
+  "title": "Tic-Tac-Toe · Games",
+  "description": "Chơi Tic-Tac-Toe — cờ caro 3×3.",
+  "page": "games",
+  "scripts": [
+    "/js/tic-tac-toe.js"
+  ]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Tic-Tac-Toe</h1>
+          <p>Hai người. X đi trước. Ba ô thẳng hàng = thắng.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <p id="ttt-status" class="game-status">Lượt <strong>X</strong></p>
+          <div id="ttt-board" class="ttt-board" role="grid" aria-label="Bàn cờ"></div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--ghost btn--sm" id="ttt-reset">
+              Chơi lại
+            </button>
+          </div>
+        </div>
+      </div>

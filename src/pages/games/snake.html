@@ -1,0 +1,42 @@
+---
+{
+  "title": "Snake · Games",
+  "description": "Snake — game rắn săn mồi cổ điển.",
+  "page": "games",
+  "scripts": [
+    "/js/snake.js"
+  ]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Snake</h1>
+          <p>Mũi tên hoặc WASD. Ăn mồi tím, tránh tường và thân.</p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <p id="snake-status" class="game-status">Nhấn Bắt đầu hoặc phím mũi tên.</p>
+          <div class="memory-stats">
+            <span>Điểm: <strong id="snake-score">0</strong></span>
+          </div>
+          <div class="snake-wrap">
+            <canvas id="snake-canvas" width="288" height="288" aria-label="Snake game"></canvas>
+            <p class="snake-hint">↑ ↓ ← → · W A S D</p>
+            <div class="snake-controls" aria-label="Điều khiển cảm ứng">
+              <button type="button" class="btn btn--ghost" data-snake-dir="up" aria-label="Lên">↑</button>
+              <button type="button" class="btn btn--ghost" data-snake-dir="left" aria-label="Trái">←</button>
+              <button type="button" class="btn btn--ghost" data-snake-dir="down" aria-label="Xuống">↓</button>
+              <button type="button" class="btn btn--ghost" data-snake-dir="right" aria-label="Phải">→</button>
+            </div>
+          </div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--primary btn--sm" id="snake-start">
+              Bắt đầu
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="snake-reset">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>

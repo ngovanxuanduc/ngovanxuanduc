@@ -1,0 +1,14 @@
+{
+  "name": "Ngo Van Xuan Duc",
+  "domain": "ngovanxuanduc.com",
+  "logo": "ngovanxuanduc",
+  "gtmId": "GTM-W4K2NDNC",
+  "lang": "vi",
+  "nav": [
+    { "id": "home", "label": "Home", "href": "/" },
+    { "id": "calendar", "label": "Lịch", "href": "/calendar.html" },
+    { "id": "tools", "label": "Tools", "href": "/tools/" },
+    { "id": "games", "label": "Games", "href": "/games/" },
+    { "id": "articles", "label": "Articles", "href": "/articles/" }
+  ]
+}

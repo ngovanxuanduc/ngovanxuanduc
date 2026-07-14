@@ -1,0 +1,41 @@
+---
+{
+  "title": "Join / Split lines · Tools",
+  "description": "Gộp dòng bằng delimiter hoặc tách chuỗi thành nhiều dòng.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/join-split.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Join / Split lines</h1>
+          <p>Gộp dòng bằng delimiter hoặc tách chuỗi thành nhiều dòng.</p>
+        </div>
+        <div class="tool-shell">
+
+
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="js-in">Input</label>
+              <textarea id="js-in" class="tool-textarea tool-textarea--tall" placeholder="a\nb\nc" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="js-out">Output</label>
+              <textarea id="js-out" class="tool-textarea tool-textarea--tall tool-textarea--result" readonly spellcheck="false" placeholder="Kết quả…"></textarea>
+            </div>
+          </div>
+          <div class="tool-actions">
+            <label class="tool-check">Delimiter
+              <input id="js-delim" class="tool-input" type="text" value="," style="width:6rem;padding:0.35rem 0.5rem" />
+            </label>
+            <button type="button" class="btn btn--primary btn--sm" id="js-join">Join lines</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="js-split">Split → lines</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="js-copy">Copy</button>
+            <span class="tool-meta" id="js-meta"></span>
+          </div>
+        </div>
+      </div>

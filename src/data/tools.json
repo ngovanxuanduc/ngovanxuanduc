@@ -1,0 +1,292 @@
+{
+  "categories": [
+    {
+      "id": "string",
+      "label": "String",
+      "title": "String · lines",
+      "tools": [
+        {
+          "slug": "string-diff",
+          "title": "Diff string",
+          "meta": "So sánh theo dòng",
+          "icon": "↔",
+          "search": "diff string compare lines myers",
+          "description": "So sánh hai đoạn text theo dòng"
+        },
+        {
+          "slug": "line-sets",
+          "title": "So sánh 2 list",
+          "meta": "Giao · hiệu · hợp",
+          "icon": "∩",
+          "search": "set intersect union difference list 2"
+        },
+        {
+          "slug": "line-sets-3",
+          "title": "So sánh 3 list",
+          "meta": "A ∩ B ∩ C…",
+          "icon": "∩∩",
+          "search": "set three 3 list intersect"
+        },
+        {
+          "slug": "fuzzy-lines",
+          "title": "Fuzzy match",
+          "meta": "Dòng gần giống",
+          "icon": "≈",
+          "search": "fuzzy similarity levenshtein typo"
+        },
+        {
+          "slug": "line-frequency",
+          "title": "Tần suất dòng",
+          "meta": "Đếm số lần xuất hiện",
+          "icon": "#",
+          "search": "frequency count duplicate occurrences"
+        },
+        {
+          "slug": "sort-lines",
+          "title": "Sort lines",
+          "meta": "Sort · shuffle · unique",
+          "icon": "↕",
+          "search": "sort reverse shuffle unique"
+        },
+        {
+          "slug": "remove-duplicates",
+          "title": "Remove duplicates",
+          "meta": "Gỡ dòng trùng",
+          "icon": "⧉",
+          "search": "dedupe remove duplicate unique"
+        },
+        {
+          "slug": "case-convert",
+          "title": "Case / format",
+          "meta": "camel · snake · UPPER",
+          "icon": "Aa",
+          "search": "case upper lower camel snake kebab"
+        },
+        {
+          "slug": "join-split",
+          "title": "Join / Split",
+          "meta": "Delimiter",
+          "icon": "⊕",
+          "search": "join split delimiter"
+        },
+        {
+          "slug": "find-replace",
+          "title": "Find & replace",
+          "meta": "Text / regex",
+          "icon": "/",
+          "search": "find replace regex"
+        },
+        {
+          "slug": "prefix-suffix",
+          "title": "Prefix / suffix",
+          "meta": "Thêm / gỡ đầu cuối",
+          "icon": "«»",
+          "search": "prefix suffix wrap lines"
+        },
+        {
+          "slug": "text-stats",
+          "title": "Text stats",
+          "meta": "Ký tự · từ · dòng",
+          "icon": "Σ",
+          "search": "stats counter words characters bytes"
+        },
+        {
+          "slug": "lorem",
+          "title": "Lorem ipsum",
+          "meta": "Sinh text mẫu",
+          "icon": "¶",
+          "search": "lorem ipsum placeholder dummy"
+        }
+      ]
+    },
+    {
+      "id": "encode",
+      "label": "Encode",
+      "title": "Encode · Hash · ID",
+      "tools": [
+        {
+          "slug": "base64",
+          "title": "Base64",
+          "meta": "Encode / decode",
+          "icon": "64",
+          "search": "base64 encode decode"
+        },
+        {
+          "slug": "url-codec",
+          "title": "URL encode",
+          "meta": "encodeURIComponent",
+          "icon": "%",
+          "search": "url encode percent uri"
+        },
+        {
+          "slug": "html-entities",
+          "title": "HTML entities",
+          "meta": "Escape markup",
+          "icon": "&",
+          "search": "html entities escape lt gt"
+        },
+        {
+          "slug": "hash",
+          "title": "Hash",
+          "meta": "SHA + file",
+          "icon": "#",
+          "search": "hash sha256 sha1 sha512 file crypto"
+        },
+        {
+          "slug": "uuid",
+          "title": "UUID v4",
+          "meta": "Sinh hàng loạt",
+          "icon": "ID",
+          "search": "uuid guid v4 id generator"
+        },
+        {
+          "slug": "random-string",
+          "title": "Random string",
+          "meta": "Password / token",
+          "icon": "*",
+          "search": "password random string token"
+        }
+      ]
+    },
+    {
+      "id": "json",
+      "label": "JSON",
+      "title": "JSON · Data",
+      "tools": [
+        {
+          "slug": "json-format",
+          "title": "JSON format",
+          "meta": "Pretty · minify",
+          "icon": "{ }",
+          "search": "json pretty minify validate format"
+        },
+        {
+          "slug": "json-csv",
+          "title": "JSON ↔ CSV",
+          "meta": "Đổi bảng",
+          "icon": "⇄",
+          "search": "csv convert table"
+        },
+        {
+          "slug": "json-diff",
+          "title": "JSON diff",
+          "meta": "So key path",
+          "icon": "Δ",
+          "search": "diff compare keys path"
+        },
+        {
+          "slug": "query-json",
+          "title": "Query ↔ JSON",
+          "meta": "Query string",
+          "icon": "?&",
+          "search": "query string params urlsearchparams"
+        },
+        {
+          "slug": "jwt-decode",
+          "title": "JWT decode",
+          "meta": "Không verify",
+          "icon": "JWT",
+          "search": "jwt token decode payload header"
+        }
+      ]
+    },
+    {
+      "id": "number",
+      "label": "Number",
+      "title": "Number · Time · Color",
+      "tools": [
+        {
+          "slug": "number-convert",
+          "title": "Base convert",
+          "meta": "Bin · Oct · Dec · Hex",
+          "icon": "01",
+          "search": "binary octal hex decimal base"
+        },
+        {
+          "slug": "number-format",
+          "title": "Number format",
+          "meta": "Grouped · %",
+          "icon": "1,0",
+          "search": "format locale percent scientific"
+        },
+        {
+          "slug": "byte-size",
+          "title": "Byte size",
+          "meta": "B → TB",
+          "icon": "KB",
+          "search": "bytes kb mb gb size"
+        },
+        {
+          "slug": "percentage",
+          "title": "Percentage",
+          "meta": "% của · % đổi",
+          "icon": "%",
+          "search": "percent percentage math"
+        },
+        {
+          "slug": "random-number",
+          "title": "Random number",
+          "meta": "Trong khoảng",
+          "icon": "#?",
+          "search": "random rng integer"
+        },
+        {
+          "slug": "timestamp",
+          "title": "Timestamp",
+          "meta": "Unix ↔ ISO",
+          "icon": "⏱",
+          "search": "unix timestamp epoch iso date time"
+        },
+        {
+          "slug": "color-convert",
+          "title": "Color convert",
+          "meta": "HEX · RGB · HSL",
+          "icon": "◉",
+          "search": "color hex rgb hsl"
+        },
+        {
+          "slug": "cron-explain",
+          "title": "Cron explain",
+          "meta": "5-field",
+          "icon": "cron",
+          "search": "cron schedule explain"
+        }
+      ]
+    },
+    {
+      "id": "browser",
+      "label": "Browser",
+      "title": "Browser",
+      "tools": [
+        {
+          "slug": "user-agent",
+          "title": "User-Agent",
+          "meta": "navigator info",
+          "icon": "UA",
+          "search": "user agent navigator platform"
+        },
+        {
+          "slug": "my-ip",
+          "title": "What is my IP",
+          "meta": "Cần API ngoài",
+          "icon": "IP",
+          "search": "ip public network api"
+        }
+      ]
+    },
+    {
+      "id": "firebase",
+      "label": "Firebase",
+      "title": "Firebase",
+      "tools": [
+        {
+          "slug": "fcm-push",
+          "title": "FCM Web Push test",
+          "meta": "Token + nhận noti",
+          "icon": "FCM",
+          "search": "fcm firebase push notification web messaging token vapid"
+        }
+      ]
+    }
+  ]
+}

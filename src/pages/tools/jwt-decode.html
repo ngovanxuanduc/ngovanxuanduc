@@ -1,0 +1,41 @@
+---
+{
+  "title": "JWT decode · Tools",
+  "description": "Decode header & payload (Base64URL). Không verify chữ ký — offline.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/jwt-decode.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>JWT decode</h1>
+          <p>Decode header & payload (Base64URL). Không verify chữ ký — offline.</p>
+        </div>
+        <div class="tool-shell">
+
+          <div class="tool-field">
+            <label for="jwt-in">JWT</label>
+            <textarea id="jwt-in" class="tool-textarea" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…" spellcheck="false"></textarea>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="jwt-run">Decode</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jwt-copy">Copy payload</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="jwt-clear">Xóa</button>
+            <span class="tool-meta" id="jwt-meta"></span>
+          </div>
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="jwt-header">Header</label>
+              <textarea id="jwt-header" class="tool-textarea tool-textarea--result" readonly spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="jwt-payload">Payload</label>
+              <textarea id="jwt-payload" class="tool-textarea tool-textarea--result" readonly spellcheck="false"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>

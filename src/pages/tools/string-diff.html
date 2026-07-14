@@ -1,0 +1,46 @@
+---
+{
+  "title": "Diff string · Tools",
+  "description": "So sánh hai đoạn text theo dòng.",
+  "page": "tools",
+  "scripts": [
+    "/js/tools/lib.js",
+    "/js/tools/string-diff.js"
+  ]
+}
+---
+<div class="container container--cal">
+        <div class="game-header">
+          <a class="game-header__back" href="/tools/">← Tools</a>
+          <h1>Diff string</h1>
+          <p>
+            So sánh theo dòng (Myers cho đoạn vừa, fast path cho list rất lớn).
+            Xanh = thêm (B), đỏ = xóa (A), xám = giống. Dataset lớn: bấm «So sánh».
+          </p>
+        </div>
+
+        <div class="tool-shell">
+          <div class="tool-row tool-row--2">
+            <div class="tool-field">
+              <label for="diff-a">Text A (cũ)</label>
+              <textarea id="diff-a" class="tool-textarea" placeholder="Dán text A…" spellcheck="false"></textarea>
+            </div>
+            <div class="tool-field">
+              <label for="diff-b">Text B (mới)</label>
+              <textarea id="diff-b" class="tool-textarea" placeholder="Dán text B…" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <div class="tool-actions">
+            <button type="button" class="btn btn--primary btn--sm" id="diff-run">So sánh</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="diff-clear">Xóa</button>
+            <label class="tool-check">
+              <input type="checkbox" id="diff-ignore-ws" />
+              Bỏ qua khoảng trắng thừa
+            </label>
+            <span class="tool-meta" id="diff-meta"></span>
+          </div>
+
+          <div id="diff-out" class="diff-view" aria-live="polite"></div>
+        </div>
+      </div>
