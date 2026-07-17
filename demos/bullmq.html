@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Mô phỏng BullMQ: producer → queue (waiting/delayed) → worker → completed/failed/retry. Không cần Redis."
+    />
+    <title>Demo · BullMQ visualization</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --accent-soft: rgba(184, 164, 255, 0.14);
+        --success: #5eea93;
+        --success-soft: rgba(94, 234, 147, 0.12);
+        --warn: #fbbf24;
+        --warn-soft: rgba(251, 191, 36, 0.12);
+        --danger: #ff8f8f;
+        --danger-soft: rgba(255, 143, 143, 0.12);
+        --running: #60a5fa;
+        --running-soft: rgba(96, 165, 250, 0.14);
+        --delayed: #c084fc;
+        --delayed-soft: rgba(192, 132, 252, 0.12);
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.25rem 1rem 2.5rem;
+      }
+
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      header {
+        margin-bottom: 1.15rem;
+      }
+
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.6rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.4rem;
+      }
+
+      header p {
+        color: var(--text-muted);
+        font-size: 0.92rem;
+        max-width: 48rem;
+      }
+
+      header p + p {
+        margin-top: 0.35rem;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.86em;
+        color: var(--accent);
+      }
+
+      .hint {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+      }
+
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.95rem 1rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .panel h2 {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.65rem;
+      }
+
+      .flow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem 0.35rem;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        margin-bottom: 0.85rem;
+      }
+
+      .flow span {
+        padding: 0.28rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+      }
+
+      .flow .arrow {
+        border: none;
+        background: none;
+        padding: 0 0.1rem;
+        color: var(--text-dim);
+      }
+
+      .flow .f-wait {
+        border-color: rgba(184, 164, 255, 0.35);
+        color: var(--accent);
+      }
+      .flow .f-active {
+        border-color: rgba(96, 165, 250, 0.4);
+        color: var(--running);
+      }
+      .flow .f-done {
+        border-color: rgba(94, 234, 147, 0.35);
+        color: var(--success);
+      }
+      .flow .f-fail {
+        border-color: rgba(255, 143, 143, 0.4);
+        color: var(--danger);
+      }
+      .flow .f-delay {
+        border-color: rgba(192, 132, 252, 0.4);
+        color: var(--delayed);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 0.75rem;
+        align-items: flex-end;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 5.5rem;
+      }
+
+      .field label {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+      }
+
+      .field input[type="number"],
+      .field input[type="range"] {
+        font: inherit;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.4rem 0.5rem;
+      }
+
+      .field input[type="range"] {
+        padding: 0.35rem 0;
+        width: 7.5rem;
+      }
+
+      .field .val {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      button {
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.7rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+
+      button:hover:not(:disabled) {
+        background: #222228;
+      }
+
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+
+      button.primary:hover:not(:disabled) {
+        background: #d0c4ff;
+      }
+
+      button.ghost-danger {
+        color: var(--danger);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+
+      @media (max-width: 640px) {
+        .stats {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .stat {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.55rem 0.65rem;
+      }
+
+      .stat__label {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-dim);
+        margin-bottom: 0.2rem;
+      }
+
+      .stat__num {
+        font-family: var(--mono);
+        font-size: 1.25rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .stat--waiting .stat__num {
+        color: var(--accent);
+      }
+      .stat--active .stat__num {
+        color: var(--running);
+      }
+      .stat--delayed .stat__num {
+        color: var(--delayed);
+      }
+      .stat--completed .stat__num {
+        color: var(--success);
+      }
+      .stat--failed .stat__num {
+        color: var(--danger);
+      }
+
+      .workers {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .worker {
+        flex: 1 1 9rem;
+        min-width: 8rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.55rem 0.65rem;
+      }
+
+      .worker.is-busy {
+        border-color: rgba(96, 165, 250, 0.45);
+        background: var(--running-soft);
+      }
+
+      .worker__name {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        margin-bottom: 0.3rem;
+      }
+
+      .worker__job {
+        font-size: 0.82rem;
+        font-weight: 500;
+        min-height: 1.25em;
+      }
+
+      .worker__bar {
+        margin-top: 0.4rem;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .worker__bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: var(--running);
+        border-radius: 2px;
+      }
+
+      .lanes {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.55rem;
+        align-items: start;
+      }
+
+      @media (max-width: 900px) {
+        .lanes {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .lanes {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .lane {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        min-height: 12rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .lane__head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.45rem 0.55rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .lane__head b {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .lane--waiting .lane__head {
+        color: var(--accent);
+      }
+      .lane--active .lane__head {
+        color: var(--running);
+      }
+      .lane--delayed .lane__head {
+        color: var(--delayed);
+      }
+      .lane--completed .lane__head {
+        color: var(--success);
+      }
+      .lane--failed .lane__head {
+        color: var(--danger);
+      }
+
+      .lane__body {
+        padding: 0.45rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex: 1;
+        max-height: 22rem;
+        overflow-y: auto;
+      }
+
+      .lane__empty {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        padding: 0.5rem 0.25rem;
+      }
+
+      .job {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.4rem 0.45rem;
+        background: var(--bg-elevated);
+      }
+
+      .job--waiting {
+        border-color: rgba(184, 164, 255, 0.35);
+        background: var(--accent-soft);
+      }
+      .job--active {
+        border-color: rgba(96, 165, 250, 0.45);
+        background: var(--running-soft);
+      }
+      .job--delayed {
+        border-color: rgba(192, 132, 252, 0.4);
+        background: var(--delayed-soft);
+      }
+      .job--completed {
+        border-color: rgba(94, 234, 147, 0.3);
+        background: var(--success-soft);
+        opacity: 0.92;
+      }
+      .job--failed {
+        border-color: rgba(255, 143, 143, 0.4);
+        background: var(--danger-soft);
+      }
+
+      .job__id {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+      }
+
+      .job__meta {
+        font-size: 0.68rem;
+        color: var(--text-dim);
+        margin-top: 0.15rem;
+        font-family: var(--mono);
+      }
+
+      .job__timer {
+        margin-top: 0.28rem;
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--running);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .job__timer-bar {
+        margin-top: 0.28rem;
+        height: 3px;
+        background: rgba(96, 165, 250, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .job__timer-bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: var(--running);
+        border-radius: 2px;
+      }
+
+      .job--delayed .job__timer {
+        color: var(--delayed);
+      }
+
+      .job--delayed .job__timer-bar {
+        background: rgba(192, 132, 252, 0.2);
+      }
+
+      .job--delayed .job__timer-bar > i {
+        background: var(--delayed);
+      }
+
+      .job__prio {
+        display: inline-block;
+        margin-left: 0.25rem;
+        padding: 0.05rem 0.28rem;
+        border-radius: 999px;
+        background: rgba(251, 191, 36, 0.18);
+        color: var(--warn);
+        font-size: 0.62rem;
+      }
+
+      .worker__timer {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        color: var(--running);
+        margin-top: 0.2rem;
+        font-variant-numeric: tabular-nums;
+        min-height: 1em;
+      }
+
+      .log {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.45;
+        max-height: 9.5rem;
+        overflow-y: auto;
+        color: var(--text-dim);
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.55rem 0.65rem;
+      }
+
+      .log div {
+        padding: 0.12rem 0;
+        border-bottom: 1px solid transparent;
+      }
+
+      .log .ev-completed {
+        color: var(--success);
+      }
+      .log .ev-failed {
+        color: var(--danger);
+      }
+      .log .ev-active {
+        color: var(--running);
+      }
+      .log .ev-delayed {
+        color: var(--delayed);
+      }
+      .log .ev-waiting {
+        color: var(--accent);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.85rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+
+      .legend i {
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 2px;
+        margin-right: 0.3rem;
+        vertical-align: middle;
+      }
+
+      /* Embedded in article page */
+      html.is-embed body {
+        padding: 0.65rem 0.5rem 1rem;
+        min-height: 0;
+      }
+      html.is-embed .wrap {
+        max-width: none;
+      }
+      html.is-embed header {
+        display: none;
+      }
+      html.is-embed .panel {
+        margin-bottom: 0.65rem;
+      }
+    </style>
+    <script>
+      if (/(?:^|[?&])embed=1(?:&|$)/.test(location.search)) {
+        document.documentElement.classList.add("is-embed");
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>BullMQ — nhìn cho dễ tưởng tượng</h1>
+        <p>
+          Mô phỏng queue job kiểu
+          <strong>BullMQ</strong> (Redis-backed queue trên Node): producer bỏ
+          job vào queue → worker lấy ra xử lý →
+          <code>completed</code> / <code>failed</code>. Fail còn attempt thì
+          vào <code>delayed</code> (backoff) rồi quay lại
+          <code>waiting</code>.
+        </p>
+        <p class="hint">
+          Không nối Redis — chỉ animation trong browser. Concurrency = số job
+          <em>active</em> tối đa cùng lúc (giống nhiều worker / concurrency
+          option).
+        </p>
+      </header>
+
+      <section class="panel">
+        <div class="flow" aria-hidden="true">
+          <span>Producer</span>
+          <span class="arrow">→</span>
+          <span class="f-wait">waiting</span>
+          <span class="arrow">→</span>
+          <span class="f-active">active</span>
+          <span class="arrow">→</span>
+          <span class="f-done">completed</span>
+          <span class="arrow">·</span>
+          <span class="f-fail">failed</span>
+          <span class="arrow">→</span>
+          <span class="f-delay">delayed (retry)</span>
+          <span class="arrow">→</span>
+          <span class="f-wait">waiting</span>
+        </div>
+
+        <h2>Điều khiển</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="concurrency">Concurrency</label>
+            <input id="concurrency" type="range" min="1" max="6" value="2" />
+            <span class="val" id="concurrency-val">2 worker slot</span>
+          </div>
+          <div class="field">
+            <label for="fail-rate">Fail rate</label>
+            <input id="fail-rate" type="range" min="0" max="80" value="30" />
+            <span class="val" id="fail-rate-val">30%</span>
+          </div>
+          <div class="field">
+            <label for="attempts">Max attempts</label>
+            <input id="attempts" type="number" min="1" max="8" value="3" />
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btn-add">+ Job</button>
+            <button type="button" id="btn-prio">+ Priority</button>
+            <button type="button" id="btn-delay">+ Delayed 3s</button>
+            <button type="button" id="btn-burst">Burst ×8</button>
+            <button type="button" id="btn-pause">Tạm dừng worker</button>
+            <button type="button" id="btn-clear-done">Xóa completed</button>
+            <button type="button" class="ghost-danger" id="btn-reset">
+              Reset
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Queue · <span id="queue-name">email</span></h2>
+        <div class="stats" id="stats"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Workers (đang active)</h2>
+        <div class="workers" id="workers"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Job theo trạng thái</h2>
+        <div class="lanes" id="lanes"></div>
+        <p class="legend" style="margin-top: 0.75rem">
+          <span
+            ><i style="background: var(--accent)"></i>waiting — chờ worker</span
+          >
+          <span
+            ><i style="background: var(--running)"></i>active — đang
+            chạy</span
+          >
+          <span
+            ><i style="background: var(--delayed)"></i>delayed — hẹn giờ /
+            backoff retry</span
+          >
+          <span
+            ><i style="background: var(--success)"></i>completed</span
+          >
+          <span><i style="background: var(--danger)"></i>failed — hết
+            attempt</span
+          >
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>Event log (giống queue events)</h2>
+        <div class="log" id="log" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var NAMES = [
+          "send-welcome",
+          "resize-image",
+          "sync-stripe",
+          "gen-pdf",
+          "webhook-out",
+          "index-search",
+          "notify-slack",
+          "cleanup-tmp",
+        ];
+
+        var state = {
+          nextId: 1,
+          jobs: [],
+          concurrency: 2,
+          failRate: 0.3,
+          maxAttempts: 3,
+          paused: false,
+          /** @type {Map<number, {startedAt:number, duration:number, willFail:boolean, workerSlot:number}>} */
+          processing: new Map(),
+          logs: [],
+          logVersion: 0,
+        };
+
+        // Avoid full DOM rebuild every tick (was causing flicker)
+        var ui = {
+          structureKey: "",
+          workersKey: "",
+          logVersion: -1,
+          stats: { waiting: -1, active: -1, delayed: -1, completed: -1, failed: -1 },
+        };
+
+        var els = {
+          concurrency: document.getElementById("concurrency"),
+          concurrencyVal: document.getElementById("concurrency-val"),
+          failRate: document.getElementById("fail-rate"),
+          failRateVal: document.getElementById("fail-rate-val"),
+          attempts: document.getElementById("attempts"),
+          btnAdd: document.getElementById("btn-add"),
+          btnPrio: document.getElementById("btn-prio"),
+          btnDelay: document.getElementById("btn-delay"),
+          btnBurst: document.getElementById("btn-burst"),
+          btnPause: document.getElementById("btn-pause"),
+          btnClearDone: document.getElementById("btn-clear-done"),
+          btnReset: document.getElementById("btn-reset"),
+          stats: document.getElementById("stats"),
+          workers: document.getElementById("workers"),
+          lanes: document.getElementById("lanes"),
+          log: document.getElementById("log"),
+        };
+
+        function now() {
+          return Date.now();
+        }
+
+        function log(event, job, extra) {
+          var t = new Date();
+          var ts =
+            String(t.getHours()).padStart(2, "0") +
+            ":" +
+            String(t.getMinutes()).padStart(2, "0") +
+            ":" +
+            String(t.getSeconds()).padStart(2, "0");
+          var msg =
+            ts +
+            "  " +
+            event.padEnd(10) +
+            "  #" +
+            job.id +
+            "  " +
+            job.name +
+            (extra ? "  · " + extra : "");
+          state.logs.unshift({ event: event, msg: msg });
+          if (state.logs.length > 80) state.logs.length = 80;
+          state.logVersion += 1;
+        }
+
+        function formatSec(ms) {
+          return (Math.max(0, ms) / 1000).toFixed(1) + "s";
+        }
+
+        /** Random job runtime — wider range so timeouts feel different */
+        function randomTimeoutMs() {
+          // ~1.2s … ~4.8s
+          return 1200 + Math.floor(Math.random() * 3600);
+        }
+
+        function addJob(opts) {
+          opts = opts || {};
+          var id = state.nextId++;
+          var name = NAMES[Math.floor(Math.random() * NAMES.length)];
+          var job = {
+            id: id,
+            name: name,
+            status: opts.delayed ? "delayed" : "waiting",
+            priority: opts.priority || 0,
+            attemptsMade: 0,
+            maxAttempts: state.maxAttempts,
+            processAt: opts.delayed ? now() + (opts.delayMs || 3000) : 0,
+            delayStartedAt: opts.delayed ? now() : 0,
+            delayTotalMs: opts.delayed ? opts.delayMs || 3000 : 0,
+            lastError: "",
+            createdAt: now(),
+            timeoutMs: 0,
+            startedAt: 0,
+          };
+          state.jobs.push(job);
+          log(opts.delayed ? "delayed" : "waiting", job, opts.priority ? "priority " + opts.priority : "");
+          return job;
+        }
+
+        function count(status) {
+          var n = 0;
+          for (var i = 0; i < state.jobs.length; i++) {
+            if (state.jobs[i].status === status) n++;
+          }
+          return n;
+        }
+
+        function waitingSorted() {
+          return state.jobs
+            .filter(function (j) {
+              return j.status === "waiting";
+            })
+            .sort(function (a, b) {
+              if (b.priority !== a.priority) return b.priority - a.priority;
+              return a.id - b.id;
+            });
+        }
+
+        function freeSlots() {
+          return Math.max(0, state.concurrency - count("active"));
+        }
+
+        function startJob(job, slot) {
+          job.status = "active";
+          job.attemptsMade += 1;
+          var duration = randomTimeoutMs();
+          var t0 = now();
+          job.timeoutMs = duration;
+          job.startedAt = t0;
+          var willFail = Math.random() < state.failRate;
+          state.processing.set(job.id, {
+            startedAt: t0,
+            duration: duration,
+            willFail: willFail,
+            workerSlot: slot,
+          });
+          log(
+            "active",
+            job,
+            "attempt " +
+              job.attemptsMade +
+              "/" +
+              job.maxAttempts +
+              " · timeout " +
+              formatSec(duration)
+          );
+        }
+
+        function finishJob(job, info) {
+          state.processing.delete(job.id);
+          if (info.willFail) {
+            job.lastError = "SimulatedError: worker boom";
+            if (job.attemptsMade < job.maxAttempts) {
+              // exponential-ish backoff: 1s, 2s, 3s…
+              var backoff = job.attemptsMade * 1000;
+              job.status = "delayed";
+              job.delayStartedAt = now();
+              job.delayTotalMs = backoff;
+              job.processAt = job.delayStartedAt + backoff;
+              log(
+                "delayed",
+                job,
+                "retry in " + formatSec(backoff) + " (attempt " + job.attemptsMade + ")"
+              );
+            } else {
+              job.status = "failed";
+              log("failed", job, job.lastError);
+            }
+          } else {
+            job.status = "completed";
+            job.lastError = "";
+            log("completed", job, "ok");
+          }
+        }
+
+        function promoteDelayed() {
+          var t = now();
+          state.jobs.forEach(function (j) {
+            if (j.status === "delayed" && j.processAt <= t) {
+              j.status = "waiting";
+              log("waiting", j, "promoted from delayed");
+            }
+          });
+        }
+
+        function assignWorkers() {
+          if (state.paused) return;
+          var free = freeSlots();
+          if (free <= 0) return;
+          var waiting = waitingSorted();
+          // map slot indices in use
+          var used = {};
+          state.processing.forEach(function (info) {
+            used[info.workerSlot] = true;
+          });
+          var slot = 0;
+          for (var i = 0; i < waiting.length && free > 0; i++) {
+            while (used[slot]) slot++;
+            startJob(waiting[i], slot);
+            used[slot] = true;
+            free--;
+            slot++;
+          }
+        }
+
+        function tickActive() {
+          var t = now();
+          state.processing.forEach(function (info, id) {
+            if (t - info.startedAt >= info.duration) {
+              var job = state.jobs.find(function (j) {
+                return j.id === id;
+              });
+              if (job) finishJob(job, info);
+            }
+          });
+        }
+
+        function jobsInStatus(st) {
+          var list = state.jobs.filter(function (j) {
+            return j.status === st;
+          });
+          if (st === "waiting") return waitingSorted();
+          if (st === "completed" || st === "failed") {
+            return list
+              .slice()
+              .sort(function (a, b) {
+                return b.id - a.id;
+              })
+              .slice(0, 12);
+          }
+          if (st === "delayed") {
+            return list.slice().sort(function (a, b) {
+              return a.processAt - b.processAt;
+            });
+          }
+          // active: stable by worker slot then id
+          return list.slice().sort(function (a, b) {
+            var ia = state.processing.get(a.id);
+            var ib = state.processing.get(b.id);
+            var sa = ia ? ia.workerSlot : 99;
+            var sb = ib ? ib.workerSlot : 99;
+            if (sa !== sb) return sa - sb;
+            return a.id - b.id;
+          });
+        }
+
+        function structureKey() {
+          var order = ["waiting", "active", "delayed", "completed", "failed"];
+          var parts = [String(state.concurrency), state.paused ? "1" : "0"];
+          order.forEach(function (st) {
+            var list = jobsInStatus(st);
+            parts.push(
+              st +
+                ":" +
+                list
+                  .map(function (j) {
+                    return (
+                      j.id +
+                      "." +
+                      j.attemptsMade +
+                      "." +
+                      j.priority +
+                      "." +
+                      (j.timeoutMs || 0)
+                    );
+                  })
+                  .join(",")
+            );
+          });
+          return parts.join("|");
+        }
+
+        function renderStats(force) {
+          var items = [
+            ["waiting", count("waiting")],
+            ["active", count("active")],
+            ["delayed", count("delayed")],
+            ["completed", count("completed")],
+            ["failed", count("failed")],
+          ];
+          var changed = force;
+          for (var i = 0; i < items.length; i++) {
+            if (ui.stats[items[i][0]] !== items[i][1]) {
+              changed = true;
+              break;
+            }
+          }
+          if (!changed) return;
+          items.forEach(function (it) {
+            ui.stats[it[0]] = it[1];
+          });
+          els.stats.innerHTML = items
+            .map(function (it) {
+              return (
+                '<div class="stat stat--' +
+                it[0] +
+                '"><div class="stat__label">' +
+                it[0] +
+                '</div><div class="stat__num" data-stat="' +
+                it[0] +
+                '">' +
+                it[1] +
+                "</div></div>"
+              );
+            })
+            .join("");
+        }
+
+        function workerShellKey() {
+          var parts = [String(state.concurrency), state.paused ? "p" : "r"];
+          for (var s = 0; s < state.concurrency; s++) {
+            var busyId = "-";
+            var timeout = 0;
+            state.processing.forEach(function (inf, id) {
+              if (inf.workerSlot === s) {
+                busyId = String(id);
+                timeout = inf.duration;
+              }
+            });
+            parts.push(s + ":" + busyId + ":" + timeout);
+          }
+          return parts.join("|");
+        }
+
+        function renderWorkersShell() {
+          var key = workerShellKey();
+          if (key === ui.workersKey) return;
+          ui.workersKey = key;
+
+          var html = "";
+          for (var s = 0; s < state.concurrency; s++) {
+            var busy = null;
+            var info = null;
+            state.processing.forEach(function (inf, id) {
+              if (inf.workerSlot === s) {
+                info = inf;
+                busy = state.jobs.find(function (j) {
+                  return j.id === id;
+                });
+              }
+            });
+            html +=
+              '<div class="worker' +
+              (busy ? " is-busy" : "") +
+              '" data-slot="' +
+              s +
+              '">' +
+              '<div class="worker__name">worker-' +
+              (s + 1) +
+              "</div>" +
+              '<div class="worker__job">' +
+              (busy
+                ? "#" + busy.id + " " + busy.name
+                : state.paused
+                  ? "paused"
+                  : "idle") +
+              "</div>" +
+              '<div class="worker__timer" data-live="worker-timer">' +
+              (busy && info
+                ? "timeout " + formatSec(info.duration) + " · left —"
+                : "") +
+              "</div>" +
+              '<div class="worker__bar"><i data-live="worker-bar" style="width:0%"></i></div>' +
+              "</div>";
+          }
+          els.workers.innerHTML = html;
+        }
+
+        function jobCard(j) {
+          var meta = "try " + j.attemptsMade + "/" + j.maxAttempts;
+          if (j.status === "failed" && j.lastError) {
+            meta += " · err";
+          }
+          if (j.status === "completed" && j.timeoutMs) {
+            meta += " · ran " + formatSec(j.timeoutMs);
+          }
+          var prio =
+            j.priority > 0
+              ? '<span class="job__prio">P' + j.priority + "</span>"
+              : "";
+
+          var live = "";
+          if (j.status === "active") {
+            live =
+              '<div class="job__timer" data-live="timer">timeout ' +
+              formatSec(j.timeoutMs) +
+              " · left —</div>" +
+              '<div class="job__timer-bar"><i data-live="bar" style="width:0%"></i></div>';
+          } else if (j.status === "delayed") {
+            live =
+              '<div class="job__timer" data-live="timer">delay left —</div>' +
+              '<div class="job__timer-bar"><i data-live="bar" style="width:0%"></i></div>';
+          }
+
+          return (
+            '<div class="job job--' +
+            j.status +
+            '" data-job-id="' +
+            j.id +
+            '">' +
+            '<div class="job__id">#' +
+            j.id +
+            " " +
+            j.name +
+            prio +
+            "</div>" +
+            '<div class="job__meta">' +
+            meta +
+            "</div>" +
+            live +
+            "</div>"
+          );
+        }
+
+        function renderLanesShell() {
+          var key = structureKey();
+          if (key === ui.structureKey) return;
+          ui.structureKey = key;
+
+          var order = ["waiting", "active", "delayed", "completed", "failed"];
+          var html = "";
+          order.forEach(function (st) {
+            var list = jobsInStatus(st);
+            var body =
+              list.length === 0
+                ? '<div class="lane__empty">trống</div>'
+                : list.map(jobCard).join("");
+            html +=
+              '<div class="lane lane--' +
+              st +
+              '" data-lane="' +
+              st +
+              '">' +
+              '<div class="lane__head"><span>' +
+              st +
+              '</span><b data-lane-count="' +
+              st +
+              '">' +
+              count(st) +
+              "</b></div>" +
+              '<div class="lane__body">' +
+              body +
+              "</div></div>";
+          });
+          els.lanes.innerHTML = html;
+        }
+
+        function updateLive() {
+          var t = now();
+
+          // lane counts (cheap; may lag shell by a tick — shell rebuild handles moves)
+          ["waiting", "active", "delayed", "completed", "failed"].forEach(
+            function (st) {
+              var el = els.lanes.querySelector('[data-lane-count="' + st + '"]');
+              if (el) el.textContent = String(count(st));
+            }
+          );
+
+          state.jobs.forEach(function (j) {
+            var card = els.lanes.querySelector(
+              '.job[data-job-id="' + j.id + '"]'
+            );
+            if (!card) return;
+            var timerEl = card.querySelector('[data-live="timer"]');
+            var barEl = card.querySelector('[data-live="bar"]');
+            if (j.status === "active") {
+              var info = state.processing.get(j.id);
+              if (!info || !timerEl) return;
+              var elapsed = t - info.startedAt;
+              var left = Math.max(0, info.duration - elapsed);
+              var pct = Math.min(100, (elapsed / info.duration) * 100);
+              timerEl.textContent =
+                "timeout " +
+                formatSec(info.duration) +
+                " · left " +
+                formatSec(left);
+              if (barEl) barEl.style.width = pct.toFixed(1) + "%";
+            } else if (j.status === "delayed" && timerEl) {
+              var delayLeft = Math.max(0, j.processAt - t);
+              var windowMs = Math.max(1, j.delayTotalMs || delayLeft);
+              var delayElapsed = Math.min(
+                windowMs,
+                t - (j.delayStartedAt || t)
+              );
+              var delayPct = Math.min(100, (delayElapsed / windowMs) * 100);
+              timerEl.textContent =
+                "delay " +
+                formatSec(windowMs) +
+                " · left " +
+                formatSec(delayLeft);
+              if (barEl) barEl.style.width = delayPct.toFixed(1) + "%";
+            }
+          });
+
+          // workers live progress
+          for (var s = 0; s < state.concurrency; s++) {
+            var w = els.workers.querySelector('.worker[data-slot="' + s + '"]');
+            if (!w) continue;
+            var wTimer = w.querySelector('[data-live="worker-timer"]');
+            var wBar = w.querySelector('[data-live="worker-bar"]');
+            var infoW = null;
+            state.processing.forEach(function (inf) {
+              if (inf.workerSlot === s) infoW = inf;
+            });
+            if (infoW && wTimer && wBar) {
+              var elap = t - infoW.startedAt;
+              var leftW = Math.max(0, infoW.duration - elap);
+              var pctW = Math.min(100, (elap / infoW.duration) * 100);
+              wTimer.textContent =
+                "timeout " +
+                formatSec(infoW.duration) +
+                " · left " +
+                formatSec(leftW);
+              wBar.style.width = pctW.toFixed(1) + "%";
+            }
+          }
+        }
+
+        function renderLog() {
+          if (ui.logVersion === state.logVersion) return;
+          ui.logVersion = state.logVersion;
+          els.log.innerHTML = state.logs
+            .slice(0, 40)
+            .map(function (l) {
+              return (
+                '<div class="ev-' +
+                l.event +
+                '">' +
+                escapeHtml(l.msg) +
+                "</div>"
+              );
+            })
+            .join("");
+        }
+
+        function escapeHtml(s) {
+          return String(s)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        }
+
+        function render(force) {
+          if (force) {
+            ui.structureKey = "";
+            ui.workersKey = "";
+            ui.logVersion = -1;
+            ui.stats = {
+              waiting: -1,
+              active: -1,
+              delayed: -1,
+              completed: -1,
+              failed: -1,
+            };
+          }
+          renderStats(force);
+          renderWorkersShell();
+          renderLanesShell();
+          updateLive();
+          renderLog();
+        }
+
+        function tick() {
+          promoteDelayed();
+          tickActive();
+          assignWorkers();
+          render(false);
+        }
+
+        // controls
+        els.concurrency.addEventListener("input", function () {
+          state.concurrency = Number(els.concurrency.value) || 1;
+          els.concurrencyVal.textContent =
+            state.concurrency +
+            " worker slot" +
+            (state.concurrency > 1 ? "s" : "");
+          render(true);
+        });
+        els.failRate.addEventListener("input", function () {
+          state.failRate = (Number(els.failRate.value) || 0) / 100;
+          els.failRateVal.textContent = Math.round(state.failRate * 100) + "%";
+        });
+        els.attempts.addEventListener("change", function () {
+          state.maxAttempts = Math.max(
+            1,
+            Math.min(8, Number(els.attempts.value) || 3)
+          );
+          els.attempts.value = String(state.maxAttempts);
+        });
+
+        els.btnAdd.addEventListener("click", function () {
+          addJob();
+          render(true);
+        });
+        els.btnPrio.addEventListener("click", function () {
+          addJob({ priority: 10 });
+          render(true);
+        });
+        els.btnDelay.addEventListener("click", function () {
+          addJob({ delayed: true, delayMs: 3000 });
+          render(true);
+        });
+        els.btnBurst.addEventListener("click", function () {
+          for (var i = 0; i < 8; i++) {
+            addJob({ priority: i === 0 ? 5 : 0 });
+          }
+          render(true);
+        });
+        els.btnPause.addEventListener("click", function () {
+          state.paused = !state.paused;
+          els.btnPause.textContent = state.paused
+            ? "Tiếp tục worker"
+            : "Tạm dừng worker";
+          render(true);
+        });
+        els.btnClearDone.addEventListener("click", function () {
+          state.jobs = state.jobs.filter(function (j) {
+            return j.status !== "completed";
+          });
+          render(true);
+        });
+        els.btnReset.addEventListener("click", function () {
+          state.nextId = 1;
+          state.jobs = [];
+          state.processing = new Map();
+          state.logs = [];
+          state.logVersion += 1;
+          state.paused = false;
+          els.btnPause.textContent = "Tạm dừng worker";
+          render(true);
+        });
+
+        // seed a few jobs so page không trống
+        addJob();
+        addJob();
+        addJob({ priority: 8 });
+        addJob({ delayed: true, delayMs: 2500 });
+
+        render(true);
+        setInterval(tick, 100);
+      })();
+    </script>
+  </body>
+</html>

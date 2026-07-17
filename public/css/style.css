@@ -946,6 +946,94 @@ a.card:hover {
   color: inherit;
 }
 
+/* Article → external interactive demo */
+.demo-callout {
+  margin: 1.5rem 0 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.demo-callout__preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.4rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.demo-callout__chip {
+  display: inline-flex;
+  padding: 0.22rem 0.48rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+}
+
+.demo-callout__chip--wait {
+  color: var(--accent);
+  border-color: rgba(184, 164, 255, 0.35);
+  background: var(--accent-soft);
+}
+
+.demo-callout__chip--active {
+  color: #60a5fa;
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.demo-callout__chip--done {
+  color: var(--success);
+  border-color: rgba(94, 234, 147, 0.35);
+  background: rgba(94, 234, 147, 0.1);
+}
+
+.demo-callout__chip--fail {
+  color: var(--danger);
+  border-color: rgba(255, 143, 143, 0.4);
+  background: rgba(255, 143, 143, 0.1);
+}
+
+.demo-callout__chip--delay {
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.4);
+  background: rgba(192, 132, 252, 0.1);
+}
+
+.demo-callout__arrow,
+.demo-callout__sep {
+  color: var(--text-dim);
+  user-select: none;
+}
+
+.demo-callout__body {
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.demo-callout__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--text);
+}
+
+.demo-callout__desc {
+  margin: 0 0 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.demo-callout .btn {
+  display: inline-flex;
+}
+
 .article-body a {
   text-decoration: underline;
   text-underline-offset: 2px;

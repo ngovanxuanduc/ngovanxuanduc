@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Mô phỏng queue BullMQ: waiting → active → completed/failed/retry — nhìn cho dễ tưởng tượng." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>BullMQ visualization · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/bullmq.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="BullMQ visualization · Articles" />
+    <meta property="og:description" content="Mô phỏng queue BullMQ: waiting → active → completed/failed/retry — nhìn cho dễ tưởng tượng." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/bullmq.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="BullMQ visualization · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BullMQ visualization · Articles" />
+    <meta name="twitter:description" content="Mô phỏng queue BullMQ: waiting → active → completed/failed/retry — nhìn cho dễ tưởng tượng." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="BullMQ visualization · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>BullMQ visualization</h1>
+          <p class="article-header__meta">2026-07-17 · demo tương tác</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Redis job queue (BullMQ và họ hàng) dễ “hiểu abstract, khó hình
+            dung runtime”: job nằm waiting, worker nhặt vào active, xong thì
+            completed — hoặc failed rồi delayed để retry. Concurrency, priority,
+            backoff… đọc docs thì biết, nhìn job chạy thì thấm hơn.
+          </p>
+          <p>
+            Mình làm một mô phỏng trong browser (không Redis): bỏ job vào queue,
+            chỉnh worker slots / fail rate, xem lane trạng thái và event log.
+            Mục tiêu chỉ là <em>nhìn cho dễ tưởng tượng</em>, không phải dashboard
+            production.
+          </p>
+
+          <aside class="demo-callout" aria-label="Mở demo BullMQ">
+            <div class="demo-callout__preview" aria-hidden="true">
+              <span class="demo-callout__chip demo-callout__chip--wait"
+                >waiting</span
+              >
+              <span class="demo-callout__arrow">→</span>
+              <span class="demo-callout__chip demo-callout__chip--active"
+                >active</span
+              >
+              <span class="demo-callout__arrow">→</span>
+              <span class="demo-callout__chip demo-callout__chip--done"
+                >completed</span
+              >
+              <span class="demo-callout__sep">·</span>
+              <span class="demo-callout__chip demo-callout__chip--fail"
+                >failed</span
+              >
+              <span class="demo-callout__arrow">→</span>
+              <span class="demo-callout__chip demo-callout__chip--delay"
+                >delayed</span
+              >
+            </div>
+            <div class="demo-callout__body">
+              <p class="demo-callout__title">Demo tương tác</p>
+              <p class="demo-callout__desc">
+                Full-screen trong tab — thêm job, burst, priority, delayed,
+                pause worker. Một file HTML, chạy local được.
+              </p>
+              <a class="btn btn--primary" href="/demos/bullmq.html"
+                >Mở visualization →</a
+              >
+            </div>
+          </aside>
+
+          <h2>Trong demo có gì</h2>
+          <ul>
+            <li>
+              <strong>Waiting / active / delayed / completed / failed</strong> —
+              đúng các “ô” hay nhìn trên queue UI.
+            </li>
+            <li>
+              <strong>Concurrency</strong> — số job active tối đa (giống nhiều
+              worker / <code>concurrency</code> option).
+            </li>
+            <li>
+              <strong>Fail rate + max attempts</strong> — thấy retry backoff vào
+              delayed rồi quay waiting.
+            </li>
+            <li>
+              <strong>Priority &amp; delayed job</strong> — job ưu tiên nhặt
+              trước; job hẹn giờ 3s.
+            </li>
+            <li>
+              <strong>Event log</strong> — timeline kiểu
+              <code>waiting → active → completed</code>.
+            </li>
+          </ul>
+          <p>
+            Không thay Bull Board / Arena — chỉ là sandbox để giải thích concept
+            cho mình (hoặc đồng đội) trước khi cắm Redis thật.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>
