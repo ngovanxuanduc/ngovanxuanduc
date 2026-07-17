@@ -5,7 +5,7 @@
   "description": "Personal site — static multi-page, buildable & deployable",
   "scripts": {
     "build": "node scripts/build.js",
-    "dev": "node scripts/build.js && npx --yes serve dist -l 3000",
+    "dev": "node scripts/build.js --no-minify --no-publish && npx --yes serve dist -l 3000",
     "watch": "node scripts/watch.js",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },

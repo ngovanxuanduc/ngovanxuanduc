@@ -13,6 +13,8 @@
   let lock = false;
   let moves = 0;
   let pairs = 0;
+  let flipTimer = null;
+  let gameId = 0;
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -36,7 +38,17 @@
     if (pairsEl) pairsEl.textContent = pairs + " / " + EMOJIS.length;
   }
 
+  function clearFlipTimer() {
+    if (flipTimer != null) {
+      clearTimeout(flipTimer);
+      flipTimer = null;
+    }
+  }
+
   function build() {
+    gameId += 1;
+    clearFlipTimer();
+
     const deck = shuffle(EMOJIS.concat(EMOJIS));
     cards = deck.map(function (emoji, id) {
       return { id: id, emoji: emoji, matched: false };
@@ -104,7 +116,11 @@
     } else {
       const first = flipped[0].btn;
       const second = flipped[1].btn;
-      setTimeout(function () {
+      const currentGame = gameId;
+      clearFlipTimer();
+      flipTimer = setTimeout(function () {
+        flipTimer = null;
+        if (currentGame !== gameId) return;
         first.classList.remove("is-flipped");
         second.classList.remove("is-flipped");
         flipped = [];

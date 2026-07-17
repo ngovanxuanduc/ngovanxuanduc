@@ -16,10 +16,15 @@ function build() {
     return;
   }
   building = true;
-  const child = spawn(process.execPath, [path.join(__dirname, "build.js")], {
-    stdio: "inherit",
-    cwd: ROOT,
-  });
+  // Dev rebuild: keep CSS/JS readable; do not overwrite published root
+  const child = spawn(
+    process.execPath,
+    [path.join(__dirname, "build.js"), "--no-minify", "--no-publish"],
+    {
+      stdio: "inherit",
+      cwd: ROOT,
+    }
+  );
   child.on("exit", () => {
     building = false;
     if (pending) {

@@ -16,6 +16,11 @@ const PUBLIC = path.join(ROOT, "public");
 const DIST = path.join(ROOT, "dist");
 const PAGES = path.join(SRC, "pages");
 
+/** CLI: production = minify + publish root; dev/watch = --no-minify --no-publish */
+const ARGS = process.argv.slice(2);
+const DO_MINIFY = !ARGS.includes("--no-minify");
+const DO_PUBLISH = !ARGS.includes("--no-publish");
+
 function read(p) {
   return fs.readFileSync(p, "utf8");
 }
@@ -633,44 +638,47 @@ function main() {
   const toolsData = JSON.parse(read(path.join(SRC, "data", "tools.json")));
   const layout = read(path.join(SRC, "layouts", "base.html"));
 
-  console.log("Building → dist/");
+  const modeLabel = DO_MINIFY ? "production (minify)" : "dev (readable assets)";
+  console.log(`Building → dist/  [${modeLabel}]`);
   rmrf(DIST);
   fs.mkdirSync(DIST, { recursive: true });
 
   // 1) static assets
   copyDir(PUBLIC, DIST);
 
-  // 1b) minify CSS in dist (source in public/ stays readable)
-  const cssDir = path.join(DIST, "css");
-  if (fs.existsSync(cssDir)) {
-    for (const name of fs.readdirSync(cssDir)) {
-      if (!name.endsWith(".css")) continue;
-      const p = path.join(cssDir, name);
-      const raw = read(p);
-      const min = minifyCss(raw);
-      write(p, min);
+  // 1b–1c) minify only for production build (source in public/ always readable)
+  if (DO_MINIFY) {
+    const cssDir = path.join(DIST, "css");
+    if (fs.existsSync(cssDir)) {
+      for (const name of fs.readdirSync(cssDir)) {
+        if (!name.endsWith(".css")) continue;
+        const p = path.join(cssDir, name);
+        const raw = read(p);
+        const min = minifyCss(raw);
+        write(p, min);
+        console.log(
+          `  CSS ${name}: ${(raw.length / 1024).toFixed(1)}KB → ${(min.length / 1024).toFixed(1)}KB`
+        );
+      }
+    }
+
+    const jsStats = minifyJsTree(path.join(DIST, "js"));
+    const swPath = path.join(DIST, "firebase-messaging-sw.js");
+    if (fs.existsSync(swPath)) {
+      const raw = read(swPath);
+      const min = minifyJs(raw);
+      write(swPath, min);
+      jsStats.files++;
+      jsStats.before += raw.length;
+      jsStats.after += min.length;
+    }
+    if (jsStats.files) {
       console.log(
-        `  CSS ${name}: ${(raw.length / 1024).toFixed(1)}KB → ${(min.length / 1024).toFixed(1)}KB`
+        `  JS: ${jsStats.files} files ${(jsStats.before / 1024).toFixed(1)}KB → ${(jsStats.after / 1024).toFixed(1)}KB (−${(((jsStats.before - jsStats.after) / jsStats.before) * 100) | 0}%)`
       );
     }
-  }
-
-  // 1c) minify JS in dist (same filenames — no need for *.min.js in URLs)
-  const jsStats = minifyJsTree(path.join(DIST, "js"));
-  // root SW if present
-  const swPath = path.join(DIST, "firebase-messaging-sw.js");
-  if (fs.existsSync(swPath)) {
-    const raw = read(swPath);
-    const min = minifyJs(raw);
-    write(swPath, min);
-    jsStats.files++;
-    jsStats.before += raw.length;
-    jsStats.after += min.length;
-  }
-  if (jsStats.files) {
-    console.log(
-      `  JS: ${jsStats.files} files ${(jsStats.before / 1024).toFixed(1)}KB → ${(jsStats.after / 1024).toFixed(1)}KB (−${(((jsStats.before - jsStats.after) / jsStats.before) * 100) | 0}%)`
-    );
+  } else {
+    console.log("  skip minify (edit public/css + public/js; DevTools stays readable)");
   }
 
   // 2) pages
@@ -691,8 +699,12 @@ function main() {
 
   console.log(`Built ${count} pages + public assets → dist/`);
 
-  // 4) copy ra root — tương thích Pages deploy branch (như code cũ)
-  publishRoot();
+  // 4) copy ra root — production only (tránh overwrite publish bằng bản unminified lúc dev)
+  if (DO_PUBLISH) {
+    publishRoot();
+  } else {
+    console.log("  skip publish root (--no-publish)");
+  }
 }
 
 main();

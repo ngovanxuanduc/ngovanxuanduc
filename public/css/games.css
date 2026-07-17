@@ -215,7 +215,9 @@
 }
 
 .memory-card {
+  position: relative;
   aspect-ratio: 1;
+  width: 100%;
   perspective: 600px;
   cursor: pointer;
   border: none;
@@ -223,10 +225,11 @@
   padding: 0;
 }
 
+/* span defaults to inline — width/height would be ignored without block formatting */
 .memory-card__inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  display: block;
+  position: absolute;
+  inset: 0;
   transition: transform 0.35s ease;
   transform-style: preserve-3d;
 }
@@ -240,6 +243,7 @@
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   border-radius: var(--radius-sm);
   display: grid;
   place-items: center;

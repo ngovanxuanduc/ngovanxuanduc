@@ -31,10 +31,13 @@ npm run watch
 
 | Lệnh | Mô tả |
 |------|--------|
-| `npm run build` | Generate `dist/` **và** publish ra root repo |
-| `npm run dev` | Build rồi serve `dist` (port 3000) |
-| `npm run watch` | Rebuild khi file thay đổi |
+| `npm run build` | Generate `dist/` (minify CSS/JS) **và** publish ra root repo |
+| `npm run dev` | Build **không minify**, serve `dist` (port 3000) — DevTools dễ đọc |
+| `npm run watch` | Rebuild khi file thay đổi (cũng không minify) |
 | `npm run clean` | Xóa `dist/` |
+
+**Source CSS/JS:** sửa trong `public/css/` và `public/js/` (luôn dễ đọc).  
+Minify chỉ chạy lúc `npm run build` (production / deploy). `css/` và `js/` ở root là bản publish, đừng sửa tay.
 
 ---
 
