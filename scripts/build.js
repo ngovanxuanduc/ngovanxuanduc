@@ -608,6 +608,7 @@ const ROOT_PUBLISH = [
   "tools",
   "games",
   "articles",
+  "demos",
 ];
 
 function cleanRootPublish() {

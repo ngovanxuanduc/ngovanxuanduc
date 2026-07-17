@@ -811,6 +811,15 @@ a.card:hover {
 .article-list__title {
   font-weight: 500;
   font-size: 0.95rem;
+  min-width: 0;
+}
+
+.article-list__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .article-list__date {
@@ -819,6 +828,30 @@ a.card:hover {
   font-family: var(--mono);
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Shown by main.js when data-published is within last 3 days */
+.article-list__new {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.22rem 0.4rem;
+  border-radius: 999px;
+  color: #0a0a0b;
+  background: var(--accent);
+}
+
+.article-list__new[hidden] {
+  display: none;
+}
+
+.article-list a:hover .article-list__new {
+  background: var(--accent-hover);
 }
 
 /* ===== Article page ===== */

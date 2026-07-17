@@ -59,4 +59,27 @@
       }
     });
   }
+
+  // Article list: show "New" when published within last 3 days
+  (function markNewArticles() {
+    var NEW_MS = 3 * 24 * 60 * 60 * 1000;
+    var now = Date.now();
+    document.querySelectorAll(".article-list a[data-published]").forEach(function (a) {
+      var raw = a.getAttribute("data-published");
+      if (!raw) return;
+      // Local midnight of publish date — avoids UTC off-by-one
+      var parts = raw.split("-");
+      if (parts.length !== 3) return;
+      var published = new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2])
+      ).getTime();
+      if (Number.isNaN(published)) return;
+      var age = now - published;
+      if (age < 0 || age >= NEW_MS) return;
+      var badge = a.querySelector(".article-list__new");
+      if (badge) badge.hidden = false;
+    });
+  })();
 })();

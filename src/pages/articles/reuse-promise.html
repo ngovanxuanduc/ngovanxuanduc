@@ -1,0 +1,250 @@
+---
+{
+  "title": "Single-flight — 10 caller, 1 work in-flight · Articles",
+  "description": "Gộp caller trùng key lúc work đang chạy: process-local (promise/map), cache stampede, singleflight, và giới hạn khi multi-instance.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Single-flight — 10 caller, 1 work in-flight</h1>
+          <p class="article-header__meta">2026-07-17 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Cùng một việc nặng đang chạy — query DB, gọi service downstream,
+            generate report, warm cache — và <em>N</em> chỗ trong hệ thống cùng
+            lúc hỏi kết quả đó. Nếu mỗi chỗ tự fire một job, bạn trả
+            <strong>N lần cost</strong> cho <strong>một câu trả lời</strong>.
+          </p>
+          <p>
+            Pattern: <strong>trong lúc work còn in-flight, chỉ một execution
+            thật; mọi caller khác đợi chung rồi lấy kết quả.</strong> JS hay gọi
+            là “reuse promise”; Go có
+            <code>golang.org/x/sync/singleflight</code>; tài liệu hệ thống hay
+            nói <em>request coalescing</em> / <em>single-flight</em>. Cùng một ý,
+            không gắn với frontend.
+          </p>
+          <p>
+            Demo mô phỏng N caller (browser, không cần server):
+            <a href="/demos/reuse-promise.html">single-flight — chạy thử</a>.
+          </p>
+
+          <h2>Bài toán hệ thống, không chỉ UI</h2>
+          <p>
+            Thường gặp ở nhiều tầng:
+          </p>
+          <ul>
+            <li>
+              <strong>API / BFF:</strong> 50 request HTTP cùng
+              <code>GET /products/42</code> trong cùng millisecond — cache miss
+              — không nên 50 query DB giống hệt.
+            </li>
+            <li>
+              <strong>Worker / cron:</strong> nhiều consumer (hoặc retry) cùng
+              lúc “đảm bảo aggregate X đã tính” — chỉ cần một pipeline.
+            </li>
+            <li>
+              <strong>Cache layer:</strong> key hết hạn, traffic cao →
+              <em>cache stampede</em> / thundering herd: hàng loạt miss đua nhau
+              rebuild.
+            </li>
+            <li>
+              <strong>Downstream client:</strong> service A gọi service B; trong
+              một process, 20 goroutine/handler cùng cần config flag
+              <code>plan:pro</code>.
+            </li>
+            <li>
+              <strong>Client app (FE/mobile):</strong> vài màn hình mount cùng
+              resource — chỉ là <em>một</em> chỗ xuất hiện, không phải toàn bộ
+              story.
+            </li>
+          </ul>
+          <p>
+            Điểm chung: <strong>trùng identity của work</strong> (cùng key),
+            <strong>trùng cửa sổ thời gian</strong> (chưa xong),
+            <strong>kết quả dùng chung an toàn</strong> (cùng quyền, cùng view
+            data).
+          </p>
+
+          <h2>Process-local: map key → future/promise</h2>
+          <p>
+            Trong <em>một</em> process (một Node process, một JVM, một Go
+            process…), form tối thiểu:
+          </p>
+          <pre><code>// Pseudocode / JS — ý giống singleflight.Group
+const inflight = new Map(); // key → Promise&lt;Result&gt;
+
+function doOnce(key, work) {
+  if (inflight.has(key)) return inflight.get(key);
+
+  const p = Promise.resolve()
+    .then(() =&gt; work())
+    .finally(() =&gt; inflight.delete(key));
+
+  inflight.set(key, p);
+  return p;
+}
+
+// 10 handler cùng key
+await Promise.all(
+  handlers.map(() =&gt; doOnce("product:42", () =&gt; db.getProduct(42)))
+);
+// → 1 lần db.getProduct, 10 caller nhận cùng result (hoặc cùng error)</code></pre>
+          <p>
+            Timeline:
+          </p>
+          <pre><code>t=0    caller A  miss → start work(key), đăng ký inflight
+t≈0+   B…J       hit  → await cùng future
+t=done work xong → fan-out result → xóa key
+t=done+ caller K miss lại → work mới (nếu cần)</code></pre>
+          <p>
+            Đây <strong>không phải cache TTL</strong>. Entry chỉ sống khi work
+            chưa settle. Xong là quên — lần sau (sau khi xong) được phép chạy
+            lại.
+          </p>
+
+          <h2>Inflight ≠ cache value</h2>
+          <ul>
+            <li>
+              <strong>Single-flight / inflight:</strong> gộp concurrent
+              duplicate. Mục tiêu: đúng <em>một</em> execution đang chạy cho mỗi
+              key.
+            </li>
+            <li>
+              <strong>Result cache</strong> (memory, Redis, CDN…): giữ
+              <em>sau</em> khi xong. Mục tiêu: lần sau khỏi làm lại.
+            </li>
+          </ul>
+          <p>
+            Production hay <strong>xếp tầng</strong>:
+          </p>
+          <pre><code>read(key):
+  1. L1/L2 cache hit? → return
+  2. Miss → singleFlight(key, () =&gt; loadFromSource + fillCache)
+  3. Mọi miss đồng thời chờ cùng loadFromSource</code></pre>
+          <p>
+            Bước 2 cắt stampede: hết hạn key + 1k RPS không biến thành 1k query
+            origin. Redis/memcached “only one rebuilder”, Varnish
+            <code>grace</code>/<code>collapse</code>, CDN request collapsing —
+            cùng họ ý tưởng ở rìa network.
+          </p>
+
+          <h2>Một process vs nhiều instance</h2>
+          <p>
+            Map trong RAM chỉ gộp caller <strong>trong cùng process</strong>.
+          </p>
+          <ul>
+            <li>
+              <strong>3 pod × single-flight local:</strong> worst case vẫn 3
+              origin call song song (mỗi pod một cái) — đã tốt hơn 3×N, nhưng
+              chưa “global 1”.
+            </li>
+            <li>
+              <strong>Cần gộp cross-instance:</strong> lock/lease theo key
+              (Redis <code>SET NX</code> + TTL, etcd, DB advisory lock), hoặc
+              hàng đợi “một consumer làm, publish result”, hoặc cache trung tâm
+              + stampede control. Đắt và phức tạp hơn local map — chỉ khi origin
+              thật sự đau.
+            </li>
+          </ul>
+          <p>
+            Thiết kế thực dụng: <em>local single-flight luôn rẻ</em> → bật trước;
+            distributed collapse chỉ khi metric origin/QPS đòi hỏi.
+          </p>
+
+          <h2>Chỗ hay thấy trong architecture</h2>
+          <ul>
+            <li>
+              <strong>Go <code>singleflight</code>:</strong> canonical API —
+              <code>Do(key, fn)</code>, share result + error, báo có phải
+              shared không.
+            </li>
+            <li>
+              <strong>GraphQL DataLoader:</strong> coalesce (và batch) load theo
+              id trong một tick — tránh N+1; bản chất per-request
+              single-flight + batching.
+            </li>
+            <li>
+              <strong>ORM / repo layer:</strong> “getById” trong một request
+              scope không hit DB hai lần cho cùng id.
+            </li>
+            <li>
+              <strong>Job system:</strong> idempotency key + “already running”
+              → caller sau poll/subscribe kết quả thay vì enqueue job trùng.
+            </li>
+            <li>
+              <strong>Config / feature flag / JWKS:</strong> refresh document
+              định kỳ; mọi request lúc đang refresh await một fetch.
+            </li>
+          </ul>
+
+          <h2>Ràng buộc và bẫy</h2>
+          <ul>
+            <li>
+              <strong>Key = identity của work.</strong> Thiếu tenant/user trong
+              key → leak cross-tenant. Thừa noise trong key → không gộp được.
+              <code>tenant:t1:product:42</code> khác
+              <code>tenant:t2:product:42</code>.
+            </li>
+            <li>
+              <strong>Chỉ gộp khi result dùng chung hợp lệ.</strong> Cùng URL
+              nhưng khác Authorization / row-level filter → không coalescing mù.
+            </li>
+            <li>
+              <strong>Error cũng bị share.</strong> Một timeout/500 → mọi waiter
+              nhận cùng lỗi (thường đúng). Retry: sau khi inflight clear, caller
+              mới được mở flight mới — hoặc policy riêng (ví dụ không để cả đàn
+              dính mãi một lỗi “độc” từ leader).
+            </li>
+            <li>
+              <strong>Luôn dọn khi xong</strong> (<code>finally</code> / defer),
+              kể cả panic/reject — không thì key “kẹt”, flight sau không bao giờ
+              chạy hoặc mãi dính error cũ.
+            </li>
+            <li>
+              <strong>Latency tail:</strong> waiter không nhanh hơn leader.
+              Trade-off chấp nhận được để đổi throughput origin.
+            </li>
+            <li>
+              <strong>Observability:</strong> metric
+              <code>singleflight_shared_total</code> vs
+              <code>singleflight_leader_total</code> — biết đang cứu bao nhiêu
+              duplicate.
+            </li>
+          </ul>
+
+          <h2>Sketch Go (BE-native)</h2>
+          <pre><code>var g singleflight.Group
+
+func Product(ctx context.Context, id string) (*Product, error) {
+    v, err, _ := g.Do("product:"+id, func() (interface{}, error) {
+        return repo.GetProduct(ctx, id) // chỉ leader chạy
+    })
+    if err != nil {
+        return nil, err
+    }
+    return v.(*Product), nil
+}</code></pre>
+          <p>
+            Cùng semantics với map+promise: leader chạy <code>fn</code>, caller
+            trùng key chờ, fan-out value/error, rồi quên key.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Trùng key + đang bay → một work, N waiter.</strong> Đó là
+            single-flight: giảm load origin, cắt stampede, giữ semantics “ai
+            cũng nhận cùng kết quả của lần chạy đó”.
+          </p>
+          <p>
+            Implement local (promise map, <code>singleflight</code>, mutex+cond)
+            gần như free. Mở rộng multi-instance khi thật sự cần. Đặt đúng tầng
+            (client, BFF, cache, worker) — pattern đi cả stack, không phải trick
+            của một framework UI.
+          </p>
+        </div>
+      </article>

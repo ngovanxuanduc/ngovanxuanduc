@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Nhiều task async I/O: batch Promise.all bị kéo theo task chậm nhất mỗi lô. Pool concurrency thì slot nào xong lấy job tiếp." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Promise.all theo batch vs pool — job rảnh chạy luôn · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/promise-all-batch-vs-pool.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Promise.all theo batch vs pool — job rảnh chạy luôn · Articles" />
+    <meta property="og:description" content="Nhiều task async I/O: batch Promise.all bị kéo theo task chậm nhất mỗi lô. Pool concurrency thì slot nào xong lấy job tiếp." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/promise-all-batch-vs-pool.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Promise.all theo batch vs pool — job rảnh chạy luôn · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Promise.all theo batch vs pool — job rảnh chạy luôn · Articles" />
+    <meta name="twitter:description" content="Nhiều task async I/O: batch Promise.all bị kéo theo task chậm nhất mỗi lô. Pool concurrency thì slot nào xong lấy job tiếp." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Promise.all theo batch vs pool — job rảnh chạy luôn · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Promise.all theo batch vs pool — job rảnh chạy luôn</h1>
+          <p class="article-header__meta">2026-07-17 · ~5 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Có một đống task async I/O — fetch API, đọc file, gọi service — và
+            bạn không muốn bắn hết một lúc (rate limit, RAM, connection pool).
+            Cách “tự nhiên” hay gặp: cắt list thành batch, mỗi batch
+            <code>Promise.all</code>, xong batch mới chạy batch sau.
+          </p>
+          <p>
+            Nghe hợp lý. Trên thực tế, tổng thời gian mỗi batch gần như bằng
+            <strong>task chậm nhất trong batch đó</strong>. Task nhanh xong sớm
+            rồi… ngồi chờ. Mình từng đổi hướng: giữ concurrency cố định, job nào
+            rảnh thì nhặt task tiếp ngay.
+          </p>
+          <p>
+            <strong>Demo chạy được trên browser</strong> (một file HTML, không
+            cần build):
+            <a href="/demos/promise-batch-vs-pool.html"
+              >Batch vs Pool — mở và bấm “Chạy so sánh”</a
+            >.
+            Có thể tải file về / mở trực tiếp; task là
+            <code>setTimeout</code> giả lập I/O, có thanh tiến trình từng job.
+          </p>
+
+          <h2>Batch + Promise.all đang “trả giá” gì?</h2>
+          <p>
+            Giả sử concurrency = 3, có 6 task với thời gian (giả sử, ms):
+          </p>
+          <pre><code>A 100 · B 100 · C 900
+D 100 · E 100 · F 100</code></pre>
+          <p>
+            Chạy theo batch 3:
+          </p>
+          <pre><code>Batch 1: A, B, C  → chờ max = 900
+Batch 2: D, E, F  → chờ max = 100
+Tổng ≈ 1000</code></pre>
+          <p>
+            A và B xong từ ms 100 nhưng slot của chúng “đóng băng” đến khi C
+            xong. D, E, F phải xếp hàng dù lúc đó đã có 2 worker rảnh.
+          </p>
+          <p>
+            Công thức thô: mỗi batch tốn khoảng
+            <code>max(duration trong batch)</code>. Tổng ≈ tổng các max đó.
+            Task lệch thời gian càng mạnh, lãng phí càng to.
+          </p>
+
+          <h2>Hướng pool: slot rảnh → lấy job tiếp</h2>
+          <p>
+            Ý tưởng đơn giản: luôn duy trì tối đa <em>N</em> task đang chạy. Task
+            nào settle (resolve/reject) trước thì ngay lập tức start task tiếp
+            theo trong hàng đợi — không đợi cả nhóm.
+          </p>
+          <p>
+            Cùng 6 task trên, concurrency 3:
+          </p>
+          <pre><code>t=0     chạy A, B, C
+t=100   A, B xong → nhặt D, E ngay (C vẫn chạy)
+t=200   D, E xong → nhặt F
+t=900   C xong
+Tổng ≈ 900  (thay vì ~1000; lệch lớn hơn khi list dài)</code></pre>
+          <p>
+            Không còn “hàng rào” giữa các batch. Worker không idle chỉ vì đồng
+            nghiệp chậm.
+          </p>
+
+          <h2>Sketch code</h2>
+          <p>
+            Batch (dễ viết, dễ hiểu — và dễ phí thời gian):
+          </p>
+          <pre><code>async function mapInBatches(items, limit, fn) {
+  const out = [];
+  for (let i = 0; i &lt; items.length; i += limit) {
+    const slice = items.slice(i, i + limit);
+    const part = await Promise.all(slice.map(fn));
+    out.push(...part);
+  }
+  return out;
+}</code></pre>
+          <p>
+            Pool — một hàng đợi, N “worker” ảo:
+          </p>
+          <pre><code>async function mapPool(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+
+  async function worker() {
+    while (next &lt; items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+
+  const n = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
+// ví dụ
+await mapPool(urls, 5, (url) => fetch(url).then((r) => r.json()));</code></pre>
+          <p>
+            Vài điểm nhỏ:
+          </p>
+          <ul>
+            <li>
+              <code>next++</code> trên single-thread JS là đủ an toàn giữa các
+              async worker (không có preemption giữa các microtask của cùng một
+              turn kiểu race trên counter như multithread thật).
+            </li>
+            <li>
+              Muốn dừng sớm khi một task fail: bọc
+              <code>Promise.all</code> như trên (fail-fast), hoặc tự gom lỗi /
+              dùng pattern kiểu <code>Promise.allSettled</code> tùy nhu cầu.
+            </li>
+            <li>
+              Thư viện quen thuộc cùng ý tưởng:
+              <code>p-limit</code>, <code>p-map</code>, queue trong
+              Bull/BullMQ phía server… — bản chất vẫn là semaphore + lấy job
+              khi rảnh.
+            </li>
+          </ul>
+
+          <h2>Khi nào batch vẫn ổn?</h2>
+          <p>
+            Không phải lúc nào cũng phải pool:
+          </p>
+          <ul>
+            <li>
+              Task gần như cùng thời lượng (đều ~200ms) — chênh lệch batch vs
+              pool nhỏ.
+            </li>
+            <li>
+              Batch gắn với logic domain: “mỗi trang API 50 item”, “mỗi file
+              chunk” — ranh giới batch là requirement, không chỉ throttle.
+            </li>
+            <li>
+              Code path throw-away, list ngắn, đọc dễ quan trọng hơn vài trăm
+              ms.
+            </li>
+          </ul>
+          <p>
+            Còn khi I/O lệch nhau mạnh (timeout, retry, endpoint chậm lác đác)
+            và list dài — pool thường “cảm giác nhanh hơn” rõ, dù cùng
+            concurrency limit.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Batch + Promise.all:</strong> tổng ≈ cộng các
+            <em>max mỗi lô</em> — task nhanh trả giá cho task chậm cùng batch.
+          </p>
+          <p>
+            <strong>Pool:</strong> giữ N slot; slot nào xong lấy job tiếp —
+            concurrency thật sự được “lấp đầy” theo thời gian, không theo hàng
+            rào batch.
+          </p>
+          <p>
+            Đổi hướng không phải tối ưu huyền ảo: chỉ là đừng để worker rảnh ngồi
+            nhìn đồng hồ vì mình vô tình xếp chúng thành từng đoàn phải về đích
+            cùng lúc.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>
