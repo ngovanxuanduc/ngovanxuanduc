@@ -1,0 +1,69 @@
+---
+{
+  "title": "Breakout · Games",
+  "description": "Đập gạch (Breakout) — đỡ bóng bằng thanh, phá hết gạch. Phím / chuột / chạm.",
+  "page": "games",
+  "scripts": [
+    "/js/breakout.js"
+  ]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Breakout</h1>
+          <p>
+            Đỡ bóng, phá hết gạch. Desktop: ← → / A D hoặc chuột. Điện thoại:
+            kéo trên màn hoặc giữ nút ◀ ▶. 3 mạng · lưu best local.
+          </p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <p id="bo-status" class="game-status">
+            Nhấn Bắt đầu. Phá hết gạch để qua màn.
+          </p>
+          <div class="memory-stats">
+            <span>Điểm: <strong id="bo-score">0</strong></span>
+            <span>Mạng: <strong id="bo-lives">3</strong></span>
+            <span>Màn: <strong id="bo-level">1</strong></span>
+            <span>Best: <strong id="bo-best">—</strong></span>
+          </div>
+          <div class="breakout-wrap">
+            <canvas
+              id="bo-canvas"
+              width="360"
+              height="420"
+              aria-label="Breakout game"
+            ></canvas>
+            <p class="breakout-hint">
+              Kéo ngón tay trên canvas · hoặc giữ ◀ ▶ bên dưới
+            </p>
+            <div class="breakout-controls" aria-label="Điều khiển cảm ứng">
+              <button
+                type="button"
+                class="btn btn--ghost"
+                id="bo-left"
+                aria-label="Trái"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                class="btn btn--ghost"
+                id="bo-right"
+                aria-label="Phải"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--primary btn--sm" id="bo-start">
+              Bắt đầu
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="bo-reset">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>

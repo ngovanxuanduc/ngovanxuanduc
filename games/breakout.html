@@ -6,34 +6,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta name="description" content="Mini-games — Tic-Tac-Toe, Xếp gạch, 2048, Dò mìn, Snake, Breakout, Memory, Phản xạ." />
+    <meta name="description" content="Đập gạch (Breakout) — đỡ bóng bằng thanh, phá hết gạch. Phím / chuột / chạm." />
     <meta name="theme-color" content="#0a0a0b" />
     <meta name="author" content="Ngo Van Xuan Duc" />
-    <title>Games · Ngo Van Xuan Duc</title>
-    <link rel="canonical" href="https://ngovanxuanduc.com/games/" />
+    <title>Breakout · Games</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/games/breakout.html" />
     <link rel="icon" href="/favicon.ico" />
     <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
 
     <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Ngo Van Xuan Duc" />
-    <meta property="og:title" content="Games · Ngo Van Xuan Duc" />
-    <meta property="og:description" content="Mini-games — Tic-Tac-Toe, Xếp gạch, 2048, Dò mìn, Snake, Breakout, Memory, Phản xạ." />
-    <meta property="og:url" content="https://ngovanxuanduc.com/games/" />
+    <meta property="og:title" content="Breakout · Games" />
+    <meta property="og:description" content="Đập gạch (Breakout) — đỡ bóng bằng thanh, phá hết gạch. Phím / chuột / chạm." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/games/breakout.html" />
     <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
     <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Games · Ngo Van Xuan Duc" />
+    <meta property="og:image:alt" content="Breakout · Games" />
     <meta property="og:locale" content="vi_VN" />
 
     <!-- Twitter / X card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Games · Ngo Van Xuan Duc" />
-    <meta name="twitter:description" content="Mini-games — Tic-Tac-Toe, Xếp gạch, 2048, Dò mìn, Snake, Breakout, Memory, Phản xạ." />
+    <meta name="twitter:title" content="Breakout · Games" />
+    <meta name="twitter:description" content="Đập gạch (Breakout) — đỡ bóng bằng thanh, phá hết gạch. Phím / chuột / chạm." />
     <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
-    <meta name="twitter:image:alt" content="Games · Ngo Van Xuan Duc" />
+    <meta name="twitter:image:alt" content="Breakout · Games" />
 
     <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
         <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
@@ -76,79 +76,62 @@
 
     <main>
 <div class="container">
-        <div class="page-intro animate-in">
-          <h1>Games</h1>
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Breakout</h1>
           <p>
-            Vài game nhỏ chạy hoàn toàn trên trình duyệt — không tài khoản, không
-            quảng cáo. Chơi nhanh rồi đi.
+            Đỡ bóng, phá hết gạch. Desktop: ← → / A D hoặc chuột. Điện thoại:
+            kéo trên màn hoặc giữ nút ◀ ▶. 3 mạng · lưu best local.
           </p>
         </div>
 
-        <div class="grid grid--3 animate-in animate-in-delay-1">
-          <a class="card" href="/games/tic-tac-toe.html">
-            <div class="card__icon">✕○</div>
-            <h2 class="card__title">Tic-Tac-Toe</h2>
-            <p class="card__desc">
-              Cờ 3×3 — 2 người hoặc đấu máy (dễ / vừa / khó).
+        <div class="game-shell animate-in animate-in-delay-1">
+          <p id="bo-status" class="game-status">
+            Nhấn Bắt đầu. Phá hết gạch để qua màn.
+          </p>
+          <div class="memory-stats">
+            <span>Điểm: <strong id="bo-score">0</strong></span>
+            <span>Mạng: <strong id="bo-lives">3</strong></span>
+            <span>Màn: <strong id="bo-level">1</strong></span>
+            <span>Best: <strong id="bo-best">—</strong></span>
+          </div>
+          <div class="breakout-wrap">
+            <canvas
+              id="bo-canvas"
+              width="360"
+              height="420"
+              aria-label="Breakout game"
+            ></canvas>
+            <p class="breakout-hint">
+              Kéo ngón tay trên canvas · hoặc giữ ◀ ▶ bên dưới
             </p>
-            <p class="card__meta">2P · vs AI</p>
-          </a>
-          <a class="card" href="/games/memory.html">
-            <div class="card__icon">🃏</div>
-            <h2 class="card__title">Memory</h2>
-            <p class="card__desc">
-              16 thẻ, 8 cặp. Lật hai thẻ mỗi lượt — nhớ vị trí, tìm hết cặp.
-            </p>
-            <p class="card__meta">solo</p>
-          </a>
-          <a class="card" href="/games/tetris.html">
-            <div class="card__icon">▣</div>
-            <h2 class="card__title">Xếp gạch</h2>
-            <p class="card__desc">
-              Tetris-style: xoay, thả, xóa hàng. Level tăng dần, lưu best.
-            </p>
-            <p class="card__meta">solo · arcade</p>
-          </a>
-          <a class="card" href="/games/snake.html">
-            <div class="card__icon">🐍</div>
-            <h2 class="card__title">Snake</h2>
-            <p class="card__desc">
-              Rắn săn mồi. Mũi tên / WASD, tránh tường và thân.
-            </p>
-            <p class="card__meta">solo · keyboard</p>
-          </a>
-          <a class="card" href="/games/breakout.html">
-            <div class="card__icon">▬○</div>
-            <h2 class="card__title">Breakout</h2>
-            <p class="card__desc">
-              Đập gạch cổ điển. Đỡ bóng, phá màn, 3 mạng, lưu best.
-            </p>
-            <p class="card__meta">solo · arcade</p>
-          </a>
-          <a class="card" href="/games/2048.html">
-            <div class="card__icon">▢2</div>
-            <h2 class="card__title">2048</h2>
-            <p class="card__desc">
-              Gộp ô số đến 2048. Mũi tên, WASD hoặc vuốt. Lưu best local.
-            </p>
-            <p class="card__meta">solo · puzzle</p>
-          </a>
-          <a class="card" href="/games/minesweeper.html">
-            <div class="card__icon">💣</div>
-            <h2 class="card__title">Dò mìn</h2>
-            <p class="card__desc">
-              Classic minesweeper. Cắm cờ, chord số, 3 mức độ khó.
-            </p>
-            <p class="card__meta">solo · puzzle</p>
-          </a>
-          <a class="card" href="/games/reaction.html">
-            <div class="card__icon">⚡</div>
-            <h2 class="card__title">Phản xạ</h2>
-            <p class="card__desc">
-              Chờ xanh rồi click. Đo ms, lưu best &amp; trung bình 5 lần.
-            </p>
-            <p class="card__meta">solo · reflex</p>
-          </a>
+            <div class="breakout-controls" aria-label="Điều khiển cảm ứng">
+              <button
+                type="button"
+                class="btn btn--ghost"
+                id="bo-left"
+                aria-label="Trái"
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                class="btn btn--ghost"
+                id="bo-right"
+                aria-label="Phải"
+              >
+                ▶
+              </button>
+            </div>
+          </div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--primary btn--sm" id="bo-start">
+              Bắt đầu
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="bo-reset">
+              Reset
+            </button>
+          </div>
         </div>
       </div>
 
@@ -171,7 +154,7 @@
       })();
     </script>
     <script src="/js/main.js" defer></script>
-    
+        <script src="/js/breakout.js" defer></script>
     <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
     <script>
       (function (w, d, i) {
