@@ -10,77 +10,415 @@
         <div class="page-intro animate-in">
           <h1>Articles</h1>
           <p>
-            Ghi chú ngắn, không formal. Khi có gì đáng viết sẽ thêm vào đây.
+            Ghi chú ngắn, không formal. Xếp theo chủ đề — trong mỗi nhóm theo
+            thứ tự đọc gợi ý.
           </p>
         </div>
 
-        <ul class="article-list animate-in animate-in-delay-1">
-          <li>
-            <a href="/articles/bullmq.html" data-published="2026-07-17">
-              <span class="article-list__title"
-                >BullMQ visualization — queue nhìn là hiểu</span
-              >
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-17</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="/articles/reuse-promise.html" data-published="2026-07-17">
-              <span class="article-list__title"
-                >Single-flight — 10 caller, 1 work in-flight</span
-              >
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-17</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a
-              href="/articles/promise-all-batch-vs-pool.html"
-              data-published="2026-07-17"
-            >
-              <span class="article-list__title"
-                >Promise.all theo batch vs pool — job rảnh chạy luôn</span
-              >
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-17</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="/articles/chao-mung.html" data-published="2026-07-14">
-              <span class="article-list__title">Chào mừng đến site mới</span>
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-14</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="/articles/mini-games.html" data-published="2026-07-14">
-              <span class="article-list__title"
-                >Vì sao mình để mini-game trên trang cá nhân</span
-              >
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-14</span>
-              </span>
-            </a>
-          </li>
-          <li>
-            <a href="/articles/dark-minimal.html" data-published="2026-07-14">
-              <span class="article-list__title"
-                >Dark &amp; minimal — vài lựa chọn thiết kế</span
-              >
-              <span class="article-list__meta">
-                <span class="article-list__new" hidden>New</span>
-                <span class="article-list__date">2026-07-14</span>
-              </span>
-            </a>
-          </li>
-        </ul>
+        <div class="animate-in animate-in-delay-1">
+          <!-- 1. Fundamentals: deal / do -->
+          <section class="article-section">
+            <h2 class="article-section__title">
+              1 · Concurrency &amp; parallel
+            </h2>
+            <p class="article-section__desc">
+              Dealing with vs doing · blocking · data/task parallel
+            </p>
+            <ul class="article-list">
+              <li>
+                <a
+                  href="/articles/concurrency-vs-parallel.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Concurrency vs parallel — dealing with vs doing</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/blocking-vs-nonblocking.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Blocking vs non-blocking — chờ có kẹt deal không</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/data-vs-task-parallelism.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Data vs task parallelism — hai cách “doing”</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 2. Scheduling work -->
+          <section class="article-section">
+            <h2 class="article-section__title">2 · Schedule &amp; limit work</h2>
+            <p class="article-section__desc">
+              Pool, single-flight, in-flight budget, backpressure
+            </p>
+            <ul class="article-list">
+              <li>
+                <a
+                  href="/articles/promise-all-batch-vs-pool.html"
+                  data-published="2026-07-17"
+                >
+                  <span class="article-list__title"
+                    >Promise.all theo batch vs pool — job rảnh chạy luôn</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-17</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/reuse-promise.html"
+                  data-published="2026-07-17"
+                >
+                  <span class="article-list__title"
+                    >Single-flight — 10 caller, 1 work in-flight</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-17</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/unbounded-inflight.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Unbounded in-flight — Promise queue ăn RAM im lặng</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/backpressure.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Backpressure — đừng chỉ tăng concurrency</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 3. Call reliability -->
+          <section class="article-section">
+            <h2 class="article-section__title">
+              3 · Gọi service — fail &amp; recover
+            </h2>
+            <p class="article-section__desc">
+              Retry, timeout, breaker, idempotency, race
+            </p>
+            <ul class="article-list">
+              <li>
+                <a
+                  href="/articles/retry-backoff-jitter.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Retry + backoff + jitter — đừng thundering herd</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/timeout-budget.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Timeout budget — deadline xuyên tầng</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/circuit-breaker.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Circuit breaker — fail-fast khi dependency chết</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/idempotency.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Idempotency — retry không nhân đôi side-effect</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/toctou-async.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >TOCTOU trong async JS — check rồi act đã muộn</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 4. Messaging -->
+          <section class="article-section">
+            <h2 class="article-section__title">
+              4 · Queue, job &amp; messaging
+            </h2>
+            <p class="article-section__desc">
+              BullMQ, lease, DLQ, outbox → queue/stream → recovery playbook
+            </p>
+            <ul class="article-list">
+              <li>
+                <a href="/articles/bullmq.html" data-published="2026-07-17">
+                  <span class="article-list__title"
+                    >BullMQ visualization — queue nhìn là hiểu</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-17</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/visibility-timeout.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Visibility timeout / lease — worker chết job không
+                    mất</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/poison-dlq.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Poison message &amp; DLQ — job hỏng không kẹt mãi</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/outbox-inbox.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Outbox &amp; inbox — side-effect không “nửa vời”</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/queue-vs-stream.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Queue vs stream — message mất hay chỉ offset?</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/write-vs-read-channel.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Write vs read vs shared channel — fail ưu tiên gì?</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/resend-shared-channel.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Resend message — single group OK, shared thì cẩn</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/async-recovery-playbook.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Async recovery playbook — chọn strategy theo channel</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 5. Linux / runtime memory -->
+          <section class="article-section">
+            <h2 class="article-section__title">5 · Memory &amp; runtime</h2>
+            <p class="article-section__desc">
+              Process RSS vs heap · garbage collector
+            </p>
+            <ul class="article-list">
+              <li>
+                <a
+                  href="/articles/linux-vss-rss-uss.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >VSS, RSS, USS (và SHM) trên Linux — đếm RAM thế nào</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/garbage-collector.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Garbage collector — ai dọn heap, khi nào đứng</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 6. Site -->
+          <section class="article-section">
+            <h2 class="article-section__title">6 · Site notes</h2>
+            <ul class="article-list">
+              <li>
+                <a href="/articles/chao-mung.html" data-published="2026-07-14">
+                  <span class="article-list__title"
+                    >Chào mừng đến site mới</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-14</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/mini-games.html" data-published="2026-07-14">
+                  <span class="article-list__title"
+                    >Vì sao mình để mini-game trên trang cá nhân</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-14</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/dark-minimal.html"
+                  data-published="2026-07-14"
+                >
+                  <span class="article-list__title"
+                    >Dark &amp; minimal — vài lựa chọn thiết kế</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-14</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </div>
       </div>

@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Concurrency vs parallel</title>
+    <meta
+      name="description"
+      content="Demo đơn giản: dealing with (1 worker) vs doing (2 worker)."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --cpu: #60a5fa;
+        --wait: #fbbf24;
+        --done: #5eea93;
+        --idle: #1a1a1e;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.1rem;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.65rem 1.2rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 0.82rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 700px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem 1.1rem;
+      }
+      .card h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .card .sub {
+        font-size: 0.84rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.9rem;
+        min-height: 2.6em;
+      }
+      .workers {
+        display: flex;
+        gap: 0.45rem;
+        margin-bottom: 0.8rem;
+      }
+      .worker {
+        flex: 1;
+        text-align: center;
+        padding: 0.5rem 0.3rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--idle);
+        font-size: 0.78rem;
+        color: var(--dim);
+        transition: 0.15s;
+      }
+      .worker b {
+        display: block;
+        font-size: 0.92rem;
+        color: var(--text);
+        margin-bottom: 0.1rem;
+      }
+      .worker.on {
+        border-color: rgba(96, 165, 250, 0.55);
+        background: rgba(96, 165, 250, 0.15);
+        color: var(--cpu);
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.22);
+      }
+      .worker.on b {
+        color: var(--cpu);
+      }
+      .tasks {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .task {
+        display: grid;
+        grid-template-columns: 2rem 1fr 4.4rem;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 0.88rem;
+      }
+      .task .id {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .task .bar {
+        height: 8px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .task .bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: 99px;
+        background: var(--dim);
+        transition: width 0.1s linear, background 0.12s;
+      }
+      .task .st {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        text-align: right;
+        color: var(--dim);
+      }
+      .task.working {
+        border-color: rgba(96, 165, 250, 0.45);
+        background: rgba(96, 165, 250, 0.08);
+      }
+      .task.working .id,
+      .task.working .st {
+        color: var(--cpu);
+      }
+      .task.working .bar > i {
+        background: var(--cpu);
+      }
+      .task.waiting {
+        border-color: rgba(251, 191, 36, 0.4);
+        background: rgba(251, 191, 36, 0.07);
+      }
+      .task.waiting .id,
+      .task.waiting .st {
+        color: var(--wait);
+      }
+      .task.waiting .bar > i {
+        background: var(--wait);
+      }
+      .task.done {
+        border-color: rgba(94, 234, 147, 0.35);
+      }
+      .task.done .id,
+      .task.done .st {
+        color: var(--done);
+      }
+      .task.done .bar > i {
+        background: var(--done);
+        width: 100% !important;
+      }
+      .say {
+        margin-top: 0.8rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.88rem;
+        color: var(--muted);
+        min-height: 3em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .time {
+        margin-top: 0.4rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem 1.1rem;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 2px;
+        margin-right: 0.35rem;
+        vertical-align: 0.05em;
+      }
+      .legend .w::before {
+        background: var(--cpu);
+      }
+      .legend .a::before {
+        background: var(--wait);
+      }
+      .legend .d::before {
+        background: var(--done);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Concurrency vs parallel</h1>
+        <p>
+          3 việc giống hệt nhau. Trái 1 người xoay xở — phải 2 người làm.
+          <a href="/articles/concurrency-vs-parallel.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Concurrency</b> = dealing with lots of things at once<br />
+          <b>Parallelism</b> = doing lots of things at once
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint">Mỗi việc: làm → chờ mạng → làm nốt</span>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Concurrency</h2>
+          <p class="sub">
+            <b>Dealing with</b> — chỉ 1 worker.<br />
+            Việc chờ mạng thì nhảy sang làm việc khác.
+          </p>
+          <div class="workers">
+            <div class="worker" id="cw"><b>Worker</b><span>rảnh</span></div>
+          </div>
+          <div class="tasks" id="cTasks"></div>
+          <p class="say" id="cSay">Bấm Chạy.</p>
+          <p class="time">~ <span id="cTime">0</span>s</p>
+        </section>
+
+        <section class="card">
+          <h2>Parallelism</h2>
+          <p class="sub">
+            <b>Doing</b> — 2 worker.<br />
+            Hai việc có thể được làm cùng một lúc.
+          </p>
+          <div class="workers">
+            <div class="worker" id="pw0"><b>W1</b><span>rảnh</span></div>
+            <div class="worker" id="pw1"><b>W2</b><span>rảnh</span></div>
+          </div>
+          <div class="tasks" id="pTasks"></div>
+          <p class="say" id="pSay">Bấm Chạy.</p>
+          <p class="time">~ <span id="pTime">0</span>s</p>
+        </section>
+      </div>
+
+      <div class="legend">
+        <span class="w">đang làm</span>
+        <span class="a">chờ mạng</span>
+        <span class="d">xong</span>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const N = 3;
+        const WORK = 8;
+        const WAIT = 14;
+        const TICK = 100;
+
+        const $ = (id) => document.getElementById(id);
+        let timer = null;
+
+        function build(rootId) {
+          const root = $(rootId);
+          root.innerHTML = "";
+          for (let i = 0; i < N; i++) {
+            const el = document.createElement("div");
+            el.className = "task";
+            el.id = rootId + i;
+            el.innerHTML =
+              '<span class="id">#' +
+              (i + 1) +
+              '</span><div class="bar"><i></i></div><span class="st">—</span>';
+            root.appendChild(el);
+          }
+        }
+
+        function paintTask(rootId, t) {
+          const el = $(rootId + t.id);
+          let cls = "task";
+          let label = "—";
+          let pct = 0;
+          if (t.stage === 0) {
+            cls += " working";
+            label = "đang làm";
+            pct = (t.step / WORK) * 33;
+          } else if (t.stage === 1) {
+            cls += " waiting";
+            label = "chờ mạng";
+            pct = 33 + (t.step / WAIT) * 34;
+          } else if (t.stage === 2) {
+            cls += " working";
+            label = "đang làm";
+            pct = 67 + (t.step / WORK) * 33;
+          } else if (t.stage === 3) {
+            cls += " done";
+            label = "xong";
+            pct = 100;
+          }
+          el.className = cls;
+          el.querySelector("i").style.width = pct + "%";
+          el.querySelector(".st").textContent = label;
+        }
+
+        function setW(id, on, text) {
+          const el = $(id);
+          el.className = "worker" + (on ? " on" : "");
+          el.querySelector("span").textContent = text;
+        }
+
+        function fresh() {
+          return Array.from({ length: N }, (_, id) => ({
+            id,
+            stage: 0, // 0 work, 1 wait, 2 work, 3 done
+            step: 0,
+          }));
+        }
+
+        function advanceWaits(list) {
+          list.forEach((t) => {
+            if (t.stage !== 1) return;
+            t.step++;
+            if (t.step >= WAIT) {
+              t.stage = 2;
+              t.step = 0;
+            }
+          });
+        }
+
+        function advanceCpu(list, limit, workerIds) {
+          const jobs = list.filter((t) => t.stage === 0 || t.stage === 2);
+          const take = jobs.slice(0, limit);
+          take.forEach((job) => {
+            job.step++;
+            if (job.step >= WORK) {
+              job.step = 0;
+              job.stage = job.stage === 0 ? 1 : 3;
+            }
+          });
+          workerIds.forEach((wid, i) => {
+            const job = take[i];
+            setW(wid, !!job, job ? "#" + (job.id + 1) : "rảnh");
+          });
+          return take.map((j) => j.id + 1);
+        }
+
+        function summary(list) {
+          const working = [];
+          const waiting = [];
+          let done = 0;
+          list.forEach((t) => {
+            if (t.stage === 0 || t.stage === 2) working.push(t.id + 1);
+            else if (t.stage === 1) waiting.push(t.id + 1);
+            else if (t.stage === 3) done++;
+          });
+          return { working, waiting, done };
+        }
+
+        function reset() {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+          $("btn").disabled = false;
+          build("cTasks");
+          build("pTasks");
+          setW("cw", false, "rảnh");
+          setW("pw0", false, "rảnh");
+          setW("pw1", false, "rảnh");
+          $("cSay").textContent = "Bấm Chạy.";
+          $("pSay").textContent = "Bấm Chạy.";
+          $("cTime").textContent = "0";
+          $("pTime").textContent = "0";
+        }
+
+        function run() {
+          if (timer) clearInterval(timer);
+          build("cTasks");
+          build("pTasks");
+          $("btn").disabled = true;
+
+          const C = fresh();
+          const P = fresh();
+          let tick = 0;
+
+          timer = setInterval(() => {
+            tick++;
+            const sec = ((tick * TICK) / 1000).toFixed(1);
+
+            advanceWaits(C);
+            advanceWaits(P);
+            const cWork = advanceCpu(C, 1, ["cw"]);
+            const pWork = advanceCpu(P, 2, ["pw0", "pw1"]);
+
+            C.forEach((t) => paintTask("cTasks", t));
+            P.forEach((t) => paintTask("pTasks", t));
+            $("cTime").textContent = sec;
+            $("pTime").textContent = sec;
+
+            const cs = summary(C);
+            const ps = summary(P);
+
+            if (cs.done === N) {
+              $("cSay").innerHTML =
+                "Xong (~" +
+                sec +
+                "s). <em>1 worker</em> đã <em>deal</em> cả 3 việc.";
+              setW("cw", false, "xong");
+            } else if (cWork.length) {
+              $("cSay").innerHTML =
+                "1 worker làm <em>#" +
+                cWork[0] +
+                "</em>" +
+                (cs.waiting.length
+                  ? " · #" + cs.waiting.join(", #") + " chờ mạng"
+                  : "");
+            } else {
+              $("cSay").textContent = "Đang chờ mạng…";
+            }
+
+            if (ps.done === N) {
+              $("pSay").innerHTML =
+                "Xong (~" +
+                sec +
+                "s). <em>2 worker</em> — thường nhanh hơn vì làm cùng lúc.";
+              setW("pw0", false, "xong");
+              setW("pw1", false, "xong");
+            } else if (pWork.length >= 2) {
+              $("pSay").innerHTML =
+                "2 worker <em>làm cùng lúc</em>: #" + pWork.join(" và #");
+            } else if (pWork.length === 1) {
+              $("pSay").innerHTML =
+                "Đang làm #" +
+                pWork[0] +
+                (ps.waiting.length
+                  ? " · #" + ps.waiting.join(", #") + " chờ mạng"
+                  : "");
+            } else {
+              $("pSay").textContent = "Đang chờ mạng…";
+            }
+
+            if (cs.done === N && ps.done === N) {
+              clearInterval(timer);
+              timer = null;
+              $("btn").disabled = false;
+            }
+          }, TICK);
+        }
+
+        $("btn").onclick = run;
+        $("reset").onclick = reset;
+        reset();
+      })();
+    </script>
+  </body>
+</html>

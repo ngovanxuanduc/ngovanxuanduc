@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Demo idempotency key: double-submit và retry không charge hai lần."
+    />
+    <title>Demo · Idempotency key</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --success-soft: rgba(94, 234, 147, 0.14);
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 0.65rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font: inherit;
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+      }
+      label.check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+      }
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .stat-big {
+        font-family: var(--mono);
+        font-size: 2rem;
+        font-weight: 600;
+      }
+      .stat-big.ok {
+        color: var(--success);
+      }
+      .stat-big.bad {
+        color: var(--danger);
+      }
+      .sub {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        margin-top: 0.25rem;
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 14rem;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .log .charge {
+        color: var(--warn);
+      }
+      .log .replay {
+        color: var(--success);
+      }
+      .log .err {
+        color: var(--danger);
+      }
+      .pill {
+        display: inline-block;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        margin-right: 0.25rem;
+      }
+      .pill.live {
+        border-color: rgba(94, 234, 147, 0.4);
+        background: var(--success-soft);
+        color: var(--success);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Idempotency key — charge an toàn khi retry</h1>
+        <p>
+          Server giả lập chậm. So sánh có / không idempotency.
+          <a href="/articles/idempotency.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="panel">
+          <h2>Client</h2>
+          <div class="field">
+            <label for="orderId">Order id</label>
+            <input id="orderId" value="order-42" />
+          </div>
+          <div class="field">
+            <label for="amount">Amount</label>
+            <input id="amount" type="number" value="100000" />
+          </div>
+          <div class="field">
+            <label for="idemKey">Idempotency-Key</label>
+            <input id="idemKey" value="order-42-pay-v1" />
+          </div>
+          <label class="check">
+            <input type="checkbox" id="useIdem" checked />
+            Bật idempotency phía server
+          </label>
+          <label class="check">
+            <input type="checkbox" id="slow" checked />
+            Server chậm (~800ms) — dễ double-click
+          </label>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnPay">Pay</button>
+            <button type="button" id="btnDouble">Double-click (2×)</button>
+            <button type="button" id="btnRetry">Retry cùng key</button>
+            <button type="button" id="btnNewKey">Key mới + Pay</button>
+            <button type="button" id="btnReset">Reset server</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Server ledger</h2>
+          <div>
+            Số lần <em>charge thật</em>
+            <div class="stat-big" id="chargeCount">0</div>
+            <div class="sub">
+              Tổng tiền đã charge:
+              <strong id="totalMoney">0</strong>
+            </div>
+            <div class="sub" style="margin-top: 0.75rem">
+              Idem records:
+              <span id="idemCount">0</span>
+            </div>
+            <div class="sub" id="lastRes">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Request log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let chargeCount = 0;
+        let totalMoney = 0;
+        let reqSeq = 0;
+        /** key → { bodyHash, response, amount } */
+        const idemStore = new Map();
+        /** key → Promise in-flight lock */
+        const locks = new Map();
+
+        function hashBody(body) {
+          return body.orderId + "|" + body.amount;
+        }
+
+        function log(msg, cls) {
+          const el = $("log");
+          const line = document.createElement("div");
+          if (cls) line.className = cls;
+          const t = new Date().toISOString().slice(11, 23);
+          line.textContent = t + "  " + msg;
+          el.prepend(line);
+          while (el.children.length > 60) el.lastChild.remove();
+        }
+
+        function render() {
+          $("chargeCount").textContent = chargeCount;
+          $("chargeCount").className =
+            "stat-big " + (chargeCount > 1 ? "bad" : chargeCount === 1 ? "ok" : "");
+          $("totalMoney").textContent = totalMoney.toLocaleString("vi-VN");
+          $("idemCount").textContent = idemStore.size;
+        }
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        async function withLock(key, fn) {
+          const prev = locks.get(key) || Promise.resolve();
+          let release;
+          const gate = new Promise((r) => {
+            release = r;
+          });
+          locks.set(
+            key,
+            prev.then(() => gate)
+          );
+          try {
+            await prev;
+            return await fn();
+          } finally {
+            release();
+            if (locks.get(key)) {
+              // chain continues via gate
+            }
+          }
+        }
+
+        async function serverCharge(body, idemKey, useIdem) {
+          const delay = $("slow").checked ? 800 : 120;
+          if (!useIdem) {
+            await sleep(delay);
+            chargeCount++;
+            totalMoney += body.amount;
+            const response = {
+              ok: true,
+              chargeId: "ch_" + chargeCount,
+              amount: body.amount,
+              replay: false,
+            };
+            log(
+              "CHARGE (no idem) order=" +
+                body.orderId +
+                " amount=" +
+                body.amount +
+                " → " +
+                response.chargeId,
+              "charge"
+            );
+            render();
+            return response;
+          }
+
+          return withLock(idemKey, async () => {
+            const h = hashBody(body);
+            if (idemStore.has(idemKey)) {
+              const rec = idemStore.get(idemKey);
+              if (rec.bodyHash !== h) {
+                log("CONFLICT key=" + idemKey + " body khác", "err");
+                throw new Error("409 conflict: same key, different body");
+              }
+              await sleep(80);
+              log(
+                "REPLAY key=" +
+                  idemKey +
+                  " → " +
+                  rec.response.chargeId +
+                  " (không charge lại)",
+                "replay"
+              );
+              render();
+              return { ...rec.response, replay: true };
+            }
+            await sleep(delay);
+            chargeCount++;
+            totalMoney += body.amount;
+            const response = {
+              ok: true,
+              chargeId: "ch_" + chargeCount,
+              amount: body.amount,
+              replay: false,
+            };
+            idemStore.set(idemKey, { bodyHash: h, response, amount: body.amount });
+            log(
+              "CHARGE + store key=" +
+                idemKey +
+                " → " +
+                response.chargeId,
+              "charge"
+            );
+            render();
+            return response;
+          });
+        }
+
+        async function pay(note) {
+          const body = {
+            orderId: $("orderId").value.trim() || "order",
+            amount: +$("amount").value || 0,
+          };
+          const key = $("idemKey").value.trim() || "key";
+          const useIdem = $("useIdem").checked;
+          const id = ++reqSeq;
+          log(
+            "#" +
+              id +
+              " " +
+              (note || "Pay") +
+              " key=" +
+              key +
+              (useIdem ? "" : " [idem OFF]")
+          );
+          try {
+            const res = await serverCharge(body, key, useIdem);
+            $("lastRes").innerHTML =
+              '<span class="pill live">' +
+              (res.replay ? "replay" : "fresh") +
+              "</span> " +
+              res.chargeId +
+              " · " +
+              res.amount.toLocaleString("vi-VN");
+          } catch (e) {
+            $("lastRes").textContent = String(e.message || e);
+            log(String(e.message || e), "err");
+          }
+        }
+
+        $("btnPay").onclick = () => pay("Pay");
+        $("btnDouble").onclick = () => {
+          pay("double-A");
+          pay("double-B");
+        };
+        $("btnRetry").onclick = () => pay("Retry");
+        $("btnNewKey").onclick = () => {
+          const k = "key-" + Math.random().toString(36).slice(2, 8);
+          $("idemKey").value = k;
+          pay("Pay key mới");
+        };
+        $("btnReset").onclick = () => {
+          chargeCount = 0;
+          totalMoney = 0;
+          idemStore.clear();
+          locks.clear();
+          $("log").innerHTML = "";
+          $("lastRes").textContent = "—";
+          log("server reset");
+          render();
+        };
+        render();
+      })();
+    </script>
+  </body>
+</html>

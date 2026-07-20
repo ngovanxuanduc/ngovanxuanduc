@@ -1,0 +1,191 @@
+---
+{
+  "title": "Backpressure — đừng chỉ tăng concurrency · Articles",
+  "description": "Producer nhanh hơn consumer: drop, block, buffer, hay lag? Backpressure là tín hiệu ngược, không phải thêm worker mù.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Backpressure — đừng chỉ tăng concurrency</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Hệ thống hay chết không phải vì “chạy chậm”, mà vì
+            <strong>ai đó sản xuất nhanh hơn ai đó tiêu thụ</strong> — và không
+            ai nói “đủ rồi”. Log stream, webhook, job enqueue, WebSocket fan-out,
+            <code>mapPool</code> với list vô hạn… Cùng một bệnh: hàng đợi phình,
+            RAM phình, latency p99 bay, rồi OOM hoặc cascade timeout.
+          </p>
+          <p>
+            <strong>Backpressure</strong> là tín hiệu ngược: consumer (hoặc tầng
+            giữa) báo “mình đang quá tải — chậm lại / dừng / bỏ bớt”. Không phải
+            magic keyword của stream library; là
+            <em>chính sách khi buffer đầy</em>.
+          </p>
+          <p>
+            Demo mô phỏng producer / buffer / consumer trong browser:
+            <a href="/demos/backpressure.html">Backpressure — mở và chỉnh tốc độ</a>.
+          </p>
+
+          <h2>Bài toán một dòng</h2>
+          <pre><code>rate_in &gt; rate_out  (kéo dài)
+  → buffer tăng không bound
+  → memory / lag / timeout / drop ngẫu nhiên</code></pre>
+          <p>
+            Tăng concurrency consumer đôi khi đúng — nếu bottleneck là
+            <em>số slot</em> và downstream còn sức. Nếu bottleneck là DB connection
+            pool, disk, hoặc API rate limit, thêm worker chỉ
+            <strong>đẩy áp lực xuống tầng dưới nhanh hơn</strong>. Đó là “tăng
+            concurrency mù”.
+          </p>
+
+          <h2>Bốn cách xử lý khi đầy (và trade-off)</h2>
+          <ol>
+            <li>
+              <strong>Block / pull</strong> — producer chỉ push khi consumer
+              kéo (hoặc credit còn). An toàn nhất về memory; latency producer tăng;
+              cần kênh 2 chiều hoặc protocol có window (TCP, HTTP/2 flow control,
+              reactive streams <code>request(n)</code>).
+            </li>
+            <li>
+              <strong>Bounded buffer + wait</strong> — queue có
+              <code>max</code>; enqueue block / reject khi đầy. Đơn giản trong
+              process; caller phải biết “bị từ chối” khác “chậm”.
+            </li>
+            <li>
+              <strong>Drop</strong> — bỏ newest, oldest, hoặc sample. Đúng cho
+              metrics/telemetry/log không-critical; sai cho thanh toán / lệnh
+              ghi. Cần metric
+              <code>dropped_total</code> — drop im lặng là bug vận hành.
+            </li>
+            <li>
+              <strong>Load shed / 503</strong> — từ chối request mới ở edge để
+              cứu phần đang chạy. Circuit breaker và rate limit hay đứng cùng
+              họ ý tưởng: <em>bảo vệ capacity còn lại</em>.
+            </li>
+          </ol>
+          <p>
+            Không có lựa chọn “luôn đúng”. Có lựa chọn
+            <strong>khớp semantic</strong>: message này được phép mất không? Caller
+            có retry không? Latency hay completeness quan trọng hơn?
+          </p>
+
+          <h2>Chỗ hay quên backpressure</h2>
+          <ul>
+            <li>
+              <strong><code>for</code> + fire-and-forget</strong> —
+              <code>items.forEach(x =&gt; void process(x))</code> không limit →
+              N promise in-flight không bound (xem bài
+              <a href="/articles/unbounded-inflight.html">unbounded in-flight</a>).
+            </li>
+            <li>
+              <strong>Queue không max</strong> — Redis list / BullMQ mặc định có
+              thể phình nếu consumer chết mà producer vẫn push.
+            </li>
+            <li>
+              <strong>WebSocket / SSE server push</strong> — client chậm đọc,
+              server vẫn buffer frame → RAM process.
+            </li>
+            <li>
+              <strong>Retry storm</strong> — fail → retry ngay × mọi client →
+              <code>rate_in</code> nhân đôi đúng lúc hệ thống yếu (cần
+              <a href="/articles/retry-backoff-jitter.html">jitter + cap</a>;
+              side-effect:
+              <a href="/articles/idempotency.html">idempotency</a>).
+            </li>
+          </ul>
+
+          <h2>Sketch: bounded queue trong một process</h2>
+          <pre><code>class BoundedQueue {
+  constructor(max) {
+    this.max = max;
+    this.q = [];
+    this.waiters = []; // resolve khi có chỗ
+  }
+
+  async push(item) {
+    while (this.q.length &gt;= this.max) {
+      await new Promise((r) =&gt; this.waiters.push(r));
+    }
+    this.q.push(item);
+  }
+
+  tryPush(item) {
+    if (this.q.length &gt;= this.max) return false; // drop / 503 path
+    this.q.push(item);
+    return true;
+  }
+
+  async pop() {
+    while (this.q.length === 0) {
+      await new Promise((r) =&gt; this._emptyWait = r);
+    }
+    const item = this.q.shift();
+    // báo producer đang block
+    while (this.waiters.length) this.waiters.shift()();
+    return item;
+  }
+}</code></pre>
+          <p>
+            Ý quan trọng không phải class hay — mà là
+            <strong>push có chiến lược khi đầy</strong>: chờ, trả
+            <code>false</code>, hoặc throw. “Cứ <code>push</code> mãi” = không
+            backpressure.
+          </p>
+
+          <h2>Pool concurrency ≠ backpressure đủ</h2>
+          <p>
+            Bài
+            <a href="/articles/promise-all-batch-vs-pool.html">batch vs pool</a>
+            giới hạn <em>số job đang chạy</em>. Đó là một dạng backpressure
+            <em>vào worker</em>. Nhưng:
+          </p>
+          <ul>
+            <li>
+              Nếu bạn <strong>đã materialize</strong> 1 triệu task object trước
+              khi pool chạy — memory đã nổ ở producer side.
+            </li>
+            <li>
+              Nếu pool pull từ generator/stream theo nhu cầu — backpressure “kéo”
+              từ nguồn; tốt hơn nhiều.
+            </li>
+          </ul>
+          <pre><code>// nguy hiểm: tạo hết promise metadata trước
+const jobs = hugeList.map((x) =&gt; () =&gt; work(x));
+await mapPool(jobs, 10, (fn) =&gt; fn());
+
+// tốt hơn: nguồn lười + pool kéo
+async function *pages() { /* yield page by page */ }
+await mapPoolFromAsyncIter(pages(), 10, processPage);</code></pre>
+
+          <h2>Metric nên nhìn</h2>
+          <ul>
+            <li><code>queue_depth</code> / buffer length — trend, không chỉ spike</li>
+            <li><code>enqueue_reject</code> / <code>dropped</code></li>
+            <li><code>consumer_lag</code> (time-in-queue)</li>
+            <li>p99 latency caller vs saturation downstream (CPU, pool wait)</li>
+          </ul>
+          <p>
+            Depth tăng đều trong khi consumer CPU đã max → thêm replica consumer
+            (nếu scale được). Depth tăng vì downstream 5xx → shed load / breaker,
+            không phải spam thêm worker.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Backpressure = khi đầy thì có chính sách</strong> (chờ, từ
+            chối, drop có chủ đích) — không phải hy vọng consumer kịp.
+          </p>
+          <p>
+            Tăng concurrency chỉ giúp khi còn headroom thật. Còn lại: bound
+            buffer, pull-based source, load shed, và đừng để
+            <code>rate_in</code> vô hạn khi
+            <code>rate_out</code> đã kẹt.
+          </p>
+        </div>
+      </article>

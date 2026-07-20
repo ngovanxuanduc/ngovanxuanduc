@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Matrix: release, ignore, instant retry, resend, delay, error channel, DLQ × write/read/shared × queue/stream. Link series reliability." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Async recovery playbook — chọn strategy theo channel · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/async-recovery-playbook.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Async recovery playbook — chọn strategy theo channel · Articles" />
+    <meta property="og:description" content="Matrix: release, ignore, instant retry, resend, delay, error channel, DLQ × write/read/shared × queue/stream. Link series reliability." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/async-recovery-playbook.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Async recovery playbook — chọn strategy theo channel · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Async recovery playbook — chọn strategy theo channel · Articles" />
+    <meta name="twitter:description" content="Matrix: release, ignore, instant retry, resend, delay, error channel, DLQ × write/read/shared × queue/stream. Link series reliability." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Async recovery playbook — chọn strategy theo channel · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Async recovery playbook</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Một trang để
+            <strong>chọn</strong>, không để học framework. Đọc nền:
+            <a href="/articles/queue-vs-stream.html">queue vs stream</a>,
+            <a href="/articles/write-vs-read-channel.html"
+              >write / read / shared</a
+            >,
+            <a href="/articles/resend-shared-channel.html">resend</a>.
+          </p>
+          <p>
+            Mọi ô dưới đây giả định
+            <a href="/articles/idempotency.html">idempotent handler</a>
+            — at-least-once + redelivery là mặc định.
+          </p>
+
+          <h2>0. Hỏi 3 câu trước khi code retry</h2>
+          <ol>
+            <li>
+              <strong>Channel type?</strong> Queue destructive hay stream
+              offset? (
+              <a href="/articles/queue-vs-stream.html">A</a>)
+            </li>
+            <li>
+              <strong>Purpose?</strong> Write / read / shared? (
+              <a href="/articles/write-vs-read-channel.html">B</a>)
+            </li>
+            <li>
+              <strong>Lỗi?</strong> Transient (timeout, 503) hay permanent
+              (validation, poison schema)?
+            </li>
+          </ol>
+
+          <h2>1. Strategy là gì (một dòng)</h2>
+          <ul>
+            <li>
+              <strong>Instant retry</strong> — thử lại ngay trong process; không
+              nhét lại channel. (
+              <a href="/articles/retry-backoff-jitter.html">retry</a>)
+            </li>
+            <li>
+              <strong>Release</strong> — requeue / không tiến offset; giữ chỗ;
+              dễ block nếu mãi fail.
+            </li>
+            <li>
+              <strong>Ignore</strong> — ack/commit bỏ qua; message “mất” với
+              group này.
+            </li>
+            <li>
+              <strong>Resend</strong> — ack bản hiện tại + publish lại (cùng
+              id); unblock; có thể xáo order / dual trên shared. (
+              <a href="/articles/resend-shared-channel.html">C</a>)
+            </li>
+            <li>
+              <strong>Delayed resend</strong> — resend sau backoff; vàng
+              transient write; stream thường cần retry channel phụ.
+            </li>
+            <li>
+              <strong>Error channel</strong> — chuyển lane riêng (private);
+              recovery tiếp ở đó.
+            </li>
+            <li>
+              <strong>DLQ / dead letter</strong> — cất + alert + replay tay. (
+              <a href="/articles/poison-dlq.html">poison/DLQ</a>)
+            </li>
+          </ul>
+
+          <h2>2. Matrix purpose × strategy</h2>
+          <p>
+            Ký hiệu: <strong>OK</strong> · <strong>~</strong> cẩn / tùy ·
+            <strong>NO</strong> tránh mặc định.
+          </p>
+          <pre><code>                 Write      Read       Shared
+Instant retry    OK         OK         OK
+Release          ~ block    OK order   ~ block group
+Ignore           ~ rare     NO*        ~ rare
+Resend           OK         ~ order    NO**
+Delayed resend   OK         ~ order    NO**
+Error channel    OK         OK         OK (private)
+DLQ              OK         ~***       OK
+
+*  Read: ignore = view thiếu/sai trừ metric chấp nhận mất.
+** Shared: resend shared log → double group khác.
+*** Read DLQ: unblock được nhưng gap view — cần replay/backfill có quy trình.</code></pre>
+
+          <h2>3. Gợi ý pipeline (thực dụng)</h2>
+          <pre><code>Mọi channel:
+  1) Instant retry (2–3, only transient)
+  2) Phân loại permanent → DLQ / ignore (hiếm)
+  3) Final theo purpose…
+
+Write + single group:
+  delayed resend / retry queue → DLQ
+
+Read / projection:
+  instant retry → release/rewind (giữ order) → park + alert
+  (không ignore; hạn chế resend xáo per-key)
+
+Shared stream:
+  instant retry → error channel RIÊNG group → DLQ
+  (không resend shared topic)</code></pre>
+
+          <h2>4. Queue vs stream — lệch triển khai</h2>
+          <ul>
+            <li>
+              <strong>Release trên queue:</strong> nack/requeue.
+              <strong>Trên stream:</strong> không commit / seek lại offset
+              group.
+            </li>
+            <li>
+              <strong>Delay:</strong> queue/SQS/Rabbit delayed plugin dễ hơn;
+              Kafka thuần hay cần topic/DB retry.
+            </li>
+            <li>
+              <strong>Lease:</strong> queue claim timeout —
+              <a href="/articles/visibility-timeout.html">visibility</a>;
+              stream ít “visibility” hơn, nghiêng processing + commit.
+            </li>
+          </ul>
+
+          <h2>5. Ghép series reliability đã có</h2>
+          <ul>
+            <li>
+              <a href="/articles/idempotency.html">Idempotency</a> — lưới cuối
+              mọi strategy.
+            </li>
+            <li>
+              <a href="/articles/retry-backoff-jitter.html">Backoff + jitter</a>
+              — delayed path; tránh storm.
+            </li>
+            <li>
+              <a href="/articles/circuit-breaker.html">Circuit breaker</a> —
+              dependency chết: fail-fast, đừng release poison storm.
+            </li>
+            <li>
+              <a href="/articles/backpressure.html">Backpressure</a> —
+              consumer chậm ≠ chỉ tăng retry.
+            </li>
+            <li>
+              <a href="/articles/outbox-inbox.html">Outbox</a> — publish
+              at-least-once có kiểm soát từ write model.
+            </li>
+            <li>
+              <a href="/articles/timeout-budget.html">Timeout budget</a> —
+              handler đừng retry vượt deadline.
+            </li>
+          </ul>
+
+          <h2>6. Anti-pattern ngắn</h2>
+          <ul>
+            <li>Một policy “always requeue” cho mọi lỗi + mọi channel.</li>
+            <li>Ignore trên projection “cho xong lag”.</li>
+            <li>Resend shared topic khi một group fail.</li>
+            <li>Release mãi poison không DLQ — đốt tiền, chặn lane.</li>
+            <li>Retry không idempotent — double charge / double email.</li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Type (queue/stream) × purpose (write/read/shared) ×
+            transient|permanent → strategy.</strong>
+          </p>
+          <p>
+            Không có recovery “đẹp nhất” — chỉ có recovery
+            <em>khớp constraint</em>. In matrix ra wiki team cũng được; trang
+            này là bản note.
+          </p>
+
+          <h2>Mục series channel &amp; recovery</h2>
+          <ol>
+            <li>
+              <a href="/articles/queue-vs-stream.html">Queue vs stream</a>
+            </li>
+            <li>
+              <a href="/articles/write-vs-read-channel.html"
+                >Write vs read vs shared</a
+              >
+            </li>
+            <li>
+              <a href="/articles/resend-shared-channel.html"
+                >Resend &amp; shared</a
+              >
+            </li>
+            <li>
+              <strong>Playbook (trang này)</strong>
+            </li>
+          </ol>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Demo circuit breaker: closed / open / half-open với dependency giả lập."
+    />
+    <title>Demo · Circuit breaker</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --success-soft: rgba(94, 234, 147, 0.14);
+        --warn: #fbbf24;
+        --warn-soft: rgba(251, 191, 36, 0.12);
+        --danger: #ff8f8f;
+        --danger-soft: rgba(255, 143, 143, 0.12);
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font: inherit;
+        font-family: var(--mono);
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+        width: 6rem;
+      }
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-left: auto;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
+      .state {
+        flex: 1;
+        min-width: 7rem;
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        opacity: 0.55;
+      }
+      .state.on {
+        opacity: 1;
+        font-weight: 600;
+      }
+      .state.on.closed {
+        border-color: rgba(94, 234, 147, 0.5);
+        background: var(--success-soft);
+        color: var(--success);
+      }
+      .state.on.open {
+        border-color: rgba(255, 143, 143, 0.5);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .state.on.half-open {
+        border-color: rgba(251, 191, 36, 0.5);
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1.25rem;
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        color: var(--text-muted);
+      }
+      .stats strong {
+        color: var(--text);
+      }
+      .dep {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+      .dep .up {
+        color: var(--success);
+      }
+      .dep .down {
+        color: var(--danger);
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 14rem;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .log .ok {
+        color: var(--success);
+      }
+      .log .fail {
+        color: var(--danger);
+      }
+      .log .reject {
+        color: var(--warn);
+      }
+      label.check {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Circuit breaker</h1>
+        <p>
+          Gọi dependency giả — bật “dependency down” để xem open / half-open.
+          <a href="/articles/circuit-breaker.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="panel">
+        <h2>Breaker config</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="threshold">Failure threshold</label>
+            <input id="threshold" type="number" min="1" max="20" value="3" />
+          </div>
+          <div class="field">
+            <label for="cooldown">Cooldown (ms)</label>
+            <input id="cooldown" type="number" min="500" max="30000" value="4000" />
+          </div>
+          <div class="field">
+            <label for="latency">Call latency (ms)</label>
+            <input id="latency" type="number" min="50" max="2000" value="200" />
+          </div>
+          <label class="check">
+            <input type="checkbox" id="depDown" />
+            Dependency DOWN (fail)
+          </label>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnCall">1 call</button>
+            <button type="button" id="btnBurst">Burst ×10</button>
+            <button type="button" id="btnAuto">Auto spam</button>
+            <button type="button" id="btnStop" disabled>Stop auto</button>
+            <button type="button" id="btnReset">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>State</h2>
+        <div class="states">
+          <div class="state closed on" id="stClosed">CLOSED</div>
+          <div class="state open" id="stOpen">OPEN</div>
+          <div class="state half-open" id="stHalf">HALF-OPEN</div>
+        </div>
+        <div class="stats">
+          <span>success <strong id="sOk">0</strong></span>
+          <span>fail <strong id="sFail">0</strong></span>
+          <span>rejected (open) <strong id="sRej">0</strong></span>
+          <span>failures streak <strong id="sStreak">0</strong></span>
+          <span>cooldown left <strong id="sCd">—</strong></span>
+        </div>
+        <div class="dep">
+          Dependency:
+          <strong id="depLabel" class="up">UP</strong>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        function createBreaker() {
+          let state = "closed";
+          let failures = 0;
+          let openedAt = 0;
+          let halfOpenInFlight = 0;
+          const halfOpenMax = 1;
+
+          return {
+            getState: () => state,
+            getFailures: () => failures,
+            getOpenedAt: () => openedAt,
+            async exec(fn) {
+              const cooldownMs = Math.max(500, +$("cooldown").value || 4000);
+              const failureThreshold = Math.max(1, +$("threshold").value || 3);
+              const now = Date.now();
+
+              if (state === "open") {
+                if (now - openedAt < cooldownMs) {
+                  const err = new Error("circuit_open");
+                  err.code = "CIRCUIT_OPEN";
+                  throw err;
+                }
+                state = "half-open";
+                halfOpenInFlight = 0;
+                log("→ HALF-OPEN (cooldown hết, cho probe)", "reject");
+              }
+
+              if (state === "half-open") {
+                if (halfOpenInFlight >= halfOpenMax) {
+                  const err = new Error("circuit_half_open_busy");
+                  err.code = "CIRCUIT_OPEN";
+                  throw err;
+                }
+                halfOpenInFlight++;
+              }
+
+              try {
+                const result = await fn();
+                failures = 0;
+                if (state === "half-open") {
+                  state = "closed";
+                  log("probe OK → CLOSED", "ok");
+                }
+                return result;
+              } catch (e) {
+                if (e.code === "CIRCUIT_OPEN") throw e;
+                failures++;
+                if (state === "half-open" || failures >= failureThreshold) {
+                  state = "open";
+                  openedAt = Date.now();
+                  failures = 0;
+                  log("→ OPEN (threshold / probe fail)", "fail");
+                }
+                throw e;
+              } finally {
+                if (state === "half-open") {
+                  halfOpenInFlight = Math.max(0, halfOpenInFlight - 1);
+                }
+              }
+            },
+            reset() {
+              state = "closed";
+              failures = 0;
+              openedAt = 0;
+              halfOpenInFlight = 0;
+            },
+          };
+        }
+
+        const breaker = createBreaker();
+        let ok = 0,
+          fail = 0,
+          rej = 0;
+        let autoTimer = null;
+
+        function log(msg, cls) {
+          const el = $("log");
+          const line = document.createElement("div");
+          if (cls) line.className = cls;
+          line.textContent =
+            new Date().toISOString().slice(11, 23) + "  " + msg;
+          el.prepend(line);
+          while (el.children.length > 80) el.lastChild.remove();
+        }
+
+        function paint() {
+          const st = breaker.getState();
+          $("stClosed").className =
+            "state closed" + (st === "closed" ? " on" : "");
+          $("stOpen").className = "state open" + (st === "open" ? " on" : "");
+          $("stHalf").className =
+            "state half-open" + (st === "half-open" ? " on" : "");
+          $("sOk").textContent = ok;
+          $("sFail").textContent = fail;
+          $("sRej").textContent = rej;
+          $("sStreak").textContent = breaker.getFailures();
+          const down = $("depDown").checked;
+          $("depLabel").textContent = down ? "DOWN" : "UP";
+          $("depLabel").className = down ? "down" : "up";
+
+          if (st === "open") {
+            const cd = Math.max(500, +$("cooldown").value || 4000);
+            const left = Math.max(0, cd - (Date.now() - breaker.getOpenedAt()));
+            $("sCd").textContent = Math.ceil(left / 100) / 10 + "s";
+          } else {
+            $("sCd").textContent = "—";
+          }
+        }
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        async function dependencyCall() {
+          const latency = Math.max(50, +$("latency").value || 200);
+          await sleep(latency);
+          if ($("depDown").checked) {
+            const err = new Error("502 bad gateway");
+            err.code = "UPSTREAM";
+            throw err;
+          }
+          return { ok: true };
+        }
+
+        async function oneCall() {
+          try {
+            await breaker.exec(dependencyCall);
+            ok++;
+            log("call OK", "ok");
+          } catch (e) {
+            if (e.code === "CIRCUIT_OPEN") {
+              rej++;
+              log("REJECT " + e.message, "reject");
+            } else {
+              fail++;
+              log("call FAIL " + e.message, "fail");
+            }
+          }
+          paint();
+        }
+
+        async function burst() {
+          $("btnBurst").disabled = true;
+          const jobs = [];
+          for (let i = 0; i < 10; i++) jobs.push(oneCall());
+          await Promise.all(jobs);
+          $("btnBurst").disabled = false;
+        }
+
+        $("btnCall").onclick = () => oneCall();
+        $("btnBurst").onclick = () => burst();
+        $("btnAuto").onclick = () => {
+          if (autoTimer) return;
+          $("btnAuto").disabled = true;
+          $("btnStop").disabled = false;
+          autoTimer = setInterval(oneCall, 350);
+        };
+        $("btnStop").onclick = () => {
+          clearInterval(autoTimer);
+          autoTimer = null;
+          $("btnAuto").disabled = false;
+          $("btnStop").disabled = true;
+        };
+        $("btnReset").onclick = () => {
+          breaker.reset();
+          ok = fail = rej = 0;
+          $("log").innerHTML = "";
+          log("reset");
+          paint();
+        };
+        $("depDown").onchange = paint;
+        setInterval(paint, 200);
+        paint();
+      })();
+    </script>
+  </body>
+</html>

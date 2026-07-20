@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Ghi DB + publish event không atomic qua mạng. Transactional outbox, inbox dedup, và nối idempotency." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Outbox &amp; inbox — side-effect không “nửa vời” · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/outbox-inbox.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Outbox &amp; inbox — side-effect không “nửa vời” · Articles" />
+    <meta property="og:description" content="Ghi DB + publish event không atomic qua mạng. Transactional outbox, inbox dedup, và nối idempotency." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/outbox-inbox.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Outbox &amp; inbox — side-effect không “nửa vời” · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Outbox &amp; inbox — side-effect không “nửa vời” · Articles" />
+    <meta name="twitter:description" content="Ghi DB + publish event không atomic qua mạng. Transactional outbox, inbox dedup, và nối idempotency." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Outbox &amp; inbox — side-effect không “nửa vời” · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Outbox &amp; inbox — side-effect không “nửa vời”</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Pattern hỏng kinh điển:
+          </p>
+          <pre><code>await db.insert(order);      // OK
+await broker.publish(event); // crash / timeout ở đây
+// → DB có order, không ai nhận event — hoặc ngược lại nếu đảo thứ tự</code></pre>
+          <p>
+            Hai hệ thống (DB và queue/broker) không chung một transaction phân
+            tán rẻ tiền. “2 phase commit khắp nơi” hiếm khi là câu trả lời bạn
+            muốn vận hành.
+          </p>
+          <p>
+            <strong>Transactional outbox:</strong> ghi business row
+            <em>và</em> hàng outbox <strong>cùng một transaction DB</strong>.
+            Process riêng (poller / CDC) đọc outbox rồi publish — at-least-once
+            ra broker. Phía nhận:
+            <strong>inbox</strong> (dedup) để không xử lý trùng.
+          </p>
+          <p>
+            Demo mô phỏng crash giữa chừng:
+            <a href="/demos/outbox-inbox.html">Outbox vs publish thẳng</a>.
+          </p>
+
+          <h2>Outbox flow</h2>
+          <pre><code>BEGIN;
+  INSERT INTO orders …;
+  INSERT INTO outbox (id, topic, payload, created_at)
+    VALUES (…, 'order.created', …);
+COMMIT;
+
+-- publisher (định kỳ / LISTEN)
+SELECT * FROM outbox WHERE published_at IS NULL LIMIT 100;
+publish(row);
+-- mark published (hoặc delete) — ideally sau ack broker
+UPDATE outbox SET published_at = now() WHERE id = …;</code></pre>
+          <p>
+            Crash sau commit, trước publish: outbox vẫn còn row → publisher chạy
+            lại. Crash sau publish, trước mark: publish trùng →
+            <strong>consumer phải idempotent</strong> /
+            <a href="/articles/idempotency.html">idempotency key</a> /
+            inbox.
+          </p>
+
+          <h2>Inbox (consumer dedup)</h2>
+          <pre><code>BEGIN;
+  INSERT INTO inbox (event_id) VALUES ($1);  -- unique
+  -- nếu conflict → đã xử lý, skip
+  -- apply business logic
+COMMIT;</code></pre>
+          <p>
+            Hoặc “claim + process” theo
+            <a href="/articles/toctou-async.html">unique constraint / TOCTOU</a>:
+            đừng check-then-act thiếu atomic.
+          </p>
+
+          <h2>Vì sao không “publish rồi ghi DB”</h2>
+          <ul>
+            <li>
+              Publish OK, DB fail → event “ma”, consumer tạo state không có
+              source of truth.
+            </li>
+            <li>
+              Khó compensate hơn outbox (outbox trễ event còn hơn event giả).
+            </li>
+          </ul>
+          <p>
+            Rule ngón tay cái: <strong>source of truth trước, fan-out sau</strong>
+            — outbox bám DB (hoặc store chính).
+          </p>
+
+          <h2>CDC vs poller</h2>
+          <ul>
+            <li>
+              <strong>Poller:</strong> đơn giản, latency theo chu kỳ, dễ hiểu.
+            </li>
+            <li>
+              <strong>CDC</strong> (Debezium…): thấp trễ hơn, ops nặng hơn;
+              vẫn at-least-once về semantic.
+            </li>
+          </ul>
+
+          <h2>Sketch publisher (ý)</h2>
+          <pre><code>async function flushOutbox(db, broker, limit = 50) {
+  const batch = await db.claimOutboxBatch(limit); // FOR UPDATE SKIP LOCKED
+  for (const row of batch) {
+    try {
+      await broker.publish(row.topic, row.payload, {
+        messageId: row.id, // cho inbox
+      });
+      await db.markPublished(row.id);
+    } catch (e) {
+      // để lại row — lần sau; không xóa
+      await db.bumpAttempt(row.id, e);
+    }
+  }
+}</code></pre>
+          <p>
+            <code>SKIP LOCKED</code>: nhiều publisher instance không giành cùng
+            row — tránh
+            <a href="/articles/toctou-async.html">race</a> ngớ ngẩn.
+          </p>
+
+          <h2>Liên hệ series</h2>
+          <ul>
+            <li>
+              Publish at-least-once →
+              <a href="/articles/idempotency.html">idempotency</a> consumer.
+            </li>
+            <li>
+              Publisher fail lặp →
+              <a href="/articles/poison-dlq.html">DLQ outbox row</a> sau N
+              attempt + alert.
+            </li>
+            <li>
+              Đừng spam publish khi broker yếu —
+              <a href="/articles/backpressure.html">backpressure</a> /
+              <a href="/articles/circuit-breaker.html">breaker</a>.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Không atomic được hai store thì ghi một store hai việc
+            (business + outbox), rồi fan-out có retry.</strong> Inbox ở đầu kia
+            khép dual-write: trễ một nhịp vẫn hơn mất event hoặc double apply
+            mù.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

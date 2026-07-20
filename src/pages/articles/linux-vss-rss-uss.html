@@ -1,0 +1,280 @@
+---
+{
+  "title": "VSS, RSS, USS (và SHM) trên Linux — đếm RAM thế nào · Articles",
+  "description": "VSZ/VSS, RSS, USS, PSS: virtual ≠ resident ≠ unique. Shared memory làm RSS “phình” khi cộng process — đọc số cho đúng khi debug OOM / cgroup.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>VSS, RSS, USS (và SHM) trên Linux</h1>
+          <p class="article-header__meta">2026-07-20 · ~8 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            “Process này tốn bao nhiêu RAM?” — câu hỏi tưởng đơn giản. Trên
+            Linux, tùy bạn nhìn
+            <strong>VSS/VSZ</strong>, <strong>RSS</strong>, hay
+            <strong>USS</strong>, số có thể chênh vài lần, và cộng RSS của mọi
+            process thường <em>lớn hơn</em> RAM máy (vì shared bị đếm chồng).
+          </p>
+          <p>
+            Bài này là mental model khi debug container OOM, pod
+            <code>memory</code>, hay so sánh worker Go / JVM / Python — không
+            phải thay man page đầy đủ.
+          </p>
+          <p>
+            Demo đếm trên 2 process giả (shared lib + SHM):
+            <a href="/demos/linux-memory-metrics.html"
+              >VSS / RSS / USS / PSS + SHM</a
+            >.
+          </p>
+
+          <h2>Ba (thật ra bốn) con số</h2>
+          <ul>
+            <li>
+              <strong>VSS / VSZ</strong> — Virtual Set Size: tổng address space
+              ảo đã map (kể cả chưa fault vào RAM, file map, reservation…).
+              <code>ps</code> VSZ, <code>top</code> VIRT.
+            </li>
+            <li>
+              <strong>RSS</strong> — Resident Set Size: page đang nằm trong RAM,
+              kể cả page <em>shared</em> (đếm full cho mỗi process).
+              <code>ps</code> RSS, <code>top</code> RES.
+            </li>
+            <li>
+              <strong>USS</strong> — Unique Set Size: page chỉ process này map;
+              kill process thì “trả” phần này. <code>smem</code> /
+              <code>smaps</code>.
+            </li>
+            <li>
+              <strong>PSS</strong> — Proportional Set Size: unique + (shared ÷
+              số process đang share). Cộng PSS mọi process ≈ phân bổ “công
+              bằng” hơn. <code>smem</code>, <code>smaps_rollup</code>.
+            </li>
+          </ul>
+          <p>
+            Quan hệ thô (không phải định lý tuyệt đối trên mọi kernel config):
+          </p>
+          <pre><code>VSS  ≥  RSS  ≥  PSS  ≥  USS  ≥  0
+// RSS có thể &gt; “fair share” vì shared đếm full
+// Σ RSS (mọi process) thường &gt; RAM dùng thật
+// Σ PSS ≈ hữu ích hơn khi ước lượng “ai đang giữ bao nhiêu”</code></pre>
+
+          <h2>VSS — ảo, dễ “to đùng”</h2>
+          <p>
+            Mỗi process có không gian địa chỉ ảo. Map thư viện, map file,
+            <code>mmap</code> lớn, heap, stack, vùng reserve… đều làm
+            <strong>VSS tăng</strong>, kể cả khi phần lớn page
+            <em>chưa</em> fault vào RAM (demand paging).
+          </p>
+          <ul>
+            <li>
+              JVM / large heap config, Tensor buffer map, elastic mapping → VSS
+              hàng GB trong khi RSS chỉ vài trăm MB là chuyện thường.
+            </li>
+            <li>
+              <strong>Đừng dùng VSS để kết luận “hết RAM”</strong>. Nó trả lời:
+              “address space rộng cỡ nào?”, không phải “đang ngồi bao nhiêu
+              DRAM”.
+            </li>
+          </ul>
+          <pre><code>ps -o pid,vsz,rss,comm -p $PID
+# VSZ, RSS đơn vị KB (ps cổ điển)</code></pre>
+
+          <h2>RSS — đang resident, nhưng shared bị đếm chồng</h2>
+          <p>
+            RSS = các page có frame trong RAM thuộc mapping của process. Gồm:
+          </p>
+          <ul>
+            <li>Anonymous private (heap, stack, brk…) — thường “của riêng”</li>
+            <li>
+              File-backed đã fault (code <code>libc.so</code>, file
+              <code>mmap</code>…) — <strong>nhiều process dùng chung page
+              vật lý</strong>
+            </li>
+            <li>
+              Shared memory (POSIX/System V SHM, <code>mmap MAP_SHARED</code>) —
+              cùng một vùng RAM, mỗi process map vào RSS của mình
+            </li>
+          </ul>
+          <p>
+            Hệ quả vận hành:
+          </p>
+          <pre><code>2 worker, mỗi RSS = 200MB
+  trong đó ~80MB là libc + lib chung (cùng page)
+  + 50MB SHM dùng chung cả hai
+
+Cộng 200+200 = 400MB  ← ảo giác
+Thực trên máy có thể ~200 - 80 - 50 + … ≈ thấp hơn nhiều</code></pre>
+          <p>
+            OOM killer / cgroup memory vẫn có quy tắc riêng (RSS, cache, shmem
+            accounting…). Điểm cần nhớ: <strong>cộng cột RES trên
+            <code>top</code> không ra “RAM còn lại”</strong>.
+          </p>
+
+          <h2>USS — “nếu kill process này, được lại bao nhiêu?”</h2>
+          <p>
+            USS chỉ đếm page <strong>private / unique</strong>: không share với
+            ai. Kill process → phần đó free (trừ khi còn ref khác ngoài model
+            đơn giản này).
+          </p>
+          <ul>
+            <li>
+              So sánh “worker này phình heap không” → USS (hoặc private trong
+              smaps) sát hơn RSS.
+            </li>
+            <li>
+              10 process fork + copy-on-write: lúc đầu RSS mỗi đứa có thể cao
+              (share page), USS thấp; sau khi ghi đè page, USS tăng (COW break).
+            </li>
+          </ul>
+          <pre><code># smem (python) — cột USS PSS RSS
+smem -p $PID
+smem -r  # sort RSS
+# hoặc tự cộng từ smaps:
+# Private_Clean + Private_Dirty ≈ hướng USS</code></pre>
+
+          <h2>PSS — chia shared “công bằng”</h2>
+          <p>
+            Page private: tính full. Page đang được N process map: mỗi process
+            chịu <code>size/N</code>.
+          </p>
+          <pre><code>PSS ≈ USS + Σ (shared_page_size / n_sharers)</code></pre>
+          <p>
+            Muốn trả lời “trên máy này, service X ‘đáng’ bao nhiêu RAM nếu phân
+            bổ chi phí lib chung” → PSS. Muốn “kill X được bao nhiêu” → USS. Muốn
+            “kernel đang giữ resident cho mapping của X” → RSS.
+          </p>
+
+          <h2>SHM — shared memory, chỗ RSS hay đánh lừa</h2>
+          <p>
+            <strong>SHM</strong> (System V <code>shmget</code>/<code>shmat</code>,
+            POSIX <code>/dev/shm</code>, <code>mmap(..., MAP_SHARED)</code>,
+            đôi khi cả tmpfs) là vùng RAM (hoặc tmpfs) nhiều process cùng map.
+          </p>
+          <ul>
+            <li>
+              <strong>Mỗi</strong> process attach: vùng đó vào
+              <em>RSS (và VSS)</em> của process đó.
+            </li>
+            <li>
+              <strong>USS</strong> của mỗi process <em>không</em> ôm trọn SHM
+              (vì không unique) — trừ khi chỉ còn một process map.
+            </li>
+            <li>
+              <strong>PSS</strong>: mỗi bên chịu 1/N kích thước segment.
+            </li>
+            <li>
+              Trên hệ thống: shmem hay hiện trong <code>free</code> /
+              <code>MemAvailable</code> accounting khác anonymous heap — IPC
+              lớn (Redis không, nhưng app tự SHM, DB segment, ML shared weight
+              map…) cần nhìn riêng.
+            </li>
+          </ul>
+          <pre><code>ipcs -m              # System V shm segments
+ls -lh /dev/shm      # POSIX shm objects (tmpfs)
+# trong smaps: mapping có path /dev/shm/... hoặc SYSV...
+# cgroup v2: memory.stat → shmem, file, anon…</code></pre>
+          <p>
+            Docker/K8s: limit memory container tính theo cgroup (thường gồm
+            anon + file cache + shmem theo rule version). Process RSS cao vì
+            map SHM lớn có thể đẩy cgroup chạm limit dù “logic app” tưởng chỉ
+            dùng ít heap — đọc <code>memory.stat</code> / metrics runtime, đừng
+            chỉ nhìn một số <code>ps</code>.
+          </p>
+
+          <h2>Nhìn số trên máy</h2>
+          <pre><code># nhanh
+ps -o pid,vsz,rss,comm -p $PID
+cat /proc/$PID/status | egrep 'VmSize|VmRSS|VmData|RssAnon|RssFile|RssShmem'
+
+# chi tiết từng mapping
+less /proc/$PID/smaps
+cat /proc/$PID/smaps_rollup   # kernel mới: Pss, Rss, … gộp
+
+# tổng quan “fair”
+smem -t   # tổng USS/PSS/RSS</code></pre>
+          <p>
+            Gợi ý đọc <code>status</code>:
+          </p>
+          <ul>
+            <li><code>VmSize</code> ≈ hướng VSS</li>
+            <li><code>VmRSS</code> ≈ RSS</li>
+            <li>
+              <code>RssAnon</code> / <code>RssFile</code> /
+              <code>RssShmem</code> — tách anonymous vs file vs shmem (hữu ích
+              hơn một số RSS)
+            </li>
+          </ul>
+
+          <h2>Khi nào dùng metric nào</h2>
+          <ul>
+            <li>
+              <strong>OOM / “máy hết RAM?”</strong> — nhìn host
+              <code>MemAvailable</code>, cgroup
+              <code>memory.current</code> + <code>memory.stat</code>, không
+              cộng VSZ.
+            </li>
+            <li>
+              <strong>Process leak heap?</strong> — USS hoặc
+              <code>RssAnon</code> theo thời gian (RSS có thể nhiễu vì cache
+              file).
+            </li>
+            <li>
+              <strong>N replica cùng image?</strong> — đừng × N × RSS; lib
+              shared + image layer page cache được share (PSS / cgroup chung
+              node).
+            </li>
+            <li>
+              <strong>SHM / mmap shared lớn?</strong> — kiểm tra
+              <code>RssShmem</code>, <code>/dev/shm</code>,
+              <code>ipcs</code>; nhớ RSS per-process đếm chồng.
+            </li>
+            <li>
+              <strong>Capacity planning “mỗi pod thêm bao nhiêu?”</strong> —
+              gần USS (private) + phần shmem/cache riêng policy; PSS nếu muốn
+              amortize lib.
+            </li>
+          </ul>
+
+          <h2>Liên hệ app (Go / JVM / Python / Nest…)</h2>
+          <ul>
+            <li>
+              Runtime allocator (Go GC, JVM heap, Python arena) chủ yếu đẩy
+              <strong>anonymous / USS</strong> khi sống lâu + fragment.
+            </li>
+            <li>
+              Native lib, model weights <code>mmap</code>, extension module →
+              file-backed RSS share được giữa process.
+            </li>
+            <li>
+              Worker prefork (Gunicorn, cũ PHP-FPM…): COW — fork xong RSS trông
+              “đắt”, USS mới lộ sau khi request ghi page.
+            </li>
+          </ul>
+
+          <h2>Đọc thêm</h2>
+          <p>
+            Heap managed (JVM/Go/V8/Python) còn lớp
+            <a href="/articles/garbage-collector.html">garbage collector</a> —
+            RSS process ≠ “heap live set”.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>VSS = bản đồ ảo. RSS = đang ở RAM (shared đếm full mỗi
+            process). USS = phần riêng, kill là mất. PSS = chia shared cho
+            công bằng. SHM nằm ở shared — làm RSS cộng dồn sai nếu không để
+            ý.</strong>
+          </p>
+          <p>
+            Debug memory: chọn đúng câu hỏi trước, rồi mới chọn cột số. Cộng
+            nhầm RSS/VSS là cách nhanh nhất để “tối ưu” một vấn đề không tồn
+            tại — hoặc bỏ lỡ leak anonymous thật.
+          </p>
+        </div>
+      </article>

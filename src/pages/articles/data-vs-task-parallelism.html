@@ -1,0 +1,189 @@
+---
+{
+  "title": "Data vs task parallelism — hai cách “doing” · Articles",
+  "description": "Khi đã doing lots of things at once: cắt theo data (cùng phép × nhiều phần) hay theo task (nhiều việc khác nhau). Nối concurrency dealing with.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Data parallelism vs task parallelism</h1>
+          <p class="article-header__meta">2026-07-20 · ~5 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            <a href="/articles/concurrency-vs-parallel.html"
+              >Concurrency vs parallel</a
+            >:
+          </p>
+          <pre><code>Concurrency = dealing with lots of things at once
+Parallelism = doing lots of things at once</code></pre>
+          <p>
+            Khi bạn đã quyết
+            <strong>doing</strong> — chạy thật trên nhiều core / worker / máy
+            — vẫn còn hỏi: <em>cắt “lots of things” theo chiều nào?</em>
+          </p>
+          <ul>
+            <li>
+              <strong>Data parallelism</strong> — cùng một phép, áp lên
+              <em>nhiều phần dữ liệu</em> cùng lúc.
+              <em>Doing the same kind of work on lots of data at once.</em>
+            </li>
+            <li>
+              <strong>Task parallelism</strong> — nhiều
+              <em>việc khác nhau</em> (hoặc stage khác nhau) chạy cùng lúc.
+              <em>Doing different kinds of work at once.</em>
+            </li>
+          </ul>
+          <p>
+            Cả hai đều nằm phía <strong>doing (parallel)</strong>, không phải
+            định nghĩa concurrency. Concurrency có thể
+            <em>deal</em> nhiều task I/O trên 1 core mà chưa data-parallel
+            CPU.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/data-vs-task-parallelism.html"
+              >map trên mảng vs 3 task khác loại</a
+            >.
+          </p>
+
+          <h2>Data parallelism — one function × many pieces</h2>
+          <pre><code>out[i] = f(in[i])   // mọi i, ideally cùng lúc trên N worker
+
+map(chunks, compress)
+GPU thread / SIMD
+Spark map, Go shard slice + cùng closure
+ProcessPool.map(pages, render)</code></pre>
+          <p>
+            “Lots of things” ở đây là
+            <strong>lots of data items</strong>. Workload đồng nhất → dễ scale
+            theo kích thước input; hay dính straggler (chunk chậm nhất), marshal
+            qua process, bão memory bandwidth.
+          </p>
+          <p>
+            <a href="/articles/promise-all-batch-vs-pool.html">mapPool</a>
+            trên list cùng loại work: cơ chế schedule; data-parallel là
+            <em>cách bổ bài</em> “chia data cho nhiều do-er”.
+          </p>
+
+          <h2>Task parallelism — different jobs at once</h2>
+          <pre><code>// ba việc khác nhau — doing (hoặc dealing) cùng lúc
+parallel {
+  fetchUser()
+  resizeImage()
+  sendEmail()
+}
+
+// pipeline: mỗi stage một “loại việc”
+read → parse → enrich → write</code></pre>
+          <p>
+            “Lots of things” là
+            <strong>lots of tasks / kinds of work</strong>. Thời lượng lệch,
+            phụ thuộc DAG: chỉ song song nhánh độc lập. Fan-out service, CI
+            steps, media pipeline…
+          </p>
+          <p>
+            Lưu ý: <code>await Promise.all([getUser(), getOrders()])</code>
+            trên 1 thread Node thường là
+            <em>dealing with</em> nhiều I/O (concurrency), chưa chắc
+            <em>doing</em> CPU song song. Cùng hình task-parallel
+            <em>logic</em>; parallel silicon chỉ khi runtime/phần cứng chạy
+            thật cùng lúc (multi-core worker, nhiều process…).
+          </p>
+
+          <h2>Deal vs do — đừng dán nhầm nhãn</h2>
+          <pre><code>Data-parallel CPU trên 1 thread async
+  → không rút wall: bạn chỉ deal (xen kẽ), không do trên nhiều core
+
+Task-parallel I/O non-block trên 1 loop
+  → dealing with lots of tasks — đúng concurrency
+  → parallel chỉ khi có thêm unit thực thi
+
+Task-parallel 3 process encode/transcode
+  → doing different work at once — parallel thật</code></pre>
+          <p>
+            <a href="/articles/blocking-vs-nonblocking.html">Non-blocking</a>
+            giúp <em>deal</em> nhiều task I/O. Data/task parallelism mô tả
+            <em>bổ work thế nào</em> khi (hoặc trước khi) map lên nhiều do-er.
+          </p>
+
+          <h2>So một nhịp</h2>
+          <ul>
+            <li>
+              <strong>Cắt theo đâu?</strong> Data → phần tử/chunk. Task →
+              hàm/stage/job.
+            </li>
+            <li>
+              <strong>Đồng nhất?</strong> Data: cùng <code>f</code>. Task:
+              heterogeneous OK.
+            </li>
+            <li>
+              <strong>Hardware:</strong> GPU/SIMD ~ data-parallel. Thread pool
+              / job graph ~ task-parallel linh hoạt.
+            </li>
+            <li>
+              <strong>Lỗi:</strong> data → retry chunk; task → retry node trên
+              DAG (idempotent từng task).
+            </li>
+          </ul>
+
+          <h2>Ví dụ stack (doing / dealing)</h2>
+          <ul>
+            <li>
+              <strong>Go:</strong> shard slice + worker (data doing);
+              <code>errgroup</code> 3 hàm (task — I/O deal hoặc CPU do tùy
+              body).
+            </li>
+            <li>
+              <strong>Python:</strong>
+              <code>ProcessPoolExecutor.map</code> (data doing, tránh GIL);
+              <code>asyncio.gather</code> (task dealing I/O).
+            </li>
+            <li>
+              <strong>Node:</strong> gather HTTP (task deal);
+              <code>worker_threads</code> chia buffer (data do).
+            </li>
+            <li>
+              <strong>K8s:</strong> Job N partition (data doing ở mức cluster);
+              nhiều service khác vai trò (task ở mức hệ thống).
+            </li>
+          </ul>
+
+          <h2>Bẫy</h2>
+          <ul>
+            <li>
+              Data-parallel nhưng chunk phụ thuộc + lock chung → doing kém vì
+              contention.
+            </li>
+            <li>
+              Task fan-out 50 service không
+              <a href="/articles/timeout-budget.html">budget</a> /
+              <a href="/articles/circuit-breaker.html">breaker</a> → p99 nổ
+              (deal/do quá nhiều dependency một lúc).
+            </li>
+            <li>
+              Pipeline: stage chậm = throughput — cần
+              <a href="/articles/backpressure.html">backpressure</a> giữa
+              stage.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Parallel = doing lots of things at once.<br />
+            Data-parallel = doing the same work on lots of data at once.<br />
+            Task-parallel = doing different works at once.</strong>
+          </p>
+          <p>
+            Concurrency vẫn là
+            <em>dealing with</em> lots of things — tổ chức nhiều việc dang dở,
+            chưa đủ nghĩa nhiều core đang chạy. Bổ data hay task chỉ rõ
+            <em>doing cái gì song song</em>; phần cứng và runtime quyết có
+            “at once” thật hay không.
+          </p>
+        </div>
+      </article>

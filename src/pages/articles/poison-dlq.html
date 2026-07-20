@@ -1,0 +1,128 @@
+---
+{
+  "title": "Poison message &amp; DLQ — job hỏng không kẹt mãi · Articles",
+  "description": "Job fail vĩnh viễn nuốt retry và block consumer. Max attempts, DLQ, quarantine, và replay có kiểm soát.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Poison message &amp; DLQ — job hỏng không kẹt mãi</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Một message/job <strong>luôn fail</strong>: payload corrupt, schema
+            đổi, bug logic, id không tồn tại mà code throw. Queue at-least-once
+            + retry vô hạn → worker đốt CPU quanh message đó; hoặc (FIFO chặt)
+            <strong>chặn cả lane</strong> phía sau.
+          </p>
+          <p>
+            Đó là <strong>poison message</strong>. Thuốc giải vận hành: giới
+            hạn attempt, tách ra
+            <strong>dead-letter queue (DLQ)</strong> / quarantine, alert, rồi
+            quyết định fix &amp; replay — không phải “retry thêm cho vui”.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/poison-dlq.html"
+              >Queue + poison → DLQ sau N attempts</a
+            >.
+            Cùng họ với
+            <a href="/articles/bullmq.html">BullMQ failed / delayed</a>.
+          </p>
+
+          <h2>Vòng đời lành mạnh</h2>
+          <pre><code>waiting → active → completed
+                ↘ failed → (backoff) delayed → waiting  … × max
+                ↘ DLQ / dead  (hết attempt hoặc lỗi “không retry”)</code></pre>
+          <ul>
+            <li>
+              <strong>Transient</strong> (timeout, 503): retry +
+              <a href="/articles/retry-backoff-jitter.html">backoff/jitter</a>.
+            </li>
+            <li>
+              <strong>Permanent</strong> (validation, 404 business, poison):
+              đừng đốt hết max attempts nếu nhận ra sớm — fail to DLQ ngay.
+            </li>
+          </ul>
+
+          <h2>Phân loại lỗi</h2>
+          <pre><code>function routeError(err) {
+  if (err.code === "VALIDATION" || err.code === "NOT_FOUND") {
+    return "dead"; // không retry
+  }
+  if (err.code === "TIMEOUT" || err.status === 503) {
+    return "retry";
+  }
+  return "retry"; // default cẩn thận; unknown hay retry có budget
+}</code></pre>
+          <p>
+            “Retry mọi Exception” biến bug deploy thành storm trên cùng một bad
+            payload.
+          </p>
+
+          <h2>DLQ làm gì (và không làm gì)</h2>
+          <ul>
+            <li>
+              <strong>Làm:</strong> giữ payload + metadata (attempts, last
+              error, stack rút gọn, timestamp) để người xem; metric
+              <code>dlq_depth</code>; alert khi tăng.
+            </li>
+            <li>
+              <strong>Không:</strong> coi DLQ là “xong việc”. Message trong DLQ
+              = business có thể đang kẹt (đơn chưa xử lý).
+            </li>
+            <li>
+              <strong>Replay:</strong> sau khi fix code/data, đẩy lại main queue
+              <em>có chủ đích</em> — kèm
+              <a href="/articles/idempotency.html">idempotency</a> vì có thể đã
+              side-effect dở.
+            </li>
+          </ul>
+
+          <h2>Sketch consumer</h2>
+          <pre><code>async function handle(job) {
+  try {
+    await process(job.payload);
+    await job.complete();
+  } catch (e) {
+    if (routeError(e) === "dead" || job.attempts &gt;= job.maxAttempts) {
+      await job.moveToDlq({
+        error: String(e),
+        attempts: job.attempts,
+        payload: job.payload,
+      });
+      alertIfNeeded();
+      return;
+    }
+    await job.retry({ delay: backoff(job.attempts) });
+  }
+}</code></pre>
+
+          <h2>FIFO &amp; head-of-line</h2>
+          <p>
+            Queue yêu cầu thứ tự chặt: poison ở đầu có thể block consumer group.
+            Chiến lược: timeout attempt ngắn + nhanh vào DLQ; hoặc lane “skip
+            poison” có audit — trade-off ordering vs liveness. Đây là lý do nhiều
+            hệ chọn <em>per-key ordering</em> thay vì global FIFO.
+          </p>
+
+          <h2>Quan sát</h2>
+          <ul>
+            <li><code>job_failed_total</code> theo <code>error_code</code></li>
+            <li><code>dlq_enqueued</code> / depth / age of oldest</li>
+            <li>Tỷ lệ fail lặp cùng <code>payload_hash</code> → poison thật</li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Retry là cho lỗi tạm. DLQ là cho lỗi “không tự hết”.</strong>
+            Không có max attempts + nơi chứa message độc, queue của bạn chỉ là
+            vòng lặp đốt tiền quanh một payload hỏng.
+          </p>
+        </div>
+      </article>

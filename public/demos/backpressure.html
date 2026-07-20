@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Demo backpressure: producer / buffer / consumer — block, drop, hoặc unbounded."
+    />
+    <title>Demo · Backpressure</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        max-width: 44rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      header a:hover {
+        text-decoration: underline;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        min-width: 7rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input,
+      .field select {
+        font: inherit;
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+      }
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-left: auto;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 500;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button:hover:not(:disabled) {
+        background: #222228;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1.25rem;
+        font-family: var(--mono);
+        font-size: 0.88rem;
+      }
+      .stats span {
+        color: var(--text-muted);
+      }
+      .stats strong {
+        color: var(--text);
+      }
+      .stats .warn {
+        color: var(--warn);
+      }
+      .stats .bad {
+        color: var(--danger);
+      }
+      .stats .ok {
+        color: var(--success);
+      }
+      .viz {
+        display: grid;
+        grid-template-columns: 1fr auto 1.4fr auto 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        margin-top: 0.5rem;
+      }
+      @media (max-width: 700px) {
+        .viz {
+          grid-template-columns: 1fr;
+        }
+        .arrow {
+          transform: rotate(90deg);
+          justify-self: center;
+        }
+        .btn-row {
+          margin-left: 0;
+          width: 100%;
+        }
+      }
+      .box {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        background: var(--bg);
+        min-height: 7.5rem;
+      }
+      .box h3 {
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+      }
+      .box .val {
+        font-family: var(--mono);
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+      .box .sub {
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        margin-top: 0.25rem;
+      }
+      .arrow {
+        color: var(--text-dim);
+        font-size: 1.25rem;
+      }
+      .bar-wrap {
+        margin-top: 0.6rem;
+        height: 10px;
+        background: #1a1a1e;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: var(--running);
+        transition: width 0.15s linear, background 0.2s;
+      }
+      .bar.hot {
+        background: var(--warn);
+      }
+      .bar.full {
+        background: var(--danger);
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 11rem;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .log .drop {
+        color: var(--danger);
+      }
+      .log .block {
+        color: var(--warn);
+      }
+      .log .ok {
+        color: var(--success);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Backpressure — producer / buffer / consumer</h1>
+        <p>
+          Chỉnh tốc độ in/out và chính sách khi đầy.
+          <a href="/articles/backpressure.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="prodMs">Producer mỗi (ms)</label>
+            <input id="prodMs" type="number" min="20" max="2000" value="80" />
+          </div>
+          <div class="field">
+            <label for="consMs">Consumer mỗi (ms)</label>
+            <input id="consMs" type="number" min="20" max="2000" value="200" />
+          </div>
+          <div class="field">
+            <label for="maxBuf">Buffer max</label>
+            <input id="maxBuf" type="number" min="1" max="200" value="12" />
+          </div>
+          <div class="field">
+            <label for="policy">Khi đầy</label>
+            <select id="policy">
+              <option value="block">Block producer</option>
+              <option value="drop">Drop newest</option>
+              <option value="unbounded">Unbounded (nguy hiểm)</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnStart">Chạy</button>
+            <button type="button" id="btnStop" disabled>Dừng</button>
+            <button type="button" id="btnReset">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Live</h2>
+        <div class="stats" id="stats">
+          <span>produced <strong id="sProd">0</strong></span>
+          <span>consumed <strong id="sCons" class="ok">0</strong></span>
+          <span>dropped <strong id="sDrop" class="bad">0</strong></span>
+          <span>blocked ticks <strong id="sBlock" class="warn">0</strong></span>
+          <span>depth <strong id="sDepth">0</strong></span>
+        </div>
+        <div class="viz">
+          <div class="box">
+            <h3>Producer</h3>
+            <div class="val" id="prodState">idle</div>
+            <div class="sub" id="prodRate">—</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <h3>Buffer</h3>
+            <div class="val" id="bufVal">0 / 12</div>
+            <div class="bar-wrap"><div class="bar" id="bufBar"></div></div>
+            <div class="sub" id="policyLabel">policy: block</div>
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <h3>Consumer</h3>
+            <div class="val" id="consState">idle</div>
+            <div class="sub" id="consRate">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Event log</h2>
+        <div class="log" id="log" aria-live="polite"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let running = false;
+        let timers = [];
+        let buf = [];
+        let seq = 0;
+        let produced = 0,
+          consumed = 0,
+          dropped = 0,
+          blocked = 0;
+        let producerBlocked = false;
+
+        function log(msg, cls) {
+          const el = $("log");
+          const line = document.createElement("div");
+          if (cls) line.className = cls;
+          const t = new Date().toISOString().slice(11, 23);
+          line.textContent = t + "  " + msg;
+          el.prepend(line);
+          while (el.children.length > 80) el.lastChild.remove();
+        }
+
+        function maxBuf() {
+          const p = $("policy").value;
+          if (p === "unbounded") return Infinity;
+          return Math.max(1, +$("maxBuf").value || 12);
+        }
+
+        function render() {
+          const max = maxBuf();
+          const depth = buf.length;
+          const maxLabel = max === Infinity ? "∞" : String(max);
+          $("bufVal").textContent = depth + " / " + maxLabel;
+          $("sProd").textContent = produced;
+          $("sCons").textContent = consumed;
+          $("sDrop").textContent = dropped;
+          $("sBlock").textContent = blocked;
+          $("sDepth").textContent = depth;
+          $("policyLabel").textContent = "policy: " + $("policy").value;
+          $("prodRate").textContent = "every " + $("prodMs").value + "ms";
+          $("consRate").textContent = "every " + $("consMs").value + "ms";
+          $("prodState").textContent = !running
+            ? "idle"
+            : producerBlocked
+              ? "blocked"
+              : "pushing";
+          $("consState").textContent = !running
+            ? "idle"
+            : depth
+              ? "working"
+              : "waiting";
+
+          const bar = $("bufBar");
+          let pct = 0;
+          if (max === Infinity) pct = Math.min(100, depth * 2);
+          else pct = Math.min(100, (depth / max) * 100);
+          bar.style.width = pct + "%";
+          bar.className = "bar" + (pct >= 100 ? " full" : pct >= 70 ? " hot" : "");
+        }
+
+        function tryProduce() {
+          if (!running) return;
+          const policy = $("policy").value;
+          const max = maxBuf();
+          if (buf.length >= max && max !== Infinity) {
+            if (policy === "drop") {
+              dropped++;
+              log("DROP item #" + seq + " (buffer full)", "drop");
+              seq++;
+              produced++; // attempted
+              render();
+              return;
+            }
+            // block: skip this tick, count block
+            producerBlocked = true;
+            blocked++;
+            log("BLOCK producer (depth=" + buf.length + ")", "block");
+            render();
+            return;
+          }
+          producerBlocked = false;
+          const id = ++seq;
+          buf.push(id);
+          produced++;
+          log("enqueue #" + id + " depth=" + buf.length, "ok");
+          render();
+        }
+
+        function tryConsume() {
+          if (!running) return;
+          if (!buf.length) {
+            render();
+            return;
+          }
+          const id = buf.shift();
+          consumed++;
+          producerBlocked = false;
+          log("consume #" + id + " depth=" + buf.length, "ok");
+          render();
+        }
+
+        function clearTimers() {
+          timers.forEach(clearInterval);
+          timers = [];
+        }
+
+        function start() {
+          if (running) return;
+          running = true;
+          $("btnStart").disabled = true;
+          $("btnStop").disabled = false;
+          log("--- start ---");
+          const prodEvery = Math.max(20, +$("prodMs").value || 80);
+          const consEvery = Math.max(20, +$("consMs").value || 200);
+          timers.push(setInterval(tryProduce, prodEvery));
+          timers.push(setInterval(tryConsume, consEvery));
+          render();
+        }
+
+        function stop() {
+          running = false;
+          producerBlocked = false;
+          clearTimers();
+          $("btnStart").disabled = false;
+          $("btnStop").disabled = true;
+          log("--- stop ---");
+          render();
+        }
+
+        function reset() {
+          stop();
+          buf = [];
+          seq = produced = consumed = dropped = blocked = 0;
+          $("log").innerHTML = "";
+          log("reset");
+          render();
+        }
+
+        $("btnStart").onclick = start;
+        $("btnStop").onclick = stop;
+        $("btnReset").onclick = reset;
+        ["prodMs", "consMs", "maxBuf", "policy"].forEach((id) => {
+          $(id).addEventListener("change", () => {
+            if (running) {
+              stop();
+              start();
+            } else render();
+          });
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

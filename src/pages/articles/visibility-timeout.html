@@ -1,0 +1,125 @@
+---
+{
+  "title": "Visibility timeout / lease — worker chết job không mất · Articles",
+  "description": "Job bị claim rồi worker crash: lease hết hạn, redelivery, extension, và dual-process khi lease sai.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Visibility timeout / lease — worker chết job không mất</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Queue: worker <strong>nhận</strong> (claim) job → đang xử lý →
+            process bị kill, OOM, mất mạng trước khi ack. Job có “mất” không?
+          </p>
+          <p>
+            Hệ at-least-once hay dùng
+            <strong>visibility timeout</strong> (SQS) /
+            <strong>lease / lock TTL</strong>: trong lúc job bị ẩn khỏi consumer
+            khác một khoảng T. Hết T mà chưa ack → job
+            <strong>hiện lại</strong> để worker khác lấy. Đó là redelivery, không
+            phải magic exactly-once.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/visibility-timeout.html"
+              >Claim → crash → hết lease → redelivery</a
+            >.
+          </p>
+
+          <h2>Timeline</h2>
+          <pre><code>t=0    W1 claim job, visibility = 30s (job “invisible”)
+t=5    W1 đang chạy
+t=5    W1 chết (không ack, không extend)
+t=30   timeout → job visible lại
+t=31   W2 claim → xử lý (lần 2)
+t=40   W2 ack → xong</code></pre>
+          <p>
+            Hệ quả: handler của bạn
+            <strong>có thể chạy &gt;1 lần</strong> → cần
+            <a href="/articles/idempotency.html">idempotent</a> (và thường
+            <a href="/articles/outbox-inbox.html">inbox</a> nếu có side-effect
+            ngoài).
+          </p>
+
+          <h2>Ack / complete / delete</h2>
+          <ul>
+            <li>
+              <strong>Ack thành công:</strong> xóa / đánh dấu done — không
+              redelivery.
+            </li>
+            <li>
+              <strong>Nack / fail:</strong> có thể về queue sớm hơn timeout
+              (tùy hệ), kèm
+              <a href="/articles/retry-backoff-jitter.html">backoff</a>.
+            </li>
+            <li>
+              <strong>Hết attempt:</strong>
+              <a href="/articles/poison-dlq.html">DLQ</a>.
+            </li>
+          </ul>
+
+          <h2>Lease quá ngắn vs quá dài</h2>
+          <ul>
+            <li>
+              <strong>Ngắn quá:</strong> job còn chạy, lease hết → worker thứ
+              hai nhận → <strong>hai process cùng làm một job</strong> (overlap).
+            </li>
+            <li>
+              <strong>Dài quá:</strong> worker chết, job “treo” invisible lâu →
+              latency phục hồi tệ.
+            </li>
+          </ul>
+          <p>
+            Cách phổ biến: lease vừa phải +
+            <strong>extend / heartbeat</strong> định kỳ khi còn làm
+            (<code>ChangeMessageVisibility</code>, lock renew).
+          </p>
+          <pre><code>const lease = await queue.claim(jobId, { ttlMs: 15_000 });
+const hb = setInterval(() =&gt; lease.extend(15_000), 5_000);
+try {
+  await process(job);
+  await lease.ack();
+} catch (e) {
+  await lease.nack(e);
+} finally {
+  clearInterval(hb);
+}</code></pre>
+
+          <h2>Overlap vẫn xảy ra</h2>
+          <p>
+            Network delay: extend chậm, đồng hồ lệch, GC pause dài hơn TTL.
+            Đừng giả định “lease ⇒ mutual exclusion tuyệt đối”. Lớp chặn cuối:
+            <strong>CAS / unique claim trong DB</strong> khi side-effect quan
+            trọng (giống
+            <a href="/articles/toctou-async.html">TOCTOU fixes</a>).
+          </p>
+          <pre><code>// chỉ một worker được “bắt đầu side-effect”
+UPDATE jobs SET status = 'running', worker = $1
+WHERE id = $2 AND status = 'pending';
+-- rowCount = 0 → ai đó đã cầm, exit</code></pre>
+
+          <h2>BullMQ / Redis mental model</h2>
+          <p>
+            Active job + stalled detection: worker không renew → job coi như
+            stalled, đưa lại waiting. Cùng họ lease; cấu hình
+            <code>lockDuration</code> / stalled interval phải khớp thời gian
+            xử lý thật (hoặc extend). Xem
+            <a href="/articles/bullmq.html">visualization BullMQ</a>.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Visibility timeout / lease = “tạm ẩn để làm, hết hạn thì ai
+            khác làm lại”.</strong> Bảo vệ khỏi mất job khi worker chết — đổi
+            lại bằng redelivery và khả năng overlap. Idempotency + (khi cần)
+            claim atomic ở store là phần bắt buộc, không phải optional.
+          </p>
+        </div>
+      </article>

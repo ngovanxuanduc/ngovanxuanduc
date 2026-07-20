@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Resend single vs shared</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --ok: #5eea93;
+        --bad: #ff8f8f;
+        --warn: #fbbf24;
+        --cpu: #60a5fa;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin: 0.85rem 0 0;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.05rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .steps {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+      .step-dot {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--dim);
+      }
+      .step-dot.on {
+        border-color: rgba(184, 164, 255, 0.5);
+        color: var(--accent);
+        background: rgba(184, 164, 255, 0.12);
+      }
+      .step-dot.done {
+        border-color: rgba(94, 234, 147, 0.4);
+        color: var(--ok);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        transition: box-shadow 0.3s;
+      }
+      .card.shake {
+        animation: shake 0.45s ease;
+      }
+      .card.glow-bad {
+        box-shadow: 0 0 0 1px rgba(255, 143, 143, 0.45),
+          0 0 24px rgba(255, 143, 143, 0.15);
+      }
+      .card.glow-ok {
+        box-shadow: 0 0 0 1px rgba(94, 234, 147, 0.35),
+          0 0 20px rgba(94, 234, 147, 0.12);
+      }
+      @keyframes shake {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-4px);
+        }
+        75% {
+          transform: translateX(4px);
+        }
+      }
+      .card h2 {
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+      }
+      .sub {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-bottom: 0.75rem;
+      }
+      .topic-lbl {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--dim);
+        margin-bottom: 0.3rem;
+      }
+      .topic {
+        min-height: 3rem;
+        border: 1px dashed var(--border);
+        border-radius: 10px;
+        padding: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+        background: var(--bg);
+      }
+      .ev {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.35rem 0.5rem;
+        border-radius: 8px;
+        border: 1px solid rgba(96, 165, 250, 0.45);
+        background: rgba(96, 165, 250, 0.12);
+        color: var(--cpu);
+        animation: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .ev.resend {
+        border-color: rgba(255, 143, 143, 0.55);
+        background: rgba(255, 143, 143, 0.14);
+        color: var(--bad);
+        animation: popWarn 0.45s ease both;
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes popWarn {
+        0% {
+          opacity: 0;
+          transform: scale(0.4) rotate(-6deg);
+        }
+        70% {
+          transform: scale(1.08) rotate(2deg);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) rotate(0);
+        }
+      }
+      .group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 0.65rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        margin-bottom: 0.45rem;
+        transition: 0.25s;
+      }
+      .group .avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        background: #1a1a1e;
+        color: var(--dim);
+        border: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .group.ok .avatar {
+        border-color: rgba(94, 234, 147, 0.45);
+        color: var(--ok);
+        background: rgba(94, 234, 147, 0.12);
+      }
+      .group.fail .avatar {
+        border-color: rgba(255, 143, 143, 0.5);
+        color: var(--bad);
+        background: rgba(255, 143, 143, 0.12);
+        animation: pulseBad 0.8s ease infinite;
+      }
+      .group.dup .avatar {
+        border-color: rgba(255, 143, 143, 0.6);
+        color: var(--bad);
+        background: rgba(255, 143, 143, 0.18);
+        box-shadow: 0 0 12px rgba(255, 143, 143, 0.35);
+      }
+      @keyframes pulseBad {
+        50% {
+          opacity: 0.55;
+        }
+      }
+      .group .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .group .meta b {
+        display: block;
+        font-size: 0.85rem;
+      }
+      .group .meta span {
+        font-size: 0.75rem;
+        color: var(--dim);
+      }
+      .group .count {
+        font-family: var(--mono);
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--ok);
+      }
+      .group.dup .count,
+      .group.fail .count.bad {
+        color: var(--bad);
+      }
+      .say {
+        margin-top: 0.75rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.88rem;
+        color: var(--muted);
+        min-height: 3em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Resend: single group vs shared</h1>
+        <p>
+          Cùng event <b>M</b>. Xem resend ảnh hưởng ai.
+          <a href="/articles/resend-shared-channel.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          Shared stream: resend có thể làm group khác xử lý <b>lần 2</b>
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="play">▶ Chạy câu chuyện</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+      </div>
+      <div class="steps" id="steps">
+        <span class="step-dot" data-s="1">1. Cả hai xử lý M</span>
+        <span class="step-dot" data-s="2">2. A fail</span>
+        <span class="step-dot" data-s="3">3. A resend M</span>
+      </div>
+
+      <div class="grid">
+        <section class="card" id="c1">
+          <h2>Single group</h2>
+          <p class="sub">Chỉ A đọc topic — resend chỉ đụng A.</p>
+          <div class="topic-lbl">Topic</div>
+          <div class="topic" id="t1"></div>
+          <div class="group" id="gA1">
+            <div class="avatar">A</div>
+            <div class="meta">
+              <b>group A</b>
+              <span id="stA1">chưa có event</span>
+            </div>
+            <div class="count" id="nA1">0</div>
+          </div>
+          <p class="say" id="s1">Bấm Chạy câu chuyện.</p>
+        </section>
+
+        <section class="card" id="c2">
+          <h2>Shared (A + B)</h2>
+          <p class="sub">Hai group — resend đi vào log chung.</p>
+          <div class="topic-lbl">Topic</div>
+          <div class="topic" id="t2"></div>
+          <div class="group" id="gA2">
+            <div class="avatar">A</div>
+            <div class="meta">
+              <b>billing</b>
+              <span id="stA2">chưa có event</span>
+            </div>
+            <div class="count" id="nA2">0</div>
+          </div>
+          <div class="group" id="gB2">
+            <div class="avatar">B</div>
+            <div class="meta">
+              <b>analytics</b>
+              <span id="stB2">chưa có event</span>
+            </div>
+            <div class="count" id="nB2">0</div>
+          </div>
+          <p class="say" id="s2">Bấm Chạy câu chuyện.</p>
+        </section>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let busy = false;
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        function setStep(n) {
+          document.querySelectorAll(".step-dot").forEach((el) => {
+            const s = +el.dataset.s;
+            el.className =
+              "step-dot" + (s < n ? " done" : s === n ? " on" : "");
+          });
+        }
+
+        function addEv(topicId, text, resend) {
+          const el = document.createElement("span");
+          el.className = "ev" + (resend ? " resend" : "");
+          el.textContent = text;
+          $(topicId).appendChild(el);
+        }
+
+        function setGroup(gid, state, status, count) {
+          const g = $(gid);
+          g.className = "group " + (state || "");
+          const st = g.querySelector("span");
+          if (st) st.textContent = status;
+          const c = g.querySelector(".count");
+          if (c) {
+            c.textContent = String(count);
+            c.className = "count" + (count > 1 || state === "dup" ? " bad" : "");
+          }
+        }
+
+        function reset() {
+          busy = false;
+          $("t1").innerHTML = "";
+          $("t2").innerHTML = "";
+          setGroup("gA1", "", "chưa có event", 0);
+          setGroup("gA2", "", "chưa có event", 0);
+          setGroup("gB2", "", "chưa có event", 0);
+          $("s1").textContent = "Bấm Chạy câu chuyện.";
+          $("s2").textContent = "Bấm Chạy câu chuyện.";
+          $("c1").className = "card";
+          $("c2").className = "card";
+          setStep(0);
+          $("play").disabled = false;
+        }
+
+        async function play() {
+          if (busy) return;
+          busy = true;
+          $("play").disabled = true;
+          reset();
+          busy = true;
+          $("play").disabled = true;
+
+          // Step 1
+          setStep(1);
+          addEv("t1", "M", false);
+          addEv("t2", "M", false);
+          await sleep(400);
+          setGroup("gA1", "ok", "xử lý M OK", 1);
+          setGroup("gA2", "ok", "xử lý M OK", 1);
+          setGroup("gB2", "ok", "xử lý M OK", 1);
+          $("s1").innerHTML = "A đã <em>handled M = 1</em>.";
+          $("s2").innerHTML =
+            "Cả <em>A và B</em> đã xử lý M (mỗi group 1 lần).";
+          await sleep(1100);
+
+          // Step 2 fail A
+          setStep(2);
+          setGroup("gA1", "fail", "fail — muốn retry", 1);
+          setGroup("gA2", "fail", "fail — muốn retry", 1);
+          $("c1").classList.add("shake");
+          $("c2").classList.add("shake");
+          $("s1").innerHTML = "A <em>fail</em>… sẽ resend.";
+          $("s2").innerHTML =
+            "A fail. B <em>đã xong</em> — không liên quan tới lỗi của A.";
+          await sleep(1000);
+          $("c1").classList.remove("shake");
+          $("c2").classList.remove("shake");
+
+          // Step 3 resend
+          setStep(3);
+          addEv("t1", "M′", true);
+          addEv("t2", "M′", true);
+          await sleep(350);
+          setGroup("gA1", "dup", "xử lý M lần 2", 2);
+          setGroup("gA2", "dup", "xử lý M lần 2", 2);
+          setGroup("gB2", "dup", "cũng nhận M′ → lần 2!", 2);
+          $("c1").classList.add("glow-ok");
+          $("c2").classList.add("glow-bad");
+          $("s1").innerHTML =
+            "Single: chỉ A = 2. <em>OK nếu idempotent</em> — không ai khác dính.";
+          $("s2").innerHTML =
+            "Shared: B cũng = 2 dù B <em>không fail</em>. Đó là nguy hiểm của resend shared.";
+
+          await sleep(400);
+          busy = false;
+          $("play").disabled = false;
+        }
+
+        $("play").onclick = play;
+        $("reset").onclick = () => {
+          if (!busy) reset();
+          else {
+            busy = false;
+            reset();
+          }
+        };
+        reset();
+      })();
+    </script>
+  </body>
+</html>

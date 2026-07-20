@@ -779,6 +779,32 @@ a.card:hover {
 }
 
 /* ===== Article list ===== */
+/* Grouped article index */
+.article-section {
+  margin-bottom: 2.25rem;
+}
+
+.article-section:last-child {
+  margin-bottom: 0;
+}
+
+.article-section__title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+  margin: 0 0 0.65rem;
+}
+
+.article-section__desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: -0.35rem 0 0.75rem;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
 .article-list {
   list-style: none;
   display: flex;

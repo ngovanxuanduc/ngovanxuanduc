@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Blocking: unit thực thi đứng chờ xong mới làm tiếp. Non-blocking: chờ mà vẫn dealing with việc khác. Nối concurrency (deal) và parallel (do)." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Blocking vs non-blocking — chờ có kẹt “deal” không · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/blocking-vs-nonblocking.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Blocking vs non-blocking — chờ có kẹt “deal” không · Articles" />
+    <meta property="og:description" content="Blocking: unit thực thi đứng chờ xong mới làm tiếp. Non-blocking: chờ mà vẫn dealing with việc khác. Nối concurrency (deal) và parallel (do)." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/blocking-vs-nonblocking.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Blocking vs non-blocking — chờ có kẹt “deal” không · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Blocking vs non-blocking — chờ có kẹt “deal” không · Articles" />
+    <meta name="twitter:description" content="Blocking: unit thực thi đứng chờ xong mới làm tiếp. Non-blocking: chờ mà vẫn dealing with việc khác. Nối concurrency (deal) và parallel (do)." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Blocking vs non-blocking — chờ có kẹt “deal” không · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Blocking vs non-blocking</h1>
+          <p class="article-header__meta">2026-07-20 · ~5 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Bài
+            <a href="/articles/concurrency-vs-parallel.html"
+              >concurrency vs parallel</a
+            >
+            nói:
+          </p>
+          <pre><code>Concurrency = dealing with lots of things at once
+Parallelism = doing lots of things at once</code></pre>
+          <p>
+            <strong>Blocking / non-blocking</strong> trả lời câu hẹp hơn, khi
+            bạn <em>đang chờ</em> I/O (hay một lời gọi lâu):
+          </p>
+          <ul>
+            <li>
+              <strong>Blocking</strong> — unit đang chạy (thread, worker, cả
+              event loop nếu gọi sync) <em>đứng đó đến khi xong</em>. Trong lúc
+              chờ, unit đó <strong>không deal</strong> việc khác.
+            </li>
+            <li>
+              <strong>Non-blocking</strong> — gọi xong, nếu chưa sẵn sàng thì
+              trả quyền ngay; việc được ghi “đang chờ event”. Unit đó
+              <strong>vẫn deal</strong> request/task khác, quay lại khi data
+              về (callback, <code>await</code>, completion queue…).
+            </li>
+          </ul>
+          <p>
+            Nói ngắn: blocking = chờ mà <em>kẹt deal</em>; non-blocking = chờ
+            mà <em>vẫn deal được</em>.
+          </p>
+          <p>
+            Demo timeline:
+            <a href="/demos/blocking-vs-nonblocking.html"
+              >1 thread block vs non-block</a
+            >.
+          </p>
+
+          <h2>Blocking — deal một việc, xong mới việc sau</h2>
+          <pre><code>buf = read(fd)          // thread ngủ đến khi có data
+row = db.query(...)     // đứng chờ DB
+body = http.get(url)    // stack không đi tiếp</code></pre>
+          <p>
+            Dễ đọc, dễ suy luận. Giá: mỗi “chỗ đứng chờ” chiếm một thread (hoặc
+            đóng băng loop). Muốn dealing with 1000 request đang chờ DB theo
+            kiểu blocking thuần → thường cần ~1000 thread (hoặc chấp nhận hàng
+            đợi dài).
+          </p>
+          <p>
+            Trên Node/asyncio: một API sync block trong handler =
+            <strong>cả loop ngừng deal</strong> mọi request khác — concurrent
+            trên giấy, serial trên thực tế.
+          </p>
+
+          <h2>Non-blocking — chờ mà vẫn dealing with</h2>
+          <pre><code>// fd non-block / async
+data = await read_async(fd)
+// task A suspend — loop/thread đi deal B, C
+// data về → resume A</code></pre>
+          <p>
+            Tầng dưới hay là non-blocking fd + epoll/kqueue/IOCP, hoặc thread
+            pool ẩn. Điểm quan trọng không phải cú pháp async — mà:
+            <em>trong lúc A chờ, hệ thống còn deal B được không?</em>
+          </p>
+          <ul>
+            <li>
+              Có → non-blocking (theo nghĩa thực dụng) → concurrency I/O sống
+              được trên ít thread.
+            </li>
+            <li>
+              Không → blocking, dù function tên <code>async_*</code> nhưng bên
+              trong ôm thread đến khi xong.
+            </li>
+          </ul>
+
+          <h2>Gắn vào dealing / doing</h2>
+          <pre><code>Dealing with (concurrency)
+  cần non-blocking (hoặc nhiều thread block song song)
+  → nhiều việc “mở” cùng lúc mà không chết throughput
+
+Doing (parallel)
+  non-blocking không tự tạo thêm core
+  → CPU nặng vẫn cần nhiều worker/process/pod
+
+Blocking + N thread
+  vừa deal (mỗi thread một việc) vừa có thể do (N core)
+  → đắt stack, context switch; pool size = trần in-flight</code></pre>
+          <p>
+            Nhà bếp (cùng tinh thần bài concurrency):
+          </p>
+          <ul>
+            <li>
+              <strong>Block:</strong> đứng nhìn nồi sôi — không deal món khác.
+            </li>
+            <li>
+              <strong>Non-block:</strong> hẹn giờ, đi deal việc khác — vẫn 1
+              đầu bếp (chưa parallel).
+            </li>
+            <li>
+              <strong>Parallel:</strong> thêm đầu bếp — doing cùng lúc.
+            </li>
+          </ul>
+
+          <h2>Async API ≠ non-blocking</h2>
+          <p>
+            <code>async</code> / Promise / Future = cách
+            <em>viết</em> code suspend được. Non-blocking = khi chờ, unit không
+            bị giữ.
+          </p>
+          <ul>
+            <li>
+              <code>await run_in_executor(blocking_db)</code> — API async, bên
+              trong <em>block một thread pool</em> (FastAPI <code>def</code>,
+              một số driver). Deal được trên loop chính; pool vẫn có trần
+              blocking.
+            </li>
+            <li>
+              Busy-poll non-block fd trong vòng lặp — fd non-block nhưng CPU
+              spin: không “deal” khéo, chỉ đốt core.
+            </li>
+          </ul>
+          <p>
+            Hỏi một câu: <strong>chờ xong, ai đã làm việc khác hộ?</strong>
+          </p>
+
+          <h2>Block I/O vs block CPU</h2>
+          <ul>
+            <li>
+              <strong>Block I/O:</strong> thread ngủ — core có thể chạy thread
+              khác (doing vẫn có thể ở chỗ khác trong process/máy).
+            </li>
+            <li>
+              <strong>Block CPU</strong> trên event loop: tight loop —
+              không ai được deal; non-block socket cũng không cứu. Cần offload
+              hoặc
+              <a href="/articles/data-vs-task-parallelism.html"
+                >parallel doing</a
+              >.
+            </li>
+          </ul>
+
+          <h2>Thực dụng</h2>
+          <ul>
+            <li>
+              I/O-bound + muốn dealing with nhiều connection: non-block /
+              async (Node, asyncio, Go netpoll, Netty…).
+            </li>
+            <li>
+              Sync stack (Tomcat, Gunicorn sync): mỗi request một thread —
+              trần pool = trần deal đồng thời; quá pool → xếp hàng / 503.
+            </li>
+            <li>
+              Pool size = ngầm “max blocking in-flight” — nối
+              <a href="/articles/unbounded-inflight.html">unbounded</a>,
+              <a href="/articles/backpressure.html">backpressure</a>.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Blocking = chờ mà kẹt, không deal việc khác.<br />
+            Non-blocking = chờ mà vẫn dealing with được.</strong>
+          </p>
+          <p>
+            Non-blocking giúp
+            <em>concurrency (deal)</em>. Nó không thay
+            <em>parallelism (do)</em> khi bài toán là CPU. Chọn theo chỗ đang
+            chết: chờ I/O thì đừng block unit; nặng tính thì thêm unit để
+            doing.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

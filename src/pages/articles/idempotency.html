@@ -1,0 +1,217 @@
+---
+{
+  "title": "Idempotency — retry không nhân đôi side-effect · Articles",
+  "description": "At-least-once + idempotency key: retry an toàn khi không biết request đã chạy chưa. Exactly-once thực tế thường là tổ hợp này.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Idempotency — retry không nhân đôi side-effect</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Timeout. Client không biết server đã trừ tiền chưa. Network blip.
+            Worker nhận lại job sau crash. User double-click “Thanh toán”. Cùng
+            một câu hỏi:
+          </p>
+          <p>
+            <strong>Làm lại lần hai — có được phép tạo side-effect lần hai
+            không?</strong>
+          </p>
+          <p>
+            Nếu câu trả lời là không, bạn cần
+            <strong>idempotency</strong>: cùng một ý định logic (cùng key) gọi
+            bao nhiêu lần cũng cho <em>một</em> kết quả nghiệp vụ — hoặc trả lại
+            kết quả lần đầu, không charge/ghi đè thêm.
+          </p>
+          <p>
+            Demo (browser, state in-memory):
+            <a href="/demos/idempotency.html"
+              >Idempotency key — bấm pay / retry / double-submit</a
+            >.
+          </p>
+
+          <h2>Ba semantics delivery (thực dụng)</h2>
+          <ul>
+            <li>
+              <strong>At-most-once:</strong> có thể mất, không nhân đôi. Đơn
+              giản; sai cho lệnh quan trọng nếu mất.
+            </li>
+            <li>
+              <strong>At-least-once:</strong> có thể trùng, không được “mất im”.
+              Queue + retry điển hình. <em>Phải</em> xử lý trùng phía consumer.
+            </li>
+            <li>
+              <strong>Exactly-once (marketing):</strong> trong hệ phân tán, thường
+              = <strong>at-least-once + idempotent handler</strong> (+ đôi khi
+              transactional outbox), không phải “protocol một mình giải hết”.
+            </li>
+          </ul>
+          <p>
+            BullMQ / SQS / Kafka consumer… mặc định gần với at-least-once. Viết
+            handler như thể “chỉ chạy một lần” là bug chờ ngày.
+          </p>
+
+          <h2>Idempotency key</h2>
+          <p>
+            Client (hoặc producer) gắn một key ổn định cho
+            <em>một ý định</em>:
+          </p>
+          <pre><code>POST /charges
+Idempotency-Key: order-42-pay-v1
+{ "orderId": "42", "amount": 100_000 }</code></pre>
+          <p>
+            Server:
+          </p>
+          <ol>
+            <li>Nhìn thấy key lần đầu → chạy business logic → lưu
+              <code>(key → response | result)</code>.</li>
+            <li>Cùng key + cùng body (hoặc hash) → trả
+              <strong>kết quả đã lưu</strong>, không charge lại.</li>
+            <li>Cùng key + body khác →
+              <code>409 Conflict</code> (key reuse sai).</li>
+          </ol>
+          <p>
+            Key phải:
+          </p>
+          <ul>
+            <li>
+              <strong>Ổn định qua retry</strong> — regenerate UUID mỗi lần click
+              Retry = mất hết ý nghĩa.
+            </li>
+            <li>
+              <strong>Phạm vi đúng</strong> —
+              <code>tenant + actor + operation + business id</code>, không chỉ
+              random global nếu bạn cần audit theo đơn.
+            </li>
+            <li>
+              <strong>TTL hợp lý</strong> — 24h / 72h tùy domain; hết TTL có thể
+              coi là ý định mới (cẩn thận).
+            </li>
+          </ul>
+
+          <h2>Sketch handler</h2>
+          <pre><code>async function charge(idemKey, body) {
+  const existing = await store.getIdem(idemKey);
+  if (existing) {
+    if (existing.bodyHash !== hash(body)) throw Conflict();
+    return existing.response; // replay
+  }
+
+  // lock theo key — tránh 2 request song song cùng key
+  return store.withLock(idemKey, async () =&gt; {
+    const again = await store.getIdem(idemKey);
+    if (again) {
+      if (again.bodyHash !== hash(body)) throw Conflict();
+      return again.response;
+    }
+
+    const response = await paymentGateway.charge(body); // side-effect
+    await store.putIdem(idemKey, { bodyHash: hash(body), response });
+    return response;
+  });
+}</code></pre>
+          <p>
+            Không có lock/unique constraint: hai request song song cùng key có
+            thể cả hai “miss” rồi charge hai lần —
+            <a href="/articles/toctou-async.html">TOCTOU</a> cổ điển.
+          </p>
+
+          <h2>Idempotent ≠ “hàm pure”</h2>
+          <p>
+            <code>SET balance = 100</code> (gán) thường idempotent theo giá trị
+            cuối. <code>balance += 100</code> thì không — trừ khi bạn có
+            “đã cộng cho key X chưa?”.
+          </p>
+          <ul>
+            <li>
+              <strong>Natural idempotent:</strong> PUT resource full, delete by
+              id, set flag.
+            </li>
+            <li>
+              <strong>Cần ledger / dedup table:</strong> chuyển tiền, gửi email
+              “một lần”, tạo invoice số tăng.
+            </li>
+          </ul>
+          <p>
+            Gửi email: lưu
+            <code>email_sent(idem_key)</code> trước hoặc trong cùng transaction
+            với outbox — không dựa vào “hy vọng SMTP chỉ gọi một lần”.
+          </p>
+
+          <h2>Retry client đúng cách</h2>
+          <ul>
+            <li>Giữ nguyên method, body, <strong>cùng Idempotency-Key</strong>.</li>
+            <li>
+              Chỉ retry khi an toàn theo policy: network error, 408/429/5xx —
+              không retry mù <code>400</code> validation.
+            </li>
+            <li>
+              Backoff + jitter (xem
+              <a href="/articles/retry-backoff-jitter.html">retry + jitter</a>;
+              storm liên quan
+              <a href="/articles/backpressure.html">backpressure</a>).
+            </li>
+            <li>
+              Phân biệt <em>transport failure</em> vs
+              <em>business decline</em> (thẻ reject) — cái sau retry vô ích.
+            </li>
+          </ul>
+
+          <h2>Queue / job</h2>
+          <pre><code>job = {
+  id: "send-invoice-42",      // stable
+  idempotencyKey: "invoice:42:email",
+  payload: { invoiceId: 42 }
+}</code></pre>
+          <p>
+            Consumer: “nếu <code>invoice:42:email</code> đã completed → ack và
+            return”. Job id trùng + at-least-once delivery = bình thường; side-effect
+            table là nguồn sự thật, không phải “số lần handler được gọi”.
+          </p>
+          <p>
+            Nối
+            <a href="/articles/bullmq.html">BullMQ</a>: attempts &gt; 1 là tín
+            hiệu bạn <em>đã chọn</em> at-least-once — hãy thiết kế handler theo
+            đó.
+          </p>
+
+          <h2>Bẫy thường gặp</h2>
+          <ul>
+            <li>
+              Key theo <code>request_id</code> random mỗi HTTP call — user
+              double-click tạo 2 key → 2 charge.
+            </li>
+            <li>
+              Lưu idem record <em>sau</em> side-effect không atomic → crash giữa
+              chừng → retry charge lại.
+            </li>
+            <li>
+              Chỉ dedup trong memory process — multi-instance vẫn double
+              (giống giới hạn
+              <a href="/articles/reuse-promise.html">single-flight local</a>).
+            </li>
+            <li>
+              Coi GET là luôn an toàn — GET có side-effect (track pixel “cộng
+              view”) vẫn cần nghĩ dedup/short window.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Retry là mặc định của mạng hỏng.</strong> Side-effect chỉ an
+            toàn khi “cùng ý định → cùng kết quả nghiệp vụ”, thường nhờ
+            idempotency key + lưu kết quả + chống race.
+          </p>
+          <p>
+            Exactly-once không phải nút bật trên queue — là
+            <em>at-least-once delivery</em> cộng
+            <em>idempotent processing</em>.
+          </p>
+        </div>
+      </article>

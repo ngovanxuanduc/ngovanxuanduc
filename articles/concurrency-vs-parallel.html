@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Concurrency: dealing with lots of things at once. Parallelism: doing lots of things at once. Xen kẽ / tổ chức nhiều việc khác chạy thật cùng lúc." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Concurrency vs parallel — dealing with vs doing · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/concurrency-vs-parallel.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Concurrency vs parallel — dealing with vs doing · Articles" />
+    <meta property="og:description" content="Concurrency: dealing with lots of things at once. Parallelism: doing lots of things at once. Xen kẽ / tổ chức nhiều việc khác chạy thật cùng lúc." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/concurrency-vs-parallel.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Concurrency vs parallel — dealing with vs doing · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Concurrency vs parallel — dealing with vs doing · Articles" />
+    <meta name="twitter:description" content="Concurrency: dealing with lots of things at once. Parallelism: doing lots of things at once. Xen kẽ / tổ chức nhiều việc khác chạy thật cùng lúc." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Concurrency vs parallel — dealing with vs doing · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Concurrency vs parallel</h1>
+          <p class="article-header__meta">2026-07-20 · ~5 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Một câu đủ dùng (Rob Pike / Go talks — ý được nhắc lại rất nhiều
+            nơi):
+          </p>
+          <pre><code>Concurrency is about dealing with lots of things at once.
+Parallelism is about doing lots of things at once.</code></pre>
+          <ul>
+            <li>
+              <strong>Dealing with</strong> — bạn
+              <em>đang gánh</em> nhiều việc cùng một giai đoạn: mở dở, chờ,
+              xen kẽ, xếp hàng, không bỏ rơi. Chưa chắc hai việc đang
+              <em>chạy instruction cùng một nanosecond</em>.
+            </li>
+            <li>
+              <strong>Doing</strong> — nhiều việc
+              <em>thật sự được thực thi cùng lúc</em>: nhiều core, nhiều máy,
+              nhiều worker vật lý.
+            </li>
+          </ul>
+          <p>
+            Tiếng Việt gần:
+            <strong>concurrency = xoay xở nhiều việc một lúc</strong>;
+            <strong>parallel = làm nhiều việc một lúc</strong>.
+          </p>
+          <p>
+            Demo animation (1 core xoay xở vs 2 core cùng làm):
+            <a href="/demos/concurrency-vs-parallel.html"
+              >concurrency vs parallel</a
+            >.
+          </p>
+
+          <h2>Dealing with — concurrent</h2>
+          <p>
+            Nhân viên support 1 người, 20 ticket mở: vừa reply A, vừa chờ
+            khách B, vừa đọc log C. Cùng lúc
+            <em>đang deal</em> nhiều ticket — không phải 20 người gõ phím cùng
+            lúc.
+          </p>
+          <p>
+            Trong code: event loop, async/await, goroutine chờ I/O, connection
+            pool đầy request dang dở…
+          </p>
+          <pre><code>// Đang “deal” 100 fetch — phần lớn thời gian là chờ mạng
+await Promise.all(urls.map((u) =&gt; fetch(u)))
+// 1 thread JS: dealing with lots of I/O
+// không phải 100 core đang parse body cùng lúc</code></pre>
+          <p>
+            Concurrency là
+            <strong>cách tổ chức</strong> để hệ thống chịu được nhiều việc
+            in-flight: ai chờ cái gì, khi nào resume, không block hết cả nhà vì
+            một lời gọi chậm. Thường đi với
+            <a href="/articles/blocking-vs-nonblocking.html">non-blocking</a>.
+          </p>
+          <p>
+            Có thể concurrent trên <strong>một</strong> core: OS/runtime xen
+            kẽ. Bạn vẫn “deal with lots of things” — chỉ là lần lượt trong từng
+            lát thời gian rất ngắn, hoặc chồng chờ I/O.
+          </p>
+
+          <h2>Doing — parallel</h2>
+          <p>
+            Hai (hay N) người support cùng lúc, mỗi người gõ một ticket —
+            <em>doing</em> nhiều việc at once trên nhiều “bộ não”.
+          </p>
+          <p>
+            Trong code: multi-thread/process CPU, shard job trên nhiều pod, GPU
+            hàng nghìn lane…
+          </p>
+          <pre><code>// N process cùng compress — doing trên N core (nếu có)
+await processPool.map(chunks, compress)</code></pre>
+          <p>
+            Parallel cần
+            <strong>nhiều đơn vị thực thi cùng lúc</strong>. Thêm replica K8s,
+            bật worker pool, chia
+            <a href="/articles/data-vs-task-parallelism.html"
+              >data / task</a
+            >
+            — đều là tăng “doing”.
+          </p>
+
+          <h2>Cùng lúc trên giấy vs cùng lúc trên silicon</h2>
+          <pre><code>Dealing with (concurrent)
+  timeline logic: A, B, C đều “đang mở”
+  silicon: có thể chỉ 1 core; A chờ DB thì B chạy
+
+Doing (parallel)
+  timeline logic: A và B đều “đang compute”
+  silicon: 2 core cùng fetch/decode instruction</code></pre>
+          <p>
+            Người ta hay nhầm vì cả hai đều nói “at once”. Khác ở
+            <em>at once kiểu nào</em>: nhiều việc
+            <strong>trong tay</strong> (deal) vs nhiều việc
+            <strong>đang chạy</strong> (do).
+          </p>
+
+          <h2>Một hình số</h2>
+          <pre><code>3 request × (CPU 10ms + I/O 100ms + CPU 10ms)
+
+Chỉ dealing, 1 core, non-block:
+  3 request “mở” chồng I/O → wall ~ 100 + 60 ms
+  dealing with 3; doing CPU vẫn 1 luồng
+
+Doing thêm 2 core (+ vẫn deal I/O):
+  hai đoạn CPU có thể cháy cùng wall-clock
+  dealing + doing — wall ngắn hơn nữa</code></pre>
+
+          <h2>Khi nào cần cái nào</h2>
+          <ul>
+            <li>
+              <strong>Nhiều chờ (DB, HTTP, disk):</strong> cần
+              <em>dealing with</em> giỏi — concurrent + non-block — kẻo một
+              thread/process chỉ gánh được ít request.
+            </li>
+            <li>
+              <strong>Nhiều tính (hash, encode, aggregate):</strong> cần
+              <em>doing</em> trên nhiều core — parallel; chỉ async không rút
+              wall CPU.
+            </li>
+            <li>
+              <strong>Hệ thật:</strong> thường cả hai — nhiều instance
+              <em>doing</em> song song, mỗi instance <em>dealing with</em> hàng
+              nghìn connection.
+            </li>
+          </ul>
+
+          <h2>Runtime (một dòng mỗi cái)</h2>
+          <ul>
+            <li>
+              <strong>Node / asyncio:</strong> mạnh dealing with I/O; doing CPU
+              → worker/process khác.
+            </li>
+            <li>
+              <strong>Go:</strong> goroutine = dealing with rẻ; scheduler map
+              lên nhiều OS thread = doing khi có multi-core + work.
+            </li>
+            <li>
+              <strong>K8s N pod:</strong> doing ở mức máy; trong mỗi pod vẫn
+              phải dealing with request.
+            </li>
+          </ul>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/blocking-vs-nonblocking.html"
+                >Blocking vs non-blocking</a
+              >
+              — chờ mà vẫn deal được việc khác, hay bị kẹt.
+            </li>
+            <li>
+              <a href="/articles/data-vs-task-parallelism.html"
+                >Data vs task parallelism</a
+              >
+              — khi đã <em>doing</em>, cắt theo data hay theo task.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Concurrency = dealing with lots of things at once.<br />
+            Parallelism = doing lots of things at once.</strong>
+          </p>
+          <p>
+            Deal = nhiều việc dang dở, có tổ chức. Do = nhiều việc đang chạy
+            thật trên nhiều unit. Nhầm “at once” là tối ưu sai chỗ: bọc async
+            cho bài CPU, hoặc thêm core cho chỗ chỉ cần biết chờ cho khéo.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

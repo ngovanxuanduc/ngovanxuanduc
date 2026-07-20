@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Demo unbounded in-flight vs pool limiter — theo dõi số Promise đang bay."
+    />
+    <title>Demo · Unbounded in-flight</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font: inherit;
+        font-family: var(--mono);
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+        width: 6.5rem;
+      }
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-left: auto;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .btn-row {
+          margin-left: 0;
+        }
+      }
+      .metric {
+        font-family: var(--mono);
+        font-size: 1.75rem;
+        font-weight: 600;
+      }
+      .metric.hot {
+        color: var(--warn);
+      }
+      .metric.full {
+        color: var(--danger);
+      }
+      .metric.ok {
+        color: var(--success);
+      }
+      .sub {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+      }
+      .bars {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        min-height: 48px;
+        align-content: flex-start;
+        margin-top: 0.75rem;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        background: var(--running);
+        opacity: 0.85;
+      }
+      .dot.done {
+        background: var(--success);
+        opacity: 0.35;
+      }
+      .chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 80px;
+        margin-top: 0.75rem;
+      }
+      .chart i {
+        display: block;
+        width: 6px;
+        background: var(--running);
+        border-radius: 2px 2px 0 0;
+        min-height: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Unbounded in-flight vs pool</h1>
+        <p>
+          Cùng N task giả lập I/O — một bên bắn hết, một bên limit concurrency.
+          <a href="/articles/unbounded-inflight.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="n">Số task</label>
+            <input id="n" type="number" min="10" max="500" value="80" />
+          </div>
+          <div class="field">
+            <label for="workMs">Work (ms)</label>
+            <input id="workMs" type="number" min="50" max="2000" value="400" />
+          </div>
+          <div class="field">
+            <label for="limit">Pool limit</label>
+            <input id="limit" type="number" min="1" max="50" value="8" />
+          </div>
+          <div class="field">
+            <label for="memUnit">“RAM” / task (KB giả)</label>
+            <input id="memUnit" type="number" min="1" max="500" value="64" />
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnBoth">
+              Chạy so sánh
+            </button>
+            <button type="button" id="btnReset">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="panel">
+          <h2>Unbounded — Promise.all / fire all</h2>
+          <div>
+            In-flight peak
+            <div class="metric" id="uPeak">0</div>
+            <div class="sub">
+              Proxy memory peak:
+              <strong id="uMem">0</strong> KB · done
+              <strong id="uDone">0</strong>
+            </div>
+            <div class="bars" id="uBars"></div>
+            <div class="chart" id="uChart" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Pool — max concurrent</h2>
+          <div>
+            In-flight peak
+            <div class="metric ok" id="pPeak">0</div>
+            <div class="sub">
+              Proxy memory peak:
+              <strong id="pMem">0</strong> KB · done
+              <strong id="pDone">0</strong>
+            </div>
+            <div class="bars" id="pBars"></div>
+            <div class="chart" id="pChart" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        function createTracker(barsId, chartId, peakId, memId, doneId) {
+          let inflight = 0;
+          let peak = 0;
+          let done = 0;
+          const history = [];
+          const bars = $(barsId);
+          const chart = $(chartId);
+          bars.innerHTML = "";
+          chart.innerHTML = "";
+
+          function paintMetric() {
+            $(peakId).textContent = peak;
+            const unit = +$("memUnit").value || 64;
+            $(memId).textContent = peak * unit;
+            $(doneId).textContent = done;
+            const el = $(peakId);
+            el.className =
+              "metric" + (peak > 40 ? " full" : peak > 15 ? " hot" : " ok");
+          }
+
+          function sample() {
+            history.push(inflight);
+            if (history.length > 60) history.shift();
+            chart.innerHTML = "";
+            const maxH = Math.max(1, ...history, 1);
+            history.forEach((v) => {
+              const i = document.createElement("i");
+              i.style.height = Math.max(2, (v / maxH) * 78) + "px";
+              if (v > 40) i.style.background = "var(--danger)";
+              else if (v > 15) i.style.background = "var(--warn)";
+              chart.appendChild(i);
+            });
+          }
+
+          return {
+            async runTask(workMs) {
+              inflight++;
+              if (inflight > peak) peak = inflight;
+              paintMetric();
+              const dot = document.createElement("div");
+              dot.className = "dot";
+              bars.appendChild(dot);
+              sample();
+              await sleep(workMs);
+              inflight--;
+              done++;
+              dot.classList.add("done");
+              paintMetric();
+              sample();
+            },
+            reset() {
+              inflight = peak = done = 0;
+              bars.innerHTML = "";
+              chart.innerHTML = "";
+              paintMetric();
+            },
+          };
+        }
+
+        async function mapPool(n, limit, fn) {
+          let next = 0;
+          async function worker() {
+            while (next < n) {
+              const i = next++;
+              await fn(i);
+            }
+          }
+          const w = Math.min(limit, n);
+          await Promise.all(Array.from({ length: w }, () => worker()));
+        }
+
+        const unbounded = createTracker("uBars", "uChart", "uPeak", "uMem", "uDone");
+        const pooled = createTracker("pBars", "pChart", "pPeak", "pMem", "pDone");
+
+        async function run() {
+          $("btnBoth").disabled = true;
+          unbounded.reset();
+          pooled.reset();
+          const n = Math.min(500, Math.max(10, +$("n").value || 80));
+          const workMs = Math.max(50, +$("workMs").value || 400);
+          const limit = Math.max(1, +$("limit").value || 8);
+
+          // staggered start so UI can paint peaks
+          const p1 = Promise.all(
+            Array.from({ length: n }, () => unbounded.runTask(workMs))
+          );
+          const p2 = mapPool(n, limit, () => pooled.runTask(workMs));
+          await Promise.all([p1, p2]);
+          $("btnBoth").disabled = false;
+        }
+
+        $("btnBoth").onclick = run;
+        $("btnReset").onclick = () => {
+          unbounded.reset();
+          pooled.reset();
+        };
+      })();
+    </script>
+  </body>
+</html>

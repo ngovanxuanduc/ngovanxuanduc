@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Queue vs stream</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --ok: #5eea93;
+        --warn: #fbbf24;
+        --cpu: #60a5fa;
+        --gone: #ff8f8f;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 40rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin: 0.85rem 0 0;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem 1.1rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .card h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .sub {
+        font-size: 0.84rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.85rem;
+        min-height: 2.4em;
+      }
+      .zone-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--dim);
+        margin-bottom: 0.35rem;
+      }
+      .lane {
+        min-height: 4.2rem;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 0.55rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: flex-start;
+        gap: 0.4rem;
+        margin-bottom: 0.65rem;
+        background: var(--bg);
+        position: relative;
+      }
+      .lane.empty::after {
+        content: "trống";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dim);
+        font-size: 0.8rem;
+        pointer-events: none;
+      }
+      .msg {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.4rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid rgba(96, 165, 250, 0.45);
+        background: rgba(96, 165, 250, 0.12);
+        color: var(--cpu);
+        animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+        transition: transform 0.2s, opacity 0.35s, filter 0.35s;
+      }
+      .msg.pop {
+        animation: popIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .msg.leaving {
+        animation: vanish 0.45s ease forwards;
+      }
+      .msg.read {
+        border-color: rgba(94, 234, 147, 0.45);
+        background: rgba(94, 234, 147, 0.12);
+        color: var(--ok);
+      }
+      .msg.read::after {
+        content: " ✓";
+      }
+      .msg.active {
+        box-shadow: 0 0 16px rgba(251, 191, 36, 0.45);
+        border-color: rgba(251, 191, 36, 0.6);
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--warn);
+        transform: scale(1.06);
+      }
+      @keyframes popIn {
+        from {
+          opacity: 0;
+          transform: scale(0.6) translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      @keyframes vanish {
+        to {
+          opacity: 0;
+          transform: scale(0.4) translateY(-12px);
+          filter: blur(4px);
+        }
+      }
+      .consumer {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: #1a1a1e;
+        margin-bottom: 0.65rem;
+        transition: 0.2s;
+      }
+      .consumer.on {
+        border-color: rgba(251, 191, 36, 0.5);
+        background: rgba(251, 191, 36, 0.1);
+        box-shadow: 0 0 14px rgba(251, 191, 36, 0.2);
+      }
+      .consumer .dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 50%;
+        background: var(--dim);
+        flex-shrink: 0;
+      }
+      .consumer.on .dot {
+        background: var(--warn);
+        box-shadow: 0 0 8px var(--warn);
+        animation: pulse 0.8s ease infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.45;
+        }
+      }
+      .consumer .txt {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .consumer.on .txt {
+        color: var(--warn);
+      }
+      .cursor-bar {
+        height: 8px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        border: 1px solid var(--border);
+        margin-bottom: 0.35rem;
+        overflow: hidden;
+        position: relative;
+      }
+      .cursor-bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--ok), var(--accent));
+        border-radius: 99px;
+        transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .cursor-lbl {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+        margin-bottom: 0.65rem;
+      }
+      .cursor-lbl strong {
+        color: var(--ok);
+      }
+      .say {
+        font-size: 0.88rem;
+        color: var(--muted);
+        min-height: 2.8em;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .flash {
+        animation: cardFlash 0.5s ease;
+      }
+      @keyframes cardFlash {
+        0% {
+          box-shadow: inset 0 0 0 1px transparent;
+        }
+        40% {
+          box-shadow: inset 0 0 0 1px rgba(184, 164, 255, 0.45);
+        }
+        100% {
+          box-shadow: inset 0 0 0 1px transparent;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Queue vs stream</h1>
+        <p>
+          Cùng 4 message. Xem khác nhau khi consumer xử lý xong.
+          <a href="/articles/queue-vs-stream.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Queue</b> = ack xong message <b>biến mất</b><br />
+          <b>Stream</b> = chỉ <b>trượt offset</b>, log vẫn còn
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="play">▶ Chạy demo</button>
+        <button type="button" class="ghost" id="step" disabled>Bước tiếp</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint" id="hint">Bấm Chạy — tự animate từng bước</span>
+      </div>
+
+      <div class="grid">
+        <section class="card" id="cardQ">
+          <h2>Queue</h2>
+          <p class="sub">Destructive: lấy + ack → xóa khỏi channel.</p>
+          <div class="zone-label">Trong queue</div>
+          <div class="lane" id="qLane"></div>
+          <div class="consumer" id="qCons">
+            <span class="dot"></span>
+            <span class="txt">Consumer rảnh</span>
+          </div>
+          <p class="say" id="qSay">Chưa có message.</p>
+        </section>
+
+        <section class="card" id="cardS">
+          <h2>Stream</h2>
+          <p class="sub">Log giữ message; consumer chỉ nhớ “đã đọc tới đâu”.</p>
+          <div class="zone-label">Log (không xóa)</div>
+          <div class="lane" id="sLane"></div>
+          <div class="cursor-bar"><i id="sBar"></i></div>
+          <div class="cursor-lbl">
+            offset group A = <strong id="off">0</strong> / <span id="total">0</span>
+          </div>
+          <div class="consumer" id="sCons">
+            <span class="dot"></span>
+            <span class="txt">Consumer rảnh</span>
+          </div>
+          <p class="say" id="sSay">Chưa có message.</p>
+        </section>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let msgs = [];
+        let qLeft = [];
+        let offset = 0;
+        let busy = false;
+        let auto = false;
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        function renderLanes(highlight) {
+          const ql = $("qLane");
+          ql.innerHTML = "";
+          ql.classList.toggle("empty", !qLeft.length);
+          qLeft.forEach((id) => {
+            const el = document.createElement("span");
+            el.className = "msg" + (highlight === id ? " active" : "");
+            el.id = "q-" + id;
+            el.textContent = id;
+            ql.appendChild(el);
+          });
+
+          const sl = $("sLane");
+          sl.innerHTML = "";
+          sl.classList.toggle("empty", !msgs.length);
+          msgs.forEach((id, i) => {
+            const el = document.createElement("span");
+            let cls = "msg";
+            if (i < offset) cls += " read";
+            if (highlight === id && i === offset) cls += " active";
+            el.className = cls;
+            el.textContent = id;
+            sl.appendChild(el);
+          });
+
+          $("off").textContent = String(offset);
+          $("total").textContent = String(msgs.length);
+          $("sBar").style.width =
+            msgs.length === 0 ? "0%" : (offset / msgs.length) * 100 + "%";
+        }
+
+        function setCons(id, on, text) {
+          const el = $(id);
+          el.className = "consumer" + (on ? " on" : "");
+          el.querySelector(".txt").textContent = text;
+        }
+
+        function flash(id) {
+          const el = $(id);
+          el.classList.remove("flash");
+          void el.offsetWidth;
+          el.classList.add("flash");
+        }
+
+        async function fill() {
+          msgs = ["m1", "m2", "m3", "m4"];
+          qLeft = msgs.slice();
+          offset = 0;
+          renderLanes(null);
+          $("qSay").innerHTML = "Queue có <em>4 message</em> chờ xử lý.";
+          $("sSay").innerHTML = "Stream log cũng có <em>4 message</em>.";
+          setCons("qCons", false, "Consumer rảnh");
+          setCons("sCons", false, "Consumer rảnh");
+          flash("cardQ");
+          flash("cardS");
+        }
+
+        async function oneStep() {
+          if (busy) return;
+          if (!msgs.length) {
+            await fill();
+            await sleep(500);
+          }
+          if (offset >= msgs.length && !qLeft.length) {
+            $("qSay").innerHTML = "Queue <em>trống</em> — message đã biến mất.";
+            $("sSay").innerHTML =
+              "Stream: offset = hết, nhưng <em>log vẫn còn</em> (ô xanh).";
+            $("hint").textContent = "Xong — Reset hoặc Chạy lại";
+            $("step").disabled = true;
+            return false;
+          }
+
+          busy = true;
+          $("step").disabled = true;
+          $("play").disabled = true;
+
+          const id = msgs[offset] || qLeft[0];
+          // highlight both
+          renderLanes(id);
+          setCons("qCons", true, "Đang xử lý " + id);
+          setCons("sCons", true, "Đang xử lý " + id);
+          $("qSay").innerHTML = "Consumer lấy <em>" + id + "</em>…";
+          $("sSay").innerHTML = "Consumer đọc <em>" + id + "</em>…";
+          await sleep(650);
+
+          // queue: vanish
+          if (qLeft[0] === id) {
+            const el = $("q-" + id);
+            if (el) {
+              el.classList.add("leaving");
+              await sleep(400);
+            }
+            qLeft.shift();
+          }
+          // stream: advance offset
+          offset = Math.min(offset + 1, msgs.length);
+          renderLanes(null);
+          setCons("qCons", false, qLeft.length ? "Consumer rảnh" : "Hết việc");
+          setCons("sCons", false, offset < msgs.length ? "Consumer rảnh" : "Đã đọc hết");
+
+          $("qSay").innerHTML =
+            "Ack <em>" +
+            id +
+            "</em> → <em>xóa</em> khỏi queue. Còn " +
+            qLeft.length +
+            " message.";
+          $("sSay").innerHTML =
+            "Xử lý <em>" +
+            id +
+            "</em> → commit <em>offset = " +
+            offset +
+            "</em>. Bản ghi vẫn nằm trên log.";
+
+          flash("cardQ");
+          flash("cardS");
+          await sleep(350);
+          busy = false;
+          $("play").disabled = false;
+          $("step").disabled = false;
+          return offset < msgs.length || qLeft.length > 0;
+        }
+
+        async function playAll() {
+          if (busy) return;
+          await fill();
+          $("hint").textContent = "Đang chạy…";
+          $("step").disabled = true;
+          auto = true;
+          for (let i = 0; i < 4; i++) {
+            const more = await oneStep();
+            if (!more) break;
+            await sleep(400);
+          }
+          auto = false;
+          $("hint").textContent =
+            "So sánh: trái trống · phải còn 4 ô (đã ✓). Bấm Chạy để xem lại.";
+          $("step").disabled = true;
+        }
+
+        $("play").onclick = playAll;
+        $("step").onclick = async () => {
+          if (!msgs.length) await fill();
+          $("step").disabled = false;
+          await oneStep();
+        };
+        $("reset").onclick = () => {
+          busy = false;
+          msgs = [];
+          qLeft = [];
+          offset = 0;
+          renderLanes(null);
+          $("qLane").classList.add("empty");
+          $("sLane").classList.add("empty");
+          setCons("qCons", false, "Consumer rảnh");
+          setCons("sCons", false, "Consumer rảnh");
+          $("qSay").textContent = "Chưa có message.";
+          $("sSay").textContent = "Chưa có message.";
+          $("hint").textContent = "Bấm Chạy — tự animate từng bước";
+          $("step").disabled = true;
+          $("play").disabled = false;
+        };
+        $("reset").onclick();
+      })();
+    </script>
+  </body>
+</html>

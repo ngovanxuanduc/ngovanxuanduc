@@ -1,0 +1,145 @@
+---
+{
+  "title": "Resend message — single group OK, shared thì cẩn · Articles",
+  "description": "Resend/requeue để unblock khác release. Trên shared stream, resend có thể double consumer group khác. Idempotency là lưới an toàn cuối.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Resend — khi nào an toàn?</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Fail xử lý message. Một phản xạ: “bỏ lại channel để xử lý sau / ai
+            rảnh lấy”. Nghe giống retry — nhưng
+            <strong>resend</strong> và
+            <strong>release</strong> không giống nhau, và trên
+            <a href="/articles/queue-vs-stream.html">stream shared</a> resend
+            có thể hại app không liên quan.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/resend-shared-channel.html"
+              >1 group vs 2 group khi resend</a
+            >.
+          </p>
+
+          <h2>Release vs resend (nhanh)</h2>
+          <ul>
+            <li>
+              <strong>Release / requeue / không commit offset:</strong> cùng
+              logical message, giữ chỗ trong thứ tự (queue đầu lane / stream
+              offset không tiến). Unrecoverable →
+              <strong>block</strong> consumer (hoặc partition) + đốt retry.
+            </li>
+            <li>
+              <strong>Resend:</strong> publish
+              <em>lại</em> (thường kèm id gốc) vào channel, đồng thời ack/commit
+              bản đang fail để
+              <strong>nhường đường</strong>. Unblock flow; có thể
+              <strong>mất order</strong>; có thể
+              <strong>tạo thêm một bản ghi</strong> trên stream.
+            </li>
+          </ul>
+          <p>
+            Instant retry trong process (không đụng channel) khác cả hai — an
+            toàn hơn về shared; xem
+            <a href="/articles/retry-backoff-jitter.html">retry</a>.
+          </p>
+
+          <h2>Single group / queue “của mình”</h2>
+          <p>
+            Một app, một group, channel không ai khác consume độc lập:
+          </p>
+          <ul>
+            <li>
+              Resend (hoặc delayed resend) hợp
+              <a href="/articles/write-vs-read-channel.html">write side</a>:
+              3rd-party sập 2 phút → message quay lại sau, các message khác vẫn
+              chạy.
+            </li>
+            <li>
+              Giữ <strong>cùng message id</strong> /
+              <a href="/articles/idempotency.html">idempotency key</a> để lần
+              sau không double side-effect nếu lần trước thực ra đã gần xong.
+            </li>
+            <li>
+              Read/projection: resend xáo order → state machine/view có thể sai;
+              cân nhắc error channel riêng + rebuild/replay có kiểm soát.
+            </li>
+          </ul>
+
+          <h2>Shared: group B không “đăng ký” nhận fail của A</h2>
+          <pre><code>Topic events
+  group A (billing)  — fail message M, resend M' lên topic
+  group B (analytics) — đã xử lý M lúc offset cũ
+                      → thấy M' ≈ event mới → xử lý lần 2</code></pre>
+          <p>
+            A tưởng “chỉ retry cho mình”. B nhận
+            <strong>duplicate business event</strong>. Trừ khi B idempotent theo
+            đúng id, dashboard/số liệu lệch.
+          </p>
+          <p>
+            Queue classic ít dính pattern này (một competitive group). Stream +
+            nhiều group = nơi hay bắn chân.
+          </p>
+
+          <h2>An toàn hơn trên shared</h2>
+          <ol>
+            <li>
+              <strong>Instant retry</strong> trong consumer A (rollback sạch).
+            </li>
+            <li>
+              <strong>Error channel / retry queue private</strong> chỉ A đọc —
+              delayed backoff ở đó.
+            </li>
+            <li>
+              <strong>DLQ của A</strong> — người review, replay có chủ đích vào
+              handler A, không produce lại shared topic mù.
+            </li>
+            <li>
+              Nếu bắt buộc re-publish domain event: event
+              <em>mới</em> với semantics rõ (“retry requested”) + mọi consumer
+              idempotent — không giả vờ là cùng lần emit gốc.
+            </li>
+          </ol>
+
+          <h2>Kafka “resend” hay gặp</h2>
+          <ul>
+            <li>
+              App produce lại payload lên cùng topic = shared-risk ở trên.
+            </li>
+            <li>
+              Chỉ seek/rewind offset group A = A đọc lại; B không bị thêm
+              message — gần “release” theo group, không nhân bản cho B.
+            </li>
+          </ul>
+          <p>
+            Hai cơ chế khác nhau: <em>đụng offset group mình</em> vs
+            <em>append log chung</em>.
+          </p>
+
+          <h2>Checklist trước khi resend</h2>
+          <pre><code>□ Channel có consumer group / app khác không?
+□ Write hay read? Order per-key có bị phá có sao không?
+□ Message id / idempotency key có ổn định qua resend không?
+□ Đã thử instant retry + phân loại transient chưa?
+□ Có error channel riêng thay vì shared topic không?</code></pre>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Resend để unblock single-group write — thường ổn (kèm
+            idempotency). Resend lên shared stream — có thể double mọi group
+            khác.</strong>
+          </p>
+          <p>
+            Khi nghi ngờ: private error path +
+            <a href="/articles/async-recovery-playbook.html">playbook</a>.
+          </p>
+        </div>
+      </article>

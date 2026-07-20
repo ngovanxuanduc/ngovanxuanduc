@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Outbox vs dual-write</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+        margin: 0.25rem 0.25rem 0.25rem 0;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      label.check {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin: 0.5rem 0;
+      }
+      .box {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.6rem;
+        background: var(--bg);
+        min-height: 5rem;
+        margin-bottom: 0.5rem;
+      }
+      .box h3 {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        margin-bottom: 0.35rem;
+        font-weight: 600;
+      }
+      .ok {
+        color: var(--success);
+      }
+      .bad {
+        color: var(--danger);
+      }
+      .warn {
+        color: var(--warn);
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 10rem;
+        overflow: auto;
+      }
+      .status {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Dual-write vs transactional outbox</h1>
+        <p>
+          Bật “crash sau bước 1” để xem mất event hay recover được.
+          <a href="/articles/outbox-inbox.html">← bài viết</a>
+        </p>
+      </header>
+      <div class="panel">
+        <label class="check">
+          <input type="checkbox" id="crash" checked />
+          Crash sau bước ghi đầu (trước publish / trước flush)
+        </label>
+        <div>
+          <button type="button" class="primary" id="btnNaive">Tạo order (naive dual-write)</button>
+          <button type="button" class="primary" id="btnOutbox">Tạo order (outbox)</button>
+          <button type="button" id="btnFlush">Flush outbox → broker</button>
+          <button type="button" id="btnReset">Reset</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h2>Naive path</h2>
+          <div class="box"><h3>DB orders</h3><div id="nDb"></div></div>
+          <div class="box"><h3>Broker events</h3><div id="nBr"></div></div>
+          <div class="status" id="nStatus">—</div>
+        </div>
+        <div class="panel">
+          <h2>Outbox path</h2>
+          <div class="box"><h3>DB orders</h3><div id="oDb"></div></div>
+          <div class="box"><h3>DB outbox</h3><div id="oOut"></div></div>
+          <div class="box"><h3>Broker events</h3><div id="oBr"></div></div>
+          <div class="box"><h3>Inbox (consumer dedup)</h3><div id="oIn"></div></div>
+          <div class="status" id="oStatus">—</div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let nOrders = [];
+        let nBroker = [];
+        let oOrders = [];
+        let oOutbox = [];
+        let oBroker = [];
+        let oInbox = new Set();
+        let seq = 0;
+
+        function log(m, cls) {
+          const d = document.createElement("div");
+          if (cls) d.className = cls;
+          d.textContent = new Date().toISOString().slice(11, 23) + "  " + m;
+          $("log").prepend(d);
+        }
+
+        function render() {
+          $("nDb").innerHTML = nOrders.map((o) => "<div>" + o + "</div>").join("") || "∅";
+          $("nBr").innerHTML = nBroker.map((e) => "<div>" + e + "</div>").join("") || "∅";
+          $("oDb").innerHTML = oOrders.map((o) => "<div>" + o + "</div>").join("") || "∅";
+          $("oOut").innerHTML =
+            oOutbox
+              .map(
+                (r) =>
+                  "<div class='" +
+                  (r.published ? "ok" : "warn") +
+                  "'>" +
+                  r.id +
+                  (r.published ? " ✓ pub" : " pending") +
+                  "</div>"
+              )
+              .join("") || "∅";
+          $("oBr").innerHTML = oBroker.map((e) => "<div>" + e + "</div>").join("") || "∅";
+          $("oIn").innerHTML =
+            [...oInbox].map((id) => "<div>" + id + "</div>").join("") || "∅";
+
+          const naiveGap = nOrders.length !== nBroker.length;
+          $("nStatus").innerHTML = naiveGap
+            ? '<span class="bad">Inconsistent: orders=' +
+              nOrders.length +
+              " events=" +
+              nBroker.length +
+              "</span>"
+            : '<span class="ok">DB & broker cùng số (' + nOrders.length + ")</span>";
+
+          const pending = oOutbox.filter((r) => !r.published).length;
+          $("oStatus").innerHTML =
+            pending > 0
+              ? '<span class="warn">Outbox pending=' +
+                pending +
+                " — bấm Flush (kể cả sau crash)</span>"
+              : '<span class="ok">Outbox drained · inbox=' + oInbox.size + "</span>";
+        }
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        $("btnNaive").onclick = async () => {
+          const id = "ord-" + ++seq;
+          log("naive: INSERT " + id);
+          nOrders.push(id);
+          render();
+          await sleep(300);
+          if ($("crash").checked) {
+            log("naive: CRASH before publish — event mất", "bad");
+            render();
+            return;
+          }
+          nBroker.push("order.created:" + id);
+          log("naive: publish order.created:" + id, "ok");
+          render();
+        };
+
+        $("btnOutbox").onclick = async () => {
+          const id = "ord-" + ++seq;
+          const eid = "evt-" + id;
+          // same transaction
+          oOrders.push(id);
+          oOutbox.push({ id: eid, orderId: id, published: false });
+          log("outbox: TX commit order+outbox " + id + " / " + eid, "ok");
+          render();
+          await sleep(200);
+          if ($("crash").checked) {
+            log("outbox: CRASH before flush — data còn trong outbox", "warn");
+            render();
+            return;
+          }
+          await flushOne();
+        };
+
+        async function flushOne() {
+          const row = oOutbox.find((r) => !r.published);
+          if (!row) {
+            log("flush: empty");
+            return;
+          }
+          // at-least-once publish
+          oBroker.push("order.created:" + row.orderId);
+          log("flush: publish " + row.id);
+          // consumer inbox
+          if (oInbox.has(row.id)) {
+            log("inbox: skip duplicate " + row.id, "warn");
+          } else {
+            oInbox.add(row.id);
+            log("inbox: apply " + row.id, "ok");
+          }
+          row.published = true;
+          // simulate double publish before mark
+          if (!$("crash").checked && Math.random() < 0) {
+            /* reserved */
+          }
+          render();
+        }
+
+        $("btnFlush").onclick = async () => {
+          const pending = oOutbox.filter((r) => !r.published);
+          if (!pending.length) {
+            // demo redelivery: republish last published to show inbox
+            const last = oOutbox.filter((r) => r.published).pop();
+            if (last) {
+              oBroker.push("order.created:" + last.orderId + " (redelivery)");
+              if (oInbox.has(last.id)) log("redelivery → inbox dedup " + last.id, "ok");
+              else {
+                oInbox.add(last.id);
+                log("redelivery apply " + last.id);
+              }
+              render();
+            } else log("nothing to flush");
+            return;
+          }
+          for (const _ of pending) {
+            await flushOne();
+            await sleep(150);
+          }
+        };
+
+        $("btnReset").onclick = () => {
+          nOrders = [];
+          nBroker = [];
+          oOrders = [];
+          oOutbox = [];
+          oBroker = [];
+          oInbox = new Set();
+          seq = 0;
+          $("log").innerHTML = "";
+          log("reset");
+          render();
+        };
+        render();
+      })();
+    </script>
+  </body>
+</html>

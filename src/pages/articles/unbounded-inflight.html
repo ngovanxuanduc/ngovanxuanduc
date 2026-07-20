@@ -1,0 +1,201 @@
+---
+{
+  "title": "Unbounded in-flight — Promise queue ăn RAM im lặng · Articles",
+  "description": "Fire-and-forget không bound, Map giữ Promise mãi, queue không max: concurrency vô hạn và memory leak kiểu production.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Unbounded in-flight — Promise queue ăn RAM im lặng</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            OOM không phải lúc nào cũng là “leak classic” (quên remove listener).
+            Hay gặp hơn trên server Node / worker:
+            <strong>số công việc đang bay tăng không trần</strong> — mỗi cái giữ
+            closure, buffer, socket, response object — cho đến khi process chết
+            hoặc event loop chỉ còn thrash GC.
+          </p>
+          <p>
+            Gọi là <strong>unbounded in-flight</strong>: không ai đếm “đang có
+            bao nhiêu Promise/job sống”, cũng không ai từ chối thêm.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/unbounded-inflight.html"
+              >Unbounded vs pool — xem in-flight và “memory proxy” tăng</a
+            >.
+          </p>
+
+          <h2>Anti-pattern nhận mặt 3 giây</h2>
+          <pre><code>// 1) bắn hết
+for (const item of items) {
+  void process(item); // không await, không limit
+}
+
+// 2) Promise.all trên list khổng lồ
+await Promise.all(items.map(process)); // 100k fetch cùng lúc
+
+// 3) queue push không max trong khi consumer chậm
+while (true) {
+  queue.push(await readEvent()); // producer không bao giờ chậm lại
+}</code></pre>
+          <p>
+            (1) và (2) là hai mặt: fire-and-forget vs “await tất cả nhưng start
+            tất cả ngay”. Cả hai đều có thể tạo
+            <strong>N in-flight ≈ N items</strong>.
+          </p>
+
+          <h2>Pool đã giới hạn — nhưng nguồn vẫn phình</h2>
+          <p>
+            <a href="/articles/promise-all-batch-vs-pool.html">mapPool(limit)</a>
+            giữ tối đa <em>N đang chạy</em>. Vẫn có thể phình nếu:
+          </p>
+          <ul>
+            <li>
+              Bạn <code>map</code> trước thành mảng 1M closure/job object —
+              heap đã to trước khi pool chạy.
+            </li>
+            <li>
+              Kết quả <code>results[]</code> giữ nguyên payload lớn của mọi
+              item — xong job mà không stream/ghi đĩa.
+            </li>
+            <li>
+              Error path không settle — Promise treo → slot “chết” hoặc
+              (fire-and-forget) zombie forever.
+            </li>
+          </ul>
+          <p>
+            Backpressure thật cần
+            <a href="/articles/backpressure.html">bound cả hàng đợi chờ</a>,
+            không chỉ concurrency đang chạy.
+          </p>
+
+          <h2>Map / cache giữ Promise</h2>
+          <pre><code>const cache = new Map();
+
+function get(key) {
+  if (!cache.has(key)) {
+    cache.set(key, load(key)); // Promise + rồi cả result
+  }
+  return cache.get(key);
+}</code></pre>
+          <p>
+            Bẫy:
+          </p>
+          <ul>
+            <li>
+              <strong>Không TTL / max entries</strong> → Map lớn dần theo key
+              unique (user id, URL…).
+            </li>
+            <li>
+              <strong>Không xóa khi reject</strong> → key “độc” cache lỗi mãi,
+              hoặc ngược lại giữ Promise reject + stack.
+            </li>
+            <li>
+              <strong>Single-flight quên <code>finally delete</code></strong> —
+              key kẹt; hoặc ngược lại giữ result như cache mà tưởng chỉ
+              inflight (xem
+              <a href="/articles/reuse-promise.html">single-flight</a>).
+            </li>
+          </ul>
+          <pre><code>// inflight đúng nghĩa: xóa khi settle
+const inflight = new Map();
+function doOnce(key, work) {
+  if (inflight.has(key)) return inflight.get(key);
+  const p = Promise.resolve()
+    .then(work)
+    .finally(() =&gt; inflight.delete(key));
+  inflight.set(key, p);
+  return p;
+}</code></pre>
+
+          <h2>Listener &amp; “Promise không ai await”</h2>
+          <ul>
+            <li>
+              <code>EventEmitter.on</code> mỗi request thêm listener, không
+              <code>off</code> → list listener + closure giữ req/res.
+            </li>
+            <li>
+              <code>setInterval</code> trong hot path không clear.
+            </li>
+            <li>
+              Stream <code>data</code> không <code>pause</code> khi xử lý chậm —
+              buffer nội bộ phình (lại backpressure).
+            </li>
+          </ul>
+
+          <h2>Sketch: giới hạn in-flight có chủ đích</h2>
+          <pre><code>function createLimiter(max) {
+  let active = 0;
+  const wait = [];
+  const acquire = () =&gt;
+    new Promise((resolve) =&gt; {
+      if (active &lt; max) {
+        active++;
+        resolve();
+      } else wait.push(resolve);
+    });
+  const release = () =&gt; {
+    active--;
+    if (wait.length) {
+      active++;
+      wait.shift()();
+    }
+  };
+  return async function run(fn) {
+    await acquire();
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  };
+}
+
+const limit = createLimiter(20);
+// mỗi request:
+await limit(() =&gt; handle(job));</code></pre>
+          <p>
+            Khi full: caller <strong>chờ</strong> (backpressure) thay vì tạo
+            thêm work. Ở HTTP edge có thể chuyển thành 503 ngay
+            (<code>tryAcquire</code>) thay vì chờ vô hạn — load shed.
+          </p>
+
+          <h2>Quan sát gì trên production</h2>
+          <ul>
+            <li>
+              Gauge <code>inflight_requests</code> /
+              <code>active_jobs</code> — có ceiling không?
+            </li>
+            <li>Heap used vs traffic — tăng bậc thang theo deploy/feature?</li>
+            <li>
+              Event loop lag / GC pause khi spike traffic.
+            </li>
+            <li>
+              Độ dài queue nội bộ (Bull waiting, custom array).
+            </li>
+          </ul>
+          <p>
+            Alert đơn giản: <code>inflight &gt; max_expected * 1.5</code> trong
+            N phút — thường bắt được “consumer chết mà gateway vẫn nhận” sớm hơn
+            OOM killer.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Mọi thứ async cần budget:</strong> bao nhiêu được bay cùng
+            lúc, bao nhiêu được xếp hàng, bao nhiêu bị từ chối. Không budget =
+            heap là hàng đợi.
+          </p>
+          <p>
+            Pool, limiter, bounded queue, TTL cache, <code>finally</code> dọn
+            map — cùng một kỷ luật: <em>sống có trần</em>.
+          </p>
+        </div>
+      </article>

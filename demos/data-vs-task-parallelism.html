@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Data vs task parallelism</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      .field input {
+        font-family: var(--mono);
+        width: 5rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.4rem 0.5rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .cells {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        min-height: 52px;
+      }
+      .cell {
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        border: 1px solid var(--border);
+        background: #1a1a1e;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-dim);
+        transition: background 0.15s, color 0.15s;
+      }
+      .cell.done {
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      .task-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .task {
+        display: grid;
+        grid-template-columns: 5.5rem 1fr auto;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .task .bar {
+        height: 12px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .task .bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: 99px;
+      }
+      .stats {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin-top: 0.65rem;
+      }
+      .stats strong {
+        color: var(--success);
+      }
+      .note {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin-top: 0.4rem;
+      }
+      .workers {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        margin-bottom: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Data vs task parallelism</h1>
+        <p>
+          Hai cách <em>doing</em> lots of things: cùng <code>f</code> × nhiều
+          data, hoặc nhiều task khác loại cùng lúc.
+          <a href="/articles/data-vs-task-parallelism.html">← bài viết</a>
+          ·
+          <a href="/articles/concurrency-vs-parallel.html">deal vs do</a>
+        </p>
+      </header>
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label>Số phần tử (data)</label>
+            <input id="items" type="number" value="16" min="4" max="32" />
+          </div>
+          <div class="field">
+            <label>Workers</label>
+            <input id="workers" type="number" value="4" min="1" max="8" />
+          </div>
+          <div class="field">
+            <label>Ms / phần tử</label>
+            <input id="perItem" type="number" value="120" min="40" />
+          </div>
+          <button type="button" class="primary" id="run">Chạy so sánh</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h2>Data — doing same work on lots of data</h2>
+          <div class="workers" id="dataW"></div>
+          <div class="cells" id="cells"></div>
+          <div class="stats">wall <strong id="dataWall">—</strong></div>
+          <p class="note">Cùng f, nhiều phần tử — chia cho N worker (doing).</p>
+        </div>
+        <div class="panel">
+          <h2>Task — doing different works at once</h2>
+          <div class="task-row" id="tasks"></div>
+          <div class="stats">wall <strong id="taskWall">—</strong></div>
+          <p class="note">
+            Ba việc khác loại. Wall ≈ max(A,B,C) khi chạy cùng lúc.
+          </p>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        const taskDefs = [
+          { name: "fetchUser", ms: 400, color: "#60a5fa" },
+          { name: "resizeImg", ms: 700, color: "#fbbf24" },
+          { name: "sendMail", ms: 300, color: "#f472b6" },
+        ];
+
+        function buildCells(n) {
+          const root = $("cells");
+          root.innerHTML = "";
+          for (let i = 0; i < n; i++) {
+            const c = document.createElement("div");
+            c.className = "cell";
+            c.id = "c" + i;
+            c.textContent = i;
+            root.appendChild(c);
+          }
+        }
+
+        function buildTasks() {
+          const root = $("tasks");
+          root.innerHTML = "";
+          taskDefs.forEach((t, i) => {
+            const row = document.createElement("div");
+            row.className = "task";
+            row.innerHTML =
+              "<span>" +
+              t.name +
+              '</span><div class="bar"><i id="tb' +
+              i +
+              '" style="background:' +
+              t.color +
+              '"></i></div><span id="tt' +
+              i +
+              '">—</span>';
+            root.appendChild(row);
+          });
+        }
+
+        async function mapPool(n, limit, fn) {
+          let next = 0;
+          async function worker(wid) {
+            while (next < n) {
+              const i = next++;
+              await fn(i, wid);
+            }
+          }
+          await Promise.all(
+            Array.from({ length: Math.min(limit, n) }, (_, w) => worker(w))
+          );
+        }
+
+        const workerColors = ["#5eea93", "#60a5fa", "#fbbf24", "#f472b6", "#b8a4ff", "#34d399", "#fb923c", "#a78bfa"];
+
+        $("run").onclick = async () => {
+          $("run").disabled = true;
+          const n = Math.min(32, Math.max(4, +$("items").value || 16));
+          const w = Math.min(8, Math.max(1, +$("workers").value || 4));
+          const per = Math.max(40, +$("perItem").value || 120);
+          buildCells(n);
+          buildTasks();
+          $("dataW").textContent =
+            w + " workers · doing the same f on every cell";
+          $("dataWall").textContent = "…";
+          $("taskWall").textContent = "…";
+
+          const t0 = performance.now();
+          const dataP = mapPool(n, w, async (i, wid) => {
+            const el = $("c" + i);
+            el.style.background = workerColors[wid % workerColors.length];
+            el.classList.add("done");
+            el.textContent = "W" + wid;
+            await sleep(per);
+          }).then(() => {
+            $("dataWall").textContent = Math.round(performance.now() - t0) + " ms";
+          });
+
+          const t1 = performance.now();
+          const taskP = Promise.all(
+            taskDefs.map(async (t, i) => {
+              const bar = $("tb" + i);
+              const label = $("tt" + i);
+              const start = performance.now();
+              const step = 40;
+              let elapsed = 0;
+              while (elapsed < t.ms) {
+                await sleep(step);
+                elapsed = performance.now() - start;
+                bar.style.width = Math.min(100, (elapsed / t.ms) * 100) + "%";
+              }
+              bar.style.width = "100%";
+              label.textContent = t.ms + "ms";
+            })
+          ).then(() => {
+            $("taskWall").textContent = Math.round(performance.now() - t1) + " ms";
+          });
+
+          await Promise.all([dataP, taskP]);
+          $("run").disabled = false;
+        };
+
+        buildCells(16);
+        buildTasks();
+      })();
+    </script>
+  </body>
+</html>

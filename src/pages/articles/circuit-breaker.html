@@ -1,0 +1,212 @@
+---
+{
+  "title": "Circuit breaker — fail-fast khi dependency chết · Articles",
+  "description": "Closed → Open → Half-open: bảo vệ caller và downstream khỏi retry storm. State machine + demo tương tác.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Circuit breaker — fail-fast khi dependency chết</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Dependency (HTTP API, DB, gRPC) đang 5xx / timeout hàng loạt. Caller
+            vẫn bắn full traffic + retry → thread/pool chờ, queue phình, user
+            chờ 30s rồi error — và dependency càng không gượng dậy được vì
+            <strong>retry storm</strong>.
+          </p>
+          <p>
+            <strong>Circuit breaker</strong> cắt mạch: sau đủ lỗi, tạm
+            <em>không gọi</em> nữa (fail-fast), chờ một nhịp, thử lại dè dặt.
+            Ý tưởng mượn aptomat điện: quá tải thì ngắt, không để cháy cả nhà.
+          </p>
+          <p>
+            Demo state machine:
+            <a href="/demos/circuit-breaker.html"
+              >Circuit breaker — closed / open / half-open</a
+            >.
+          </p>
+
+          <h2>Ba trạng thái</h2>
+          <pre><code>        thành công
+   ┌──────────────────┐
+   ▼                  │
+ CLOSED ──(lỗi đủ)──► OPEN
+   ▲                  │
+   │            (hết cooldown)
+   │                  ▼
+   └──(probe ok)── HALF-OPEN
+         (probe fail)──► OPEN</code></pre>
+          <ul>
+            <li>
+              <strong>Closed</strong> (bình thường): mọi call đi qua; đếm lỗi
+              (theo cửa sổ thời gian hoặc consecutive).
+            </li>
+            <li>
+              <strong>Open</strong>: call mới fail ngay (hoặc fallback) —
+              <em>không</em> đụng dependency. Timer / deadline sang half-open.
+            </li>
+            <li>
+              <strong>Half-open</strong>: cho <em>một (vài) probe</em>; success
+              → closed; fail → open lại.
+            </li>
+          </ul>
+
+          <h2>Sketch tối thiểu</h2>
+          <pre><code>function createBreaker({
+  failureThreshold = 5,
+  cooldownMs = 5000,
+  halfOpenMax = 1,
+} = {}) {
+  let state = "closed"; // closed | open | half-open
+  let failures = 0;
+  let openedAt = 0;
+  let halfOpenInFlight = 0;
+
+  async function exec(fn) {
+    const now = Date.now();
+    if (state === "open") {
+      if (now - openedAt &lt; cooldownMs) {
+        const err = new Error("circuit_open");
+        err.code = "CIRCUIT_OPEN";
+        throw err;
+      }
+      state = "half-open";
+      halfOpenInFlight = 0;
+    }
+
+    if (state === "half-open") {
+      if (halfOpenInFlight &gt;= halfOpenMax) {
+        const err = new Error("circuit_half_open_busy");
+        err.code = "CIRCUIT_OPEN";
+        throw err;
+      }
+      halfOpenInFlight++;
+    }
+
+    try {
+      const result = await fn();
+      // success
+      failures = 0;
+      if (state === "half-open") state = "closed";
+      return result;
+    } catch (e) {
+      if (e.code === "CIRCUIT_OPEN") throw e; // không đếm reject open là fail upstream
+      failures++;
+      if (state === "half-open" || failures &gt;= failureThreshold) {
+        state = "open";
+        openedAt = Date.now();
+        failures = 0;
+      }
+      throw e;
+    } finally {
+      // chỉ giảm nếu vẫn half-open (success đã closed; fail đã open)
+      if (state === "half-open") {
+        halfOpenInFlight = Math.max(0, halfOpenInFlight - 1);
+      } else {
+        halfOpenInFlight = 0;
+      }
+    }
+  }
+
+  return { exec, getState: () =&gt; state };
+}</code></pre>
+          <p>
+            Production library (opossum, resilience4j, Polly…) thêm: sliding
+            window, % error, slow-call threshold, bulkhead — nhưng state machine
+            cốt lõi vẫn vậy.
+          </p>
+
+          <h2>Breaker ≠ retry ≠ timeout</h2>
+          <ul>
+            <li>
+              <strong>Timeout:</strong> một call không được treo vô hạn.
+            </li>
+            <li>
+              <strong>Retry + backoff:</strong> lỗi tạm; cần
+              <a href="/articles/idempotency.html">idempotency</a> nếu
+              side-effect.
+            </li>
+            <li>
+              <strong>Breaker:</strong> “dependency đang đỏ — đừng thử thêm một
+              lúc”.
+            </li>
+            <li>
+              <strong>Bulkhead / limit:</strong> trần in-flight tới dependency
+              (<a href="/articles/unbounded-inflight.html">unbounded</a>).
+            </li>
+          </ul>
+          <p>
+            Hay xếp: timeout → (retry có budget) → breaker bọc ngoài → fallback.
+            Breaker đếm <em>sau</em> khi timeout/fail, không thay timeout.
+          </p>
+
+          <h2>Fallback</h2>
+          <p>
+            Khi open, thay vì chỉ throw:
+          </p>
+          <ul>
+            <li>Cache stale / last-known-good</li>
+            <li>Default an toàn (“feature off”)</li>
+            <li>Hàng đợi defer (async) — cẩn thận
+              <a href="/articles/backpressure.html">backpressure</a></li>
+            <li>Degrade UX: “tạm ẩn gợi ý”, không phải trắng trang 30s</li>
+          </ul>
+          <p>
+            Fallback sai domain (trả “đã thanh toán” khi không chắc) nguy hiểm
+            hơn error rõ.
+          </p>
+
+          <h2>Cấu hình hay sai</h2>
+          <ul>
+            <li>
+              <strong>Threshold quá thấp</strong> — một blip 2 lỗi → open →
+              flapping.
+            </li>
+            <li>
+              <strong>Cooldown quá dài</strong> — dependency sống lại mà mình
+              vẫn fail-fast.
+            </li>
+            <li>
+              <strong>Đếm cả 4xx business</strong> — user sai OTP không phải
+              dependency chết; chỉ đếm 5xx / timeout / connection.
+            </li>
+            <li>
+              <strong>Một breaker cho mọi endpoint</strong> — path chết kéo cả
+              service “khỏe”. Tách theo dependency + operation class.
+            </li>
+            <li>
+              <strong>Half-open cho unlimited probe</strong> — vừa mở đã đập
+              lại full traffic. Giữ probe nhỏ.
+            </li>
+          </ul>
+
+          <h2>Quan sát</h2>
+          <ul>
+            <li>State hiện tại (gauge/enum)</li>
+            <li><code>calls_rejected_open</code></li>
+            <li>Success/fail trong half-open</li>
+            <li>Thời gian ở open (alert nếu dài bất thường)</li>
+          </ul>
+          <p>
+            Dashboard “dependency đỏ” + “breaker open” giúp phân biệt: mình cắt
+            chủ động hay user đang dính latency.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Breaker đánh đổi availability tức thì để bảo vệ hồi phục
+            và capacity còn lại.</strong> Fail nhanh, có kiểm soát, thử lại có
+            liều lượng — hơn là timeout dây chuyền và retry làm sập cả chuỗi.
+          </p>
+          <p>
+            Ghép với pool limit, backpressure, idempotent retry: đó là bộ vệ sinh
+            tối thiểu khi gọi service khác qua mạng.
+          </p>
+        </div>
+      </article>

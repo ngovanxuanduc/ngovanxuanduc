@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Blocking vs non-blocking</title>
+    <meta
+      name="description"
+      content="Demo đơn giản: blocking kẹt khi chờ vs non-blocking vẫn deal việc khác."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --cpu: #60a5fa;
+        --block: #ff8f8f;
+        --wait: #fbbf24;
+        --done: #5eea93;
+        --idle: #1a1a1e;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.1rem;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 38rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.65rem 1.2rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 0.82rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 700px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem 1.1rem;
+      }
+      .card h2 {
+        font-size: 1.05rem;
+        font-weight: 600;
+      }
+      .card .sub {
+        font-size: 0.84rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.9rem;
+        min-height: 2.6em;
+      }
+      .worker {
+        text-align: center;
+        padding: 0.55rem 0.4rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--idle);
+        font-size: 0.78rem;
+        color: var(--dim);
+        margin-bottom: 0.8rem;
+        transition: 0.15s;
+      }
+      .worker b {
+        display: block;
+        font-size: 0.95rem;
+        color: var(--text);
+        margin-bottom: 0.1rem;
+      }
+      .worker.on-cpu {
+        border-color: rgba(96, 165, 250, 0.55);
+        background: rgba(96, 165, 250, 0.15);
+        color: var(--cpu);
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.22);
+      }
+      .worker.on-cpu b {
+        color: var(--cpu);
+      }
+      .worker.on-block {
+        border-color: rgba(255, 143, 143, 0.55);
+        background: rgba(255, 143, 143, 0.12);
+        color: var(--block);
+        box-shadow: 0 0 12px rgba(255, 143, 143, 0.2);
+      }
+      .worker.on-block b {
+        color: var(--block);
+      }
+      .tasks {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .task {
+        display: grid;
+        grid-template-columns: 2rem 1fr 5rem;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 0.88rem;
+      }
+      .task .id {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .task .bar {
+        height: 8px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .task .bar > i {
+        display: block;
+        height: 100%;
+        width: 0%;
+        border-radius: 99px;
+        background: var(--dim);
+        transition: width 0.1s linear, background 0.12s;
+      }
+      .task .st {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        text-align: right;
+        color: var(--dim);
+      }
+      .task.queued .st {
+        color: var(--dim);
+      }
+      .task.working {
+        border-color: rgba(96, 165, 250, 0.45);
+        background: rgba(96, 165, 250, 0.08);
+      }
+      .task.working .id,
+      .task.working .st {
+        color: var(--cpu);
+      }
+      .task.working .bar > i {
+        background: var(--cpu);
+      }
+      .task.blocked {
+        border-color: rgba(255, 143, 143, 0.5);
+        background: rgba(255, 143, 143, 0.1);
+      }
+      .task.blocked .id,
+      .task.blocked .st {
+        color: var(--block);
+      }
+      .task.blocked .bar > i {
+        background: var(--block);
+      }
+      .task.waiting {
+        border-color: rgba(251, 191, 36, 0.4);
+        background: rgba(251, 191, 36, 0.07);
+      }
+      .task.waiting .id,
+      .task.waiting .st {
+        color: var(--wait);
+      }
+      .task.waiting .bar > i {
+        background: var(--wait);
+      }
+      .task.done {
+        border-color: rgba(94, 234, 147, 0.35);
+      }
+      .task.done .id,
+      .task.done .st {
+        color: var(--done);
+      }
+      .task.done .bar > i {
+        background: var(--done);
+        width: 100% !important;
+      }
+      .say {
+        margin-top: 0.8rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.88rem;
+        color: var(--muted);
+        min-height: 3.2em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .time {
+        margin-top: 0.4rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem 1.1rem;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 2px;
+        margin-right: 0.35rem;
+        vertical-align: 0.05em;
+      }
+      .legend .w::before {
+        background: var(--cpu);
+      }
+      .legend .b::before {
+        background: var(--block);
+      }
+      .legend .a::before {
+        background: var(--wait);
+      }
+      .legend .d::before {
+        background: var(--done);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Blocking vs non-blocking</h1>
+        <p>
+          3 request giống nhau. Cùng 1 thread/worker — khác cách
+          <strong>chờ mạng</strong>.
+          <a href="/articles/blocking-vs-nonblocking.html">← bài viết</a>
+          ·
+          <a href="/articles/concurrency-vs-parallel.html">deal vs do</a>
+        </p>
+        <div class="quote">
+          <b>Blocking</b> = chờ mà <em>kẹt</em>, không deal việc khác<br />
+          <b>Non-blocking</b> = chờ mà <em>vẫn deal</em> được
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint">Mỗi request: làm → chờ mạng → làm nốt</span>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Blocking</h2>
+          <p class="sub">
+            Chờ mạng <b>ôm chặt thread</b>.<br />
+            Request khác phải xếp hàng.
+          </p>
+          <div class="worker" id="bw"><b>Thread</b><span>rảnh</span></div>
+          <div class="tasks" id="bTasks"></div>
+          <p class="say" id="bSay">Bấm Chạy.</p>
+          <p class="time">~ <span id="bTime">0</span>s</p>
+        </section>
+
+        <section class="card">
+          <h2>Non-blocking</h2>
+          <p class="sub">
+            Chờ mạng <b>không giữ thread</b>.<br />
+            Thread đi deal request khác.
+          </p>
+          <div class="worker" id="nw"><b>Thread</b><span>rảnh</span></div>
+          <div class="tasks" id="nTasks"></div>
+          <p class="say" id="nSay">Bấm Chạy.</p>
+          <p class="time">~ <span id="nTime">0</span>s</p>
+        </section>
+      </div>
+
+      <div class="legend">
+        <span class="w">đang làm (CPU)</span>
+        <span class="b">chờ mạng — kẹt thread (blocking)</span>
+        <span class="a">chờ mạng — không kẹt (non-block)</span>
+        <span class="d">xong</span>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const N = 3;
+        const WORK = 8;
+        const WAIT = 14;
+        const TICK = 100;
+
+        const $ = (id) => document.getElementById(id);
+        let timer = null;
+
+        function build(rootId) {
+          const root = $(rootId);
+          root.innerHTML = "";
+          for (let i = 0; i < N; i++) {
+            const el = document.createElement("div");
+            el.className = "task";
+            el.id = rootId + i;
+            el.innerHTML =
+              '<span class="id">#' +
+              (i + 1) +
+              '</span><div class="bar"><i></i></div><span class="st">chờ lượt</span>';
+            root.appendChild(el);
+          }
+        }
+
+        function paint(rootId, t, mode) {
+          const el = $(rootId + t.id);
+          let cls = "task";
+          let label = "chờ lượt";
+          let pct = 0;
+
+          if (t.stage < 0) {
+            cls += " queued";
+            label = "chờ lượt";
+            pct = 0;
+          } else if (t.stage === 0) {
+            cls += " working";
+            label = "đang làm";
+            pct = (t.step / WORK) * 33;
+          } else if (t.stage === 1) {
+            if (mode === "block") {
+              cls += " blocked";
+              label = "kẹt chờ";
+            } else {
+              cls += " waiting";
+              label = "chờ mạng";
+            }
+            pct = 33 + (t.step / WAIT) * 34;
+          } else if (t.stage === 2) {
+            cls += " working";
+            label = "đang làm";
+            pct = 67 + (t.step / WORK) * 33;
+          } else if (t.stage === 3) {
+            cls += " done";
+            label = "xong";
+            pct = 100;
+          }
+
+          el.className = cls;
+          el.querySelector("i").style.width = pct + "%";
+          el.querySelector(".st").textContent = label;
+        }
+
+        function setWorker(id, mode, text) {
+          const el = $(id);
+          el.className =
+            "worker" +
+            (mode === "cpu" ? " on-cpu" : mode === "block" ? " on-block" : "");
+          el.querySelector("span").textContent = text;
+        }
+
+        function fresh() {
+          // stage: -1 queued, 0 work1, 1 wait, 2 work2, 3 done
+          return Array.from({ length: N }, (_, id) => ({
+            id,
+            stage: -1,
+            step: 0,
+          }));
+        }
+
+        function ensureStarted(list) {
+          // first queued becomes work1 if nothing in-flight for blocking handled elsewhere
+          const t = list.find((x) => x.stage === -1);
+          if (t) {
+            t.stage = 0;
+            t.step = 0;
+          }
+        }
+
+        function reset() {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+          $("btn").disabled = false;
+          build("bTasks");
+          build("nTasks");
+          setWorker("bw", "", "rảnh");
+          setWorker("nw", "", "rảnh");
+          $("bSay").textContent = "Bấm Chạy.";
+          $("nSay").textContent = "Bấm Chạy.";
+          $("bTime").textContent = "0";
+          $("nTime").textContent = "0";
+        }
+
+        /**
+         * Blocking: one task at a time fully (work+wait+work).
+         * Wait holds the thread — no other task advances.
+         */
+        function stepBlocking(list) {
+          let t = list.find((x) => x.stage >= 0 && x.stage < 3);
+          if (!t) {
+            // start next queued
+            t = list.find((x) => x.stage === -1);
+            if (t) {
+              t.stage = 0;
+              t.step = 0;
+            }
+          }
+          if (!t) {
+            setWorker("bw", "", "xong");
+            return { kind: "done" };
+          }
+
+          if (t.stage === 0 || t.stage === 2) {
+            t.step++;
+            setWorker("bw", "cpu", "làm #" + (t.id + 1));
+            if (t.step >= WORK) {
+              t.step = 0;
+              t.stage = t.stage === 0 ? 1 : 3;
+            }
+            return { kind: "cpu", id: t.id + 1 };
+          }
+
+          // stage 1: blocked on I/O — still holds thread
+          t.step++;
+          setWorker("bw", "block", "kẹt #" + (t.id + 1));
+          if (t.step >= WAIT) {
+            t.step = 0;
+            t.stage = 2;
+          }
+          return { kind: "block", id: t.id + 1 };
+        }
+
+        /**
+         * Non-blocking: waits don't hold thread.
+         * At most one CPU work at a time; all waits advance together.
+         * Multiple can be "started" — first work1 for any still queued when CPU free.
+         */
+        function stepNonBlock(list) {
+          // advance all waits first
+          list.forEach((t) => {
+            if (t.stage !== 1) return;
+            t.step++;
+            if (t.step >= WAIT) {
+              t.stage = 2;
+              t.step = 0;
+            }
+          });
+
+          let job = list.find((t) => t.stage === 0 || t.stage === 2);
+          if (!job) {
+            // start next queued when CPU free
+            job = list.find((t) => t.stage === -1);
+            if (job) {
+              job.stage = 0;
+              job.step = 0;
+            }
+          }
+
+          if (job && (job.stage === 0 || job.stage === 2)) {
+            job.step++;
+            setWorker("nw", "cpu", "làm #" + (job.id + 1));
+            if (job.step >= WORK) {
+              job.step = 0;
+              job.stage = job.stage === 0 ? 1 : 3;
+            }
+            const waiting = list
+              .filter((t) => t.stage === 1)
+              .map((t) => t.id + 1);
+            return { kind: "cpu", id: job.id + 1, waiting };
+          }
+
+          const waiting = list.filter((t) => t.stage === 1).map((t) => t.id + 1);
+          if (list.every((t) => t.stage === 3)) {
+            setWorker("nw", "", "xong");
+            return { kind: "done" };
+          }
+          setWorker("nw", "", waiting.length ? "rảnh (chờ mạng)" : "rảnh");
+          return { kind: "idle", waiting };
+        }
+
+        function run() {
+          if (timer) clearInterval(timer);
+          build("bTasks");
+          build("nTasks");
+          $("btn").disabled = true;
+
+          const B = fresh();
+          const Nlist = fresh();
+          let tick = 0;
+
+          timer = setInterval(() => {
+            tick++;
+            const sec = ((tick * TICK) / 1000).toFixed(1);
+
+            const bs = stepBlocking(B);
+            const ns = stepNonBlock(Nlist);
+
+            B.forEach((t) => paint("bTasks", t, "block"));
+            Nlist.forEach((t) => paint("nTasks", t, "non"));
+            $("bTime").textContent = sec;
+            $("nTime").textContent = sec;
+
+            const bDone = B.every((t) => t.stage === 3);
+            const nDone = Nlist.every((t) => t.stage === 3);
+
+            if (bDone) {
+              $("bSay").innerHTML =
+                "Xong (~" +
+                sec +
+                "s). Mỗi lần chờ mạng đều <em>kẹt thread</em> → 3 request nối đuôi.";
+            } else if (bs.kind === "block") {
+              $("bSay").innerHTML =
+                "Thread <em>kẹt</em> chờ mạng trên <em>#" +
+                bs.id +
+                "</em> — #" +
+                B.filter((t) => t.stage < 3 && t.id + 1 !== bs.id)
+                  .map((t) => t.id + 1)
+                  .join(", #") +
+                " phải xếp hàng.";
+              // clean empty
+              const others = B.filter((t) => t.stage < 3 && t.id + 1 !== bs.id);
+              if (!others.length) {
+                $("bSay").innerHTML =
+                  "Thread <em>kẹt</em> chờ mạng trên <em>#" +
+                  bs.id +
+                  "</em> — không deal việc khác.";
+              } else {
+                $("bSay").innerHTML =
+                  "Thread <em>kẹt</em> chờ mạng #<em>" +
+                  bs.id +
+                  "</em> — #" +
+                  others.map((t) => t.id + 1).join(", #") +
+                  " chưa được đụng tới.";
+              }
+            } else if (bs.kind === "cpu") {
+              $("bSay").innerHTML =
+                "Thread đang làm <em>#" + bs.id + "</em>.";
+            }
+
+            if (nDone) {
+              $("nSay").innerHTML =
+                "Xong (~" +
+                sec +
+                "s). Chờ mạng <em>không giữ thread</em> → deal xen kẽ, thường xong sớm hơn.";
+            } else if (ns.kind === "cpu") {
+              $("nSay").innerHTML =
+                "Thread làm <em>#" +
+                ns.id +
+                "</em>" +
+                (ns.waiting && ns.waiting.length
+                  ? " · #" +
+                    ns.waiting.join(", #") +
+                    " chờ mạng (thread <em>không kẹt</em>)"
+                  : "");
+            } else if (ns.kind === "idle") {
+              $("nSay").innerHTML =
+                "Thread rảnh — mọi request đang chờ mạng (vẫn đang <em>deal</em> nhiều việc mở).";
+            }
+
+            if (bDone && nDone) {
+              clearInterval(timer);
+              timer = null;
+              $("btn").disabled = false;
+            }
+          }, TICK);
+        }
+
+        $("btn").onclick = run;
+        $("reset").onclick = reset;
+        reset();
+      })();
+    </script>
+  </body>
+</html>

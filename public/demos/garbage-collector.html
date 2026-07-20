@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Garbage collector</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --ok: #5eea93;
+        --warn: #fbbf24;
+        --bad: #ff8f8f;
+        --live: #60a5fa;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 40rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin: 0.85rem 0 0;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem 0.95rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      button.danger {
+        background: transparent;
+        border: 1px solid rgba(255, 143, 143, 0.45);
+        color: var(--bad);
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--dim);
+        margin-bottom: 0.75rem;
+      }
+      .roots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 0.75rem;
+        min-height: 2.2rem;
+      }
+      .root-chip {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        padding: 0.35rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid rgba(184, 164, 255, 0.45);
+        background: rgba(184, 164, 255, 0.12);
+        color: var(--accent);
+      }
+      .root-chip.empty {
+        border-style: dashed;
+        color: var(--dim);
+        background: transparent;
+      }
+      .heap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        min-height: 5.5rem;
+      }
+      .obj {
+        width: 4.6rem;
+        padding: 0.45rem 0.35rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: #1a1a1e;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        transition: 0.25s;
+        position: relative;
+      }
+      .obj .name {
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: var(--text);
+        margin-bottom: 0.15rem;
+      }
+      .obj .ref {
+        color: var(--dim);
+        font-size: 0.65rem;
+      }
+      .obj.live {
+        border-color: rgba(96, 165, 250, 0.55);
+        background: rgba(96, 165, 250, 0.12);
+        box-shadow: 0 0 12px rgba(96, 165, 250, 0.2);
+      }
+      .obj.live .name {
+        color: var(--live);
+      }
+      .obj.garbage {
+        border-color: rgba(251, 191, 36, 0.45);
+        background: rgba(251, 191, 36, 0.1);
+      }
+      .obj.garbage .name {
+        color: var(--warn);
+      }
+      .obj.dead {
+        animation: vanish 0.5s ease forwards;
+      }
+      @keyframes vanish {
+        to {
+          opacity: 0;
+          transform: scale(0.5);
+          filter: blur(3px);
+        }
+      }
+      .obj.alloc {
+        animation: pop 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @keyframes pop {
+        from {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .stats strong {
+        color: var(--text);
+      }
+      .say {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+        min-height: 2.8em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .stw {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 11, 0.72);
+        z-index: 20;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .stw.on {
+        display: flex;
+      }
+      .stw b {
+        font-size: 1.25rem;
+        color: var(--warn);
+        letter-spacing: 0.04em;
+      }
+      .stw span {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.1rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+      }
+      .legend i {
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 2px;
+        margin-right: 0.3rem;
+        vertical-align: 0.05em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Garbage collector — mini heap</h1>
+        <p>
+          Root trỏ object → object sống. Mất root / không reachable → garbage →
+          GC hốt. <a href="/articles/garbage-collector.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Sống</b> = chạm được từ root · <b>Garbage</b> = không ai trỏ tới
+          (từ root)
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btnAlloc">+ Allocate object</button>
+        <button type="button" class="ghost" id="btnLink">
+          Nối object cuối → object trước
+        </button>
+        <button type="button" class="ghost" id="btnDrop">
+          Bỏ root (unroot một object)
+        </button>
+        <button type="button" id="btnGc">▶ Chạy GC</button>
+        <button type="button" class="ghost" id="btnDemo">Story tự chạy</button>
+        <button type="button" class="danger" id="btnReset">Reset</button>
+      </div>
+
+      <div class="panel">
+        <h2>Roots (stack / global — điểm xuất phát)</h2>
+        <div class="roots" id="roots"></div>
+        <h2>Heap</h2>
+        <div class="heap" id="heap"></div>
+        <div class="stats" style="margin-top: 0.85rem">
+          <span>objects <strong id="nObj">0</strong></span>
+          <span>live <strong id="nLive">0</strong></span>
+          <span>garbage <strong id="nGarbage">0</strong></span>
+          <span>GC runs <strong id="nGc">0</strong></span>
+        </div>
+        <p class="say" id="say">
+          Bấm Allocate — object mới được root trỏ tới (sống).
+        </p>
+      </div>
+
+      <div class="legend">
+        <span><i style="background: var(--live)"></i>live (reachable)</span>
+        <span><i style="background: var(--warn)"></i>garbage (sẽ bị hốt)</span>
+        <span><i style="background: var(--accent)"></i>root</span>
+      </div>
+    </div>
+
+    <div class="stw" id="stw" aria-hidden="true">
+      <b>STOP-THE-WORLD</b>
+      <span>GC đang mark + sweep…</span>
+    </div>
+
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        /** @type {{id:string, ref:string|null, rooted:boolean}[]} */
+        let heap = [];
+        let seq = 0;
+        let gcRuns = 0;
+        let busy = false;
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        function reachable() {
+          const byId = Object.fromEntries(heap.map((o) => [o.id, o]));
+          const live = new Set();
+          const stack = heap.filter((o) => o.rooted).map((o) => o.id);
+          while (stack.length) {
+            const id = stack.pop();
+            if (live.has(id)) continue;
+            live.add(id);
+            const o = byId[id];
+            if (o && o.ref && byId[o.ref]) stack.push(o.ref);
+          }
+          return live;
+        }
+
+        function paint(markSet) {
+          const live = markSet || reachable();
+          const rootsEl = $("roots");
+          rootsEl.innerHTML = "";
+          const rooted = heap.filter((o) => o.rooted);
+          if (!rooted.length) {
+            rootsEl.innerHTML =
+              '<span class="root-chip empty">không còn root</span>';
+          } else {
+            rooted.forEach((o) => {
+              const c = document.createElement("span");
+              c.className = "root-chip";
+              c.textContent = "root → " + o.id;
+              rootsEl.appendChild(c);
+            });
+          }
+
+          const heapEl = $("heap");
+          heapEl.innerHTML = "";
+          let gCount = 0;
+          heap.forEach((o) => {
+            const el = document.createElement("div");
+            const isLive = live.has(o.id);
+            if (!isLive) gCount++;
+            el.className = "obj " + (isLive ? "live" : "garbage");
+            el.id = "obj-" + o.id;
+            el.innerHTML =
+              '<div class="name">' +
+              o.id +
+              "</div>" +
+              '<div class="ref">' +
+              (o.ref ? "→ " + o.ref : "→ ∅") +
+              (o.rooted ? " · root" : "") +
+              "</div>";
+            heapEl.appendChild(el);
+          });
+
+          $("nObj").textContent = String(heap.length);
+          $("nLive").textContent = String(live.size);
+          $("nGarbage").textContent = String(gCount);
+          $("nGc").textContent = String(gcRuns);
+        }
+
+        function alloc() {
+          if (busy) return;
+          seq++;
+          const id = "O" + seq;
+          heap.push({ id, ref: null, rooted: true });
+          paint();
+          const el = $("obj-" + id);
+          if (el) el.classList.add("alloc");
+          $("say").innerHTML =
+            "Allocate <em>" +
+            id +
+            "</em> — có root trỏ tới → <em>live</em>.";
+        }
+
+        function link() {
+          if (busy || heap.length < 2) {
+            $("say").textContent = "Cần ≥ 2 object để nối.";
+            return;
+          }
+          const a = heap[heap.length - 1];
+          const b = heap[heap.length - 2];
+          a.ref = b.id;
+          paint();
+          $("say").innerHTML =
+            "<em>" +
+            a.id +
+            "</em> trỏ tới <em>" +
+            b.id +
+            "</em>. Nếu " +
+            a.id +
+            " live thì " +
+            b.id +
+            " cũng có thể live qua cạnh này.";
+        }
+
+        function dropRoot() {
+          if (busy) return;
+          const r = heap.filter((o) => o.rooted);
+          if (!r.length) {
+            $("say").textContent = "Không còn root để bỏ.";
+            return;
+          }
+          // drop oldest rooted (stable story)
+          r[0].rooted = false;
+          paint();
+          $("say").innerHTML =
+            "Bỏ root của <em>" +
+            r[0].id +
+            "</em>. Nếu không còn path từ root khác → sẽ thành <em>garbage</em> (vàng).";
+        }
+
+        async function runGc() {
+          if (busy) return;
+          busy = true;
+          $("btnGc").disabled = true;
+          const live = reachable();
+          paint(live);
+          $("stw").classList.add("on");
+          $("say").innerHTML =
+            "<em>STW</em>: mark từ roots… object không mark = garbage.";
+          await sleep(900);
+          $("stw").classList.remove("on");
+
+          const victims = heap.filter((o) => !live.has(o.id));
+          victims.forEach((o) => {
+            const el = $("obj-" + o.id);
+            if (el) el.classList.add("dead");
+          });
+          await sleep(480);
+          heap = heap.filter((o) => live.has(o.id));
+          gcRuns++;
+          paint();
+          $("say").innerHTML = victims.length
+            ? "Sweep: hốt <em>" +
+              victims.map((v) => v.id).join(", ") +
+              "</em>. Heap còn " +
+              heap.length +
+              " object live."
+            : "Không có garbage — mọi object vẫn reachable.";
+          busy = false;
+          $("btnGc").disabled = false;
+        }
+
+        async function story() {
+          if (busy) return;
+          reset(false);
+          $("say").textContent = "Story: allocate 3 object…";
+          for (let i = 0; i < 3; i++) {
+            alloc();
+            await sleep(400);
+          }
+          link();
+          await sleep(700);
+          $("say").innerHTML =
+            "Bỏ root object đầu — có thể thành garbage (trừ khi ai đó còn trỏ).";
+          dropRoot();
+          await sleep(900);
+          await runGc();
+        }
+
+        function reset(msg) {
+          if (busy) return;
+          heap = [];
+          seq = 0;
+          gcRuns = 0;
+          paint();
+          if (msg !== false)
+            $("say").textContent =
+              "Bấm Allocate — object mới được root trỏ tới (sống).";
+        }
+
+        $("btnAlloc").onclick = alloc;
+        $("btnLink").onclick = link;
+        $("btnDrop").onclick = dropRoot;
+        $("btnGc").onclick = runGc;
+        $("btnDemo").onclick = story;
+        $("btnReset").onclick = () => reset();
+        paint();
+      })();
+    </script>
+  </body>
+</html>

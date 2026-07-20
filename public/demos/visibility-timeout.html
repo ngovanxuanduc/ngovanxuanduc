@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Visibility timeout / lease</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .field label {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font-family: var(--mono);
+        width: 5.5rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.4rem 0.5rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button.danger {
+        border-color: rgba(255, 143, 143, 0.4);
+        color: var(--danger);
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .lanes {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.5rem;
+      }
+      @media (max-width: 700px) {
+        .lanes {
+          grid-template-columns: 1fr;
+        }
+      }
+      .lane {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.65rem;
+        background: var(--bg);
+        min-height: 100px;
+      }
+      .lane h3 {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        margin-bottom: 0.4rem;
+      }
+      .job {
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        margin-bottom: 0.35rem;
+      }
+      .job.invis {
+        border-color: rgba(96, 165, 250, 0.45);
+        color: var(--running);
+      }
+      .job.vis {
+        color: var(--text-muted);
+      }
+      .job.done {
+        border-color: rgba(94, 234, 147, 0.4);
+        color: var(--success);
+      }
+      .bar {
+        height: 6px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        margin-top: 0.35rem;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: var(--running);
+        transform-origin: left;
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 12rem;
+        overflow: auto;
+      }
+      .workers {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Visibility timeout / lease</h1>
+        <p>
+          Claim job → “crash” worker → chờ hết lease → worker khác nhận lại.
+          <a href="/articles/visibility-timeout.html">← bài viết</a>
+        </p>
+      </header>
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label>Lease (ms)</label>
+            <input id="lease" type="number" value="3000" min="500" step="500" />
+          </div>
+          <button type="button" class="primary" id="btnEnqueue">Enqueue job</button>
+          <button type="button" id="btnW1">W1 claim</button>
+          <button type="button" id="btnW2">W2 claim</button>
+          <button type="button" class="danger" id="btnCrash">Crash holder</button>
+          <button type="button" id="btnAck">Ack (complete)</button>
+          <button type="button" id="btnExtend">Extend lease</button>
+          <button type="button" id="btnReset">Reset</button>
+        </div>
+        <p class="workers" id="info" style="margin-top: 0.75rem">—</p>
+      </div>
+      <div class="panel">
+        <h2>Queue state</h2>
+        <div class="lanes">
+          <div class="lane"><h3>visible (waiting)</h3><div id="vis"></div></div>
+          <div class="lane"><h3>invisible (leased)</h3><div id="invis"></div></div>
+          <div class="lane"><h3>done</h3><div id="done"></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let seq = 0;
+        /** @type {{id, state, holder, leaseUntil, receiveCount}[]} */
+        let jobs = [];
+        let timer = null;
+
+        function log(m) {
+          const d = document.createElement("div");
+          d.textContent = new Date().toISOString().slice(11, 23) + "  " + m;
+          $("log").prepend(d);
+        }
+
+        function leaseMs() {
+          return Math.max(500, +$("lease").value || 3000);
+        }
+
+        function tick() {
+          const now = Date.now();
+          jobs.forEach((j) => {
+            if (j.state === "invisible" && j.leaseUntil <= now) {
+              j.state = "visible";
+              j.holder = null;
+              log(j.id + " lease expired → visible again (redelivery ready)");
+            }
+          });
+          render();
+        }
+
+        function render() {
+          const now = Date.now();
+          const put = (id, list, cls) => {
+            const el = $(id);
+            el.innerHTML = "";
+            list.forEach((j) => {
+              const div = document.createElement("div");
+              div.className = "job " + cls;
+              let extra = " recv=" + j.receiveCount;
+              if (j.state === "invisible") {
+                const left = Math.max(0, j.leaseUntil - now);
+                extra += " · " + j.holder + " · " + (left / 1000).toFixed(1) + "s left";
+                div.innerHTML =
+                  j.id +
+                  extra +
+                  '<div class="bar"><i style="transform:scaleX(' +
+                  left / leaseMs() +
+                  ')"></i></div>';
+              } else {
+                div.textContent = j.id + extra + (j.holder ? " · was " + j.holder : "");
+              }
+              el.appendChild(div);
+            });
+          };
+          put(
+            "vis",
+            jobs.filter((j) => j.state === "visible"),
+            "vis"
+          );
+          put(
+            "invis",
+            jobs.filter((j) => j.state === "invisible"),
+            "invis"
+          );
+          put(
+            "done",
+            jobs.filter((j) => j.state === "done"),
+            "done"
+          );
+          const held = jobs.find((j) => j.state === "invisible");
+          $("info").textContent = held
+            ? "Đang lease: " + held.id + " bởi " + held.holder
+            : "Không có job invisible";
+        }
+
+        function claim(worker) {
+          const j = jobs.find((x) => x.state === "visible");
+          if (!j) {
+            log(worker + " claim: empty");
+            return;
+          }
+          j.state = "invisible";
+          j.holder = worker;
+          j.leaseUntil = Date.now() + leaseMs();
+          j.receiveCount++;
+          log(worker + " claimed " + j.id + " (receive #" + j.receiveCount + ")");
+          render();
+        }
+
+        $("btnEnqueue").onclick = () => {
+          const id = "job-" + ++seq;
+          jobs.push({
+            id,
+            state: "visible",
+            holder: null,
+            leaseUntil: 0,
+            receiveCount: 0,
+          });
+          log("enqueue " + id);
+          render();
+        };
+        $("btnW1").onclick = () => claim("W1");
+        $("btnW2").onclick = () => claim("W2");
+        $("btnCrash").onclick = () => {
+          const j = jobs.find((x) => x.state === "invisible");
+          if (!j) {
+            log("crash: no holder");
+            return;
+          }
+          log("CRASH " + j.holder + " — không ack, chờ lease hết");
+          j.holder = j.holder + "(dead)";
+          render();
+        };
+        $("btnAck").onclick = () => {
+          const j = jobs.find((x) => x.state === "invisible" && !String(x.holder).includes("dead"));
+          // allow ack only if not crashed — or allow if still invisible
+          const live = jobs.find((x) => x.state === "invisible");
+          if (!live) {
+            log("ack: nothing invisible");
+            return;
+          }
+          if (String(live.holder).includes("dead")) {
+            log("ack: holder dead — không ack được, chờ redelivery");
+            return;
+          }
+          live.state = "done";
+          log(live.holder + " ACK " + live.id);
+          live.holder = null;
+          render();
+        };
+        $("btnExtend").onclick = () => {
+          const j = jobs.find((x) => x.state === "invisible" && !String(x.holder).includes("dead"));
+          if (!j) {
+            log("extend: no live holder");
+            return;
+          }
+          j.leaseUntil = Date.now() + leaseMs();
+          log(j.holder + " extended lease on " + j.id);
+          render();
+        };
+        $("btnReset").onclick = () => {
+          jobs = [];
+          seq = 0;
+          $("log").innerHTML = "";
+          log("reset");
+          render();
+        };
+        timer = setInterval(tick, 100);
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,163 @@
+---
+{
+  "title": "Write vs read vs shared channel — fail ưu tiên gì? · Articles",
+  "description": "Write side: đừng chặn business. Read side: đủ event + order. Shared: đừng resend làm app khác double. Chọn recovery theo purpose.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Write vs read vs shared channel</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Sau
+            <a href="/articles/queue-vs-stream.html">queue vs stream</a>
+            (channel <em>làm được gì</em>), hỏi tiếp: channel
+            <strong>dùng để làm gì</strong>? Cùng một Kafka topic, recovery
+            “đúng” cho payment worker có thể
+            <em>phá</em> projection — và ngược lại.
+          </p>
+          <p>
+            Ba purpose:
+            <strong>write</strong>, <strong>read</strong>,
+            <strong>shared</strong>. Demo:
+            <a href="/demos/write-vs-read-channel.html"
+              >Đổi purpose → strategy hợp / không hợp</a
+            >.
+          </p>
+
+          <h2>Write side — business phải chạy</h2>
+          <p>
+            Channel kích hoạt hành động: trừ tiền, gửi mail welcome, mở ticket
+            3rd-party, bước workflow… Message = “hãy làm việc này”.
+          </p>
+          <ul>
+            <li>
+              <strong>Ưu tiên:</strong> hoàn thành action, continuity. Một
+              payment fail tạm không nên
+              <em>đóng băng mọi payment sau</em> trên cùng lane nếu business
+              không yêu cầu.
+            </li>
+            <li>
+              <strong>Order tuyệt đối</strong> thường không phải requirement
+              toàn cục — hoặc chỉ per aggregate (account id) qua partition key.
+            </li>
+            <li>
+              Fail strategy hay gặp: instant retry → delayed resend / error
+              queue →
+              <a href="/articles/poison-dlq.html">DLQ</a> — nhằm
+              <strong>unblock</strong> + tự heal transient.
+            </li>
+          </ul>
+          <p>
+            Viết tắt: write side
+            <em>dừng channel = dừng một phần business</em>.
+          </p>
+
+          <h2>Read side — dựng view từ lịch sử</h2>
+          <p>
+            Projection, search index, analytics, sync read model: “xảy ra gì
+            thì phản ánh vào view”.
+          </p>
+          <ul>
+            <li>
+              <strong>Ưu tiên:</strong> đủ event + thứ tự có nghĩa (thường
+              per-key). Skip / ignore bừa = view
+              <strong>sai hoặc thiếu</strong>, không chỉ “chậm”.
+            </li>
+            <li>
+              Fail / block projection: user thấy data cũ —
+              <em>stale</em> — business write vẫn chạy được. Đó là trade-off
+              chấp nhận được hơn corrupt view.
+            </li>
+            <li>
+              Strategy: instant retry OK; release/rewind giữ order; cẩn thận
+              resend phá order; ignore gần như cấm nếu view phải đúng.
+            </li>
+          </ul>
+          <p>
+            Viết tắt: read side
+            <em>chậm được, sai không được</em> (trong phạm vi consistency bạn
+            đã hứa).
+          </p>
+
+          <h2>Shared — nhiều group / app cùng channel</h2>
+          <p>
+            Stream với ≥2 consumer group (billing + analytics + audit…), hoặc
+            bất kỳ setup nào message được consume độc lập nhiều lần theo group.
+          </p>
+          <ul>
+            <li>
+              App A fail ≠ app B fail. B có thể đã xử lý xong.
+            </li>
+            <li>
+              <strong>Resend message gốc vào channel</strong> → B có thể nhận
+              <em>lần hai</em> (trừ khi mọi consumer
+              <a href="/articles/idempotency.html">idempotent</a> tuyệt đối).
+            </li>
+            <li>
+              An toàn hơn: error channel / DLQ
+              <em>riêng group A</em>, không đụng shared log theo kiểu nhân bản
+              event cho cả thế giới.
+            </li>
+          </ul>
+          <p>
+            Chi tiết:
+            <a href="/articles/resend-shared-channel.html"
+              >resend single-group vs shared</a
+            >.
+          </p>
+
+          <h2>Ma trận purpose × ưu tiên</h2>
+          <pre><code>              Unblock flow    Giữ order/đủ event    Đừng double app khác
+Write            ★★★               ★                 ★★ (nếu shared)
+Read             ★                 ★★★               ★★
+Shared           ★★                ★                 ★★★</code></pre>
+          <p>
+            ★★★ = constraint cứng. Strategy nào đụng ★★★ là “sai purpose”.
+          </p>
+
+          <h2>Ví dụ chọn nhanh</h2>
+          <ul>
+            <li>
+              <code>orders.commands</code> / queue worker “charge card” →
+              write, single app → delayed retry + DLQ, resend OK hơn là release
+              mãi một poison.
+            </li>
+            <li>
+              <code>orders.events</code> → projection balance → read → đừng
+              ignore; poison thì park + alert, cân nhắc không xáo order per
+              account.
+            </li>
+            <li>
+              Topic dùng chung CRM + warehouse → shared → fail CRM không
+              <code>produce</code> lại same event lên topic chung.
+            </li>
+          </ul>
+
+          <h2>Queue “không shared” mặc định</h2>
+          <p>
+            Classic queue thường hành xử như
+            <strong>một message group</strong>: ai lấy thì của người đó. Shared
+            theo nghĩa nhiều app độc lập ít gặp hơn stream — trừ khi bạn fan-out
+            exchange → nhiều queue (mỗi app một queue = không còn một channel
+            shared, mà nhiều subscription).
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Write: đừng chặn business. Read: đừng làm view sai. Shared:
+            đừng recovery theo cách nhân bản cho hàng xóm.</strong>
+          </p>
+          <p>
+            Purpose ×
+            <a href="/articles/queue-vs-stream.html">loại channel</a> → mở
+            <a href="/articles/async-recovery-playbook.html">playbook</a>.
+          </p>
+        </div>
+      </article>

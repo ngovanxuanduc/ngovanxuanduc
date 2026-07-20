@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Write vs read vs shared</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --ok: #5eea93;
+        --bad: #ff8f8f;
+        --warn: #fbbf24;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .tabs {
+        display: flex;
+        gap: 0.45rem;
+        margin: 1.15rem 0 1rem;
+        flex-wrap: wrap;
+      }
+      .tab {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        padding: 0.55rem 0.95rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        transition: 0.15s;
+      }
+      .tab:hover {
+        border-color: rgba(184, 164, 255, 0.4);
+        color: var(--text);
+      }
+      .tab.on {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        box-shadow: 0 0 18px rgba(184, 164, 255, 0.35);
+      }
+      .hero {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+        animation: fadeUp 0.35s ease;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .hero h2 {
+        font-size: 1.05rem;
+        margin-bottom: 0.35rem;
+      }
+      .hero p {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .hero em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .prios {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.75rem;
+      }
+      .prio {
+        font-size: 0.75rem;
+        font-family: var(--mono);
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--dim);
+      }
+      .prio.hi {
+        border-color: rgba(94, 234, 147, 0.45);
+        color: var(--ok);
+        background: rgba(94, 234, 147, 0.1);
+      }
+      .prio.lo {
+        opacity: 0.55;
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 7.5rem 3.2rem 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.55rem 0.7rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        animation: fadeUp 0.4s ease both;
+      }
+      .row .name {
+        font-size: 0.88rem;
+        font-weight: 500;
+      }
+      .row .badge {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: center;
+        padding: 0.2rem 0;
+        border-radius: 6px;
+      }
+      .row .badge.ok {
+        color: #0a0a0b;
+        background: var(--ok);
+      }
+      .row .badge.no {
+        color: #0a0a0b;
+        background: var(--bad);
+      }
+      .row .badge.mid {
+        color: #0a0a0b;
+        background: var(--warn);
+      }
+      .row .why {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .row.ok-row {
+        border-color: rgba(94, 234, 147, 0.25);
+      }
+      .row.no-row {
+        border-color: rgba(255, 143, 143, 0.3);
+        opacity: 0.92;
+      }
+      .legend {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Write / read / shared</h1>
+        <p>
+          Chọn mục đích channel — strategy sáng lên / mờ đi.
+          <a href="/articles/write-vs-read-channel.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab on" data-p="write">Write</button>
+        <button type="button" class="tab" data-p="read">Read</button>
+        <button type="button" class="tab" data-p="shared">Shared</button>
+      </div>
+
+      <div class="hero" id="hero"></div>
+      <div class="list" id="list"></div>
+      <p class="legend">OK = hợp · ~ = cẩn · NO = tránh mặc định</p>
+    </div>
+    <script>
+      (function () {
+        const meta = {
+          write: {
+            title: "Write — business action",
+            body: "Payment, email, workflow… Ưu tiên <em>không chặn business</em>.",
+            prios: [
+              { t: "unblock ★★★", hi: true },
+              { t: "order ★", hi: false },
+              { t: "no-double ★★", hi: true },
+            ],
+          },
+          read: {
+            title: "Read — projection / view",
+            body: "Build view từ event. Ưu tiên <em>đủ + đúng thứ tự</em> — chậm được, sai không được.",
+            prios: [
+              { t: "unblock ★", hi: false },
+              { t: "order/đủ ★★★", hi: true },
+              { t: "no-double ★★", hi: true },
+            ],
+          },
+          shared: {
+            title: "Shared — nhiều consumer group",
+            body: "Nhiều app đọc cùng stream. Ưu tiên <em>đừng recovery làm hàng xóm double</em>.",
+            prios: [
+              { t: "unblock ★★", hi: true },
+              { t: "order ★", hi: false },
+              { t: "no-double ★★★", hi: true },
+            ],
+          },
+        };
+
+        const rows = [
+          {
+            name: "Instant retry",
+            write: ["ok", "Transient, không đụng channel"],
+            read: ["ok", "Thử lại, giữ chỗ"],
+            shared: ["ok", "Không nhân bản group khác"],
+          },
+          {
+            name: "Release / rewind",
+            write: ["mid", "Poison → block business"],
+            read: ["ok", "Giữ order / đủ event"],
+            shared: ["mid", "Block group mình"],
+          },
+          {
+            name: "Ignore / skip",
+            write: ["mid", "Chỉ khi chấp nhận mất"],
+            read: ["no", "View thiếu / sai"],
+            shared: ["mid", "Mất với group mình"],
+          },
+          {
+            name: "Resend gốc",
+            write: ["ok", "Unblock + idempotency"],
+            read: ["mid", "Phá order projection"],
+            shared: ["no", "Group khác double"],
+          },
+          {
+            name: "Delayed resend",
+            write: ["ok", "Tự heal 3rd-party"],
+            read: ["mid", "Cũng xáo order"],
+            shared: ["no", "Giống resend shared"],
+          },
+          {
+            name: "Error channel",
+            write: ["ok", "Private retry path"],
+            read: ["ok", "Park có kiểm soát"],
+            shared: ["ok", "Không đụng shared log"],
+          },
+          {
+            name: "DLQ",
+            write: ["ok", "Poison → review"],
+            read: ["mid", "Gap view — cần replay"],
+            shared: ["ok", "Theo từng group"],
+          },
+        ];
+
+        let purpose = "write";
+
+        function render() {
+          const m = meta[purpose];
+          const hero = document.getElementById("hero");
+          hero.style.animation = "none";
+          void hero.offsetWidth;
+          hero.style.animation = "";
+          hero.innerHTML =
+            "<h2>" +
+            m.title +
+            "</h2><p>" +
+            m.body +
+            '</p><div class="prios">' +
+            m.prios
+              .map(
+                (p) =>
+                  '<span class="prio' +
+                  (p.hi ? " hi" : " lo") +
+                  '">' +
+                  p.t +
+                  "</span>"
+              )
+              .join("") +
+            "</div>";
+
+          const list = document.getElementById("list");
+          list.innerHTML = "";
+          rows.forEach((r, i) => {
+            const [k, why] = r[purpose];
+            const el = document.createElement("div");
+            el.className =
+              "row " + (k === "ok" ? "ok-row" : k === "no" ? "no-row" : "");
+            el.style.animationDelay = i * 0.04 + "s";
+            const lab = k === "ok" ? "OK" : k === "no" ? "NO" : "~";
+            el.innerHTML =
+              '<span class="name">' +
+              r.name +
+              '</span><span class="badge ' +
+              k +
+              '">' +
+              lab +
+              '</span><span class="why">' +
+              why +
+              "</span>";
+            list.appendChild(el);
+          });
+        }
+
+        document.querySelectorAll(".tab").forEach((tab) => {
+          tab.onclick = () => {
+            document
+              .querySelectorAll(".tab")
+              .forEach((t) => t.classList.remove("on"));
+            tab.classList.add("on");
+            purpose = tab.dataset.p;
+            render();
+          };
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

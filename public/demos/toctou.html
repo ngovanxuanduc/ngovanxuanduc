@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Demo TOCTOU: hai withdraw async check-then-act vs atomic update."
+    />
+    <title>Demo · TOCTOU async</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .balance {
+        font-family: var(--mono);
+        font-size: 2.4rem;
+        font-weight: 600;
+      }
+      .balance.bad {
+        color: var(--danger);
+      }
+      .balance.ok {
+        color: var(--success);
+      }
+      .sub {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 0.65rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font: inherit;
+        font-family: var(--mono);
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+        width: 8rem;
+      }
+      .btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .lanes {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .lane {
+        display: grid;
+        grid-template-columns: 5rem 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .lane-id {
+        font-family: var(--mono);
+        color: var(--text-dim);
+      }
+      .steps {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+      .steps .go {
+        color: var(--running);
+      }
+      .steps .ok {
+        color: var(--success);
+      }
+      .steps .err {
+        color: var(--danger);
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 12rem;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .note {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>TOCTOU — check balance rồi trừ</h1>
+        <p>
+          Balance ban đầu 100. Hai request rút 80 song song.
+          <a href="/articles/toctou-async.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="panel">
+          <h2>Account</h2>
+          <div class="balance" id="bal">100</div>
+          <div class="sub">Expected nếu đúng: không cho rút quá balance</div>
+          <div class="field" style="margin-top: 1rem">
+            <label for="amount">Mỗi request rút</label>
+            <input id="amount" type="number" value="80" min="1" />
+          </div>
+          <div class="field">
+            <label for="latency">Latency DB read/write (ms)</label>
+            <input id="latency" type="number" value="400" min="50" />
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnRace">
+              Race: check-then-act
+            </button>
+            <button type="button" id="btnAtomic">Atomic UPDATE</button>
+            <button type="button" id="btnReset">Reset balance=100</button>
+          </div>
+          <p class="note" id="summary">—</p>
+        </div>
+        <div class="panel">
+          <h2>Hai flow</h2>
+          <div class="lanes">
+            <div class="lane">
+              <span class="lane-id">Req A</span>
+              <span class="steps" id="stepA">idle</span>
+            </div>
+            <div class="lane">
+              <span class="lane-id">Req B</span>
+              <span class="steps" id="stepB">idle</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Timeline</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let balance = 100;
+        // version for atomic-ish demo
+        let busy = false;
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        function log(msg) {
+          const el = $("log");
+          const line = document.createElement("div");
+          const t = new Date().toISOString().slice(11, 23);
+          line.textContent = t + "  " + msg;
+          el.prepend(line);
+        }
+
+        function setBal() {
+          $("bal").textContent = balance;
+          $("bal").className =
+            "balance " + (balance < 0 ? "bad" : balance === 100 ? "" : balance >= 0 ? "ok" : "");
+        }
+
+        function setStep(which, html) {
+          $("step" + which).innerHTML = html;
+        }
+
+        /** Broken: read, await, write based on stale snapshot */
+        async function withdrawTOCTOU(label, amount, latency) {
+          setStep(label, '<span class="go">CHECK read…</span>');
+          log(label + ": READ balance (start)");
+          await sleep(latency);
+          const bal = balance;
+          log(label + ": saw balance=" + bal);
+          setStep(label, '<span class="go">saw ' + bal + ", check…</span>");
+          await sleep(80);
+          if (bal < amount) {
+            setStep(label, '<span class="err">reject insufficient</span>');
+            log(label + ": REJECT bal=" + bal + " < " + amount);
+            return { ok: false };
+          }
+          setStep(label, '<span class="go">USE write ' + bal + "-" + amount + "…</span>");
+          log(label + ": WRITE " + bal + " - " + amount + " (dựa trên snapshot cũ)");
+          await sleep(latency);
+          balance = bal - amount;
+          setBal();
+          setStep(label, '<span class="ok">done → ' + balance + "</span>");
+          log(label + ": committed balance=" + balance);
+          return { ok: true };
+        }
+
+        /** Fixed: single critical section with lock + re-read */
+        let chain = Promise.resolve();
+        function withAccountLock(fn) {
+          const run = chain.then(fn, fn);
+          chain = run.catch(() => {});
+          return run;
+        }
+
+        async function withdrawAtomic(label, amount, latency) {
+          setStep(label, '<span class="go">wait lock…</span>');
+          return withAccountLock(async () => {
+            setStep(label, '<span class="go">locked, read…</span>');
+            log(label + ": LOCK + READ");
+            await sleep(latency);
+            if (balance < amount) {
+              setStep(label, '<span class="err">reject insufficient</span>');
+              log(label + ": REJECT balance=" + balance);
+              return { ok: false };
+            }
+            const next = balance - amount;
+            setStep(label, '<span class="go">write ' + next + "…</span>");
+            log(label + ": WRITE balance=" + next);
+            await sleep(latency);
+            balance = next;
+            setBal();
+            setStep(label, '<span class="ok">done → ' + balance + "</span>");
+            log(label + ": unlock balance=" + balance);
+            return { ok: true };
+          });
+        }
+
+        async function runRace(mode) {
+          if (busy) return;
+          busy = true;
+          ["btnRace", "btnAtomic"].forEach((id) => ($(id).disabled = true));
+          const amount = Math.max(1, +$("amount").value || 80);
+          const latency = Math.max(50, +$("latency").value || 400);
+          $("log").innerHTML = "";
+          setStep("A", "idle");
+          setStep("B", "idle");
+          log(
+            "=== " +
+              (mode === "toctou" ? "TOCTOU check-then-act" : "atomic + lock") +
+              " start bal=" +
+              balance +
+              " each=" +
+              amount
+          );
+
+          const fn = mode === "toctou" ? withdrawTOCTOU : withdrawAtomic;
+          const results = await Promise.all([
+            fn("A", amount, latency),
+            fn("B", amount, latency),
+          ]);
+          const okN = results.filter((r) => r.ok).length;
+          const expectedMin = 100 - amount; // at most one success if amount>50 from 100
+          let msg =
+            "Xong: " +
+            okN +
+            " success, balance=" +
+            balance +
+            ".";
+          if (mode === "toctou" && balance < 0) {
+            msg +=
+              " Âm tiền — classic TOCTOU: cả hai đều saw snapshot đủ trước khi write.";
+          } else if (mode === "toctou" && okN === 2 && amount * 2 > 100) {
+            msg +=
+              " Hai success dù tổng rút > balance ban đầu (hoặc balance sai).";
+          } else if (mode === "atomic") {
+            msg +=
+              okN === 1
+                ? " Đúng: chỉ một request thắng, request kia reject."
+                : " (cả hai reject nếu balance không đủ lần lượt)";
+          }
+          $("summary").textContent = msg;
+          busy = false;
+          ["btnRace", "btnAtomic"].forEach((id) => ($(id).disabled = false));
+        }
+
+        $("btnRace").onclick = () => runRace("toctou");
+        $("btnAtomic").onclick = () => runRace("atomic");
+        $("btnReset").onclick = () => {
+          balance = 100;
+          setBal();
+          setStep("A", "idle");
+          setStep("B", "idle");
+          $("summary").textContent = "—";
+          log("reset balance=100");
+        };
+        setBal();
+      })();
+    </script>
+  </body>
+</html>

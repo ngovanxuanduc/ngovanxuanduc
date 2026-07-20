@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Timeout budget</title>
+    <meta name="description" content="So sánh timeout cố định mỗi hop vs deadline/budget chung." />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font-family: var(--mono);
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.45rem 0.6rem;
+        width: 6.5rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hops {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+      }
+      .hop {
+        display: grid;
+        grid-template-columns: 4rem 1fr auto;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .bar {
+        height: 10px;
+        background: #1a1a1e;
+        border-radius: 99px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .bar > i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: var(--running);
+      }
+      .bar > i.done {
+        background: var(--success);
+      }
+      .bar > i.fail {
+        background: var(--danger);
+      }
+      .bar > i.skip {
+        background: var(--warn);
+      }
+      .total {
+        font-family: var(--mono);
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-top: 0.75rem;
+      }
+      .total.bad {
+        color: var(--danger);
+      }
+      .total.ok {
+        color: var(--success);
+      }
+      .sub {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Timeout budget vs timeout mỗi hop</h1>
+        <p>
+          3 hop I/O. Trái: mỗi hop timeout cố định. Phải: một deadline chung.
+          <a href="/articles/timeout-budget.html">← bài viết</a>
+        </p>
+      </header>
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label for="userSla">User SLA / budget (ms)</label>
+            <input id="userSla" type="number" value="1200" />
+          </div>
+          <div class="field">
+            <label for="hopTo">Timeout mỗi hop — fixed (ms)</label>
+            <input id="hopTo" type="number" value="1000" />
+          </div>
+          <div class="field">
+            <label for="dA">Delay hop A (ms)</label>
+            <input id="dA" type="number" value="500" />
+          </div>
+          <div class="field">
+            <label for="dB">Delay hop B (ms)</label>
+            <input id="dB" type="number" value="500" />
+          </div>
+          <div class="field">
+            <label for="dC">Delay hop C (ms)</label>
+            <input id="dC" type="number" value="500" />
+          </div>
+          <button type="button" class="primary" id="btn">Chạy</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="panel">
+          <h2>Fixed timeout / hop</h2>
+          <div class="hops" id="fixedHops"></div>
+          <div class="total" id="fixedTotal">—</div>
+          <div class="sub" id="fixedNote"></div>
+        </div>
+        <div class="panel">
+          <h2>Shared budget / deadline</h2>
+          <div class="hops" id="budgetHops"></div>
+          <div class="total" id="budgetTotal">—</div>
+          <div class="sub" id="budgetNote"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const hops = ["A", "B", "C"];
+
+        function buildLanes(rootId) {
+          const root = $(rootId);
+          root.innerHTML = "";
+          const map = {};
+          hops.forEach((h) => {
+            const row = document.createElement("div");
+            row.className = "hop";
+            row.innerHTML =
+              "<span>" +
+              h +
+              '</span><div class="bar"><i id="' +
+              rootId +
+              h +
+              '"></i></div><span id="' +
+              rootId +
+              h +
+              't">—</span>';
+            root.appendChild(row);
+            map[h] = {
+              bar: document.getElementById(rootId + h),
+              t: document.getElementById(rootId + h + "t"),
+            };
+          });
+          return map;
+        }
+
+        function sleep(ms, signal) {
+          return new Promise((resolve, reject) => {
+            if (signal && signal.aborted) {
+              reject(Object.assign(new Error("aborted"), { code: "ABORT" }));
+              return;
+            }
+            const t = setTimeout(resolve, ms);
+            if (signal) {
+              signal.addEventListener(
+                "abort",
+                () => {
+                  clearTimeout(t);
+                  reject(Object.assign(new Error("aborted"), { code: "ABORT" }));
+                },
+                { once: true }
+              );
+            }
+          });
+        }
+
+        async function runFixed(delays, hopTimeout, userSla) {
+          const lanes = buildLanes("fixedHops");
+          const t0 = performance.now();
+          let wall = 0;
+          for (let i = 0; i < hops.length; i++) {
+            const h = hops[i];
+            const d = delays[i];
+            const bar = lanes[h].bar;
+            bar.style.width = "0%";
+            bar.className = "";
+            const start = performance.now();
+            // animate
+            const anim = setInterval(() => {
+              const elapsed = performance.now() - start;
+              bar.style.width = Math.min(100, (elapsed / hopTimeout) * 100) + "%";
+            }, 30);
+            try {
+              if (d > hopTimeout) {
+                await sleep(hopTimeout);
+                clearInterval(anim);
+                bar.style.width = "100%";
+                bar.className = "fail";
+                lanes[h].t.textContent = "timeout";
+                wall = performance.now() - t0;
+                break;
+              }
+              await sleep(d);
+              clearInterval(anim);
+              bar.style.width = "100%";
+              bar.className = "done";
+              lanes[h].t.textContent = d + "ms";
+            } catch (e) {
+              clearInterval(anim);
+            }
+          }
+          wall = performance.now() - t0;
+          const over = wall > userSla;
+          $("fixedTotal").textContent = Math.round(wall) + "ms wall";
+          $("fixedTotal").className = "total " + (over ? "bad" : "ok");
+          $("fixedNote").textContent = over
+            ? "Vượt user SLA " + userSla + "ms — mỗi hop vẫn có thể “thành công trong hạn riêng”."
+            : "Trong SLA user.";
+        }
+
+        async function runBudget(delays, userSla) {
+          const lanes = buildLanes("budgetHops");
+          const t0 = performance.now();
+          const deadline = t0 + userSla;
+          for (let i = 0; i < hops.length; i++) {
+            const h = hops[i];
+            const d = delays[i];
+            const remaining = deadline - performance.now();
+            const bar = lanes[h].bar;
+            if (remaining <= 0) {
+              bar.style.width = "100%";
+              bar.className = "skip";
+              lanes[h].t.textContent = "skip budget";
+              continue;
+            }
+            if (d > remaining) {
+              // would exceed — fail fast, don't start full work
+              bar.style.width = "100%";
+              bar.className = "fail";
+              lanes[h].t.textContent = "no budget (" + Math.round(remaining) + " left)";
+              // remaining hops skip
+              for (let j = i + 1; j < hops.length; j++) {
+                lanes[hops[j]].bar.style.width = "100%";
+                lanes[hops[j]].bar.className = "skip";
+                lanes[hops[j]].t.textContent = "skip";
+              }
+              break;
+            }
+            const start = performance.now();
+            const anim = setInterval(() => {
+              const elapsed = performance.now() - start;
+              bar.style.width = Math.min(100, (elapsed / d) * 100) + "%";
+            }, 30);
+            await sleep(d);
+            clearInterval(anim);
+            bar.style.width = "100%";
+            bar.className = "done";
+            lanes[h].t.textContent = d + "ms · left " + Math.round(deadline - performance.now());
+          }
+          const wall = performance.now() - t0;
+          const over = wall > userSla + 30;
+          $("budgetTotal").textContent = Math.round(wall) + "ms wall";
+          $("budgetTotal").className = "total " + (over ? "bad" : "ok");
+          $("budgetNote").textContent = over
+            ? "Vẫn có thể chạm sát budget."
+            : "Wall time bám SLA; hop sau không bắt đầu nếu không đủ remaining.";
+        }
+
+        $("btn").onclick = async () => {
+          $("btn").disabled = true;
+          const delays = [+$("dA").value || 0, +$("dB").value || 0, +$("dC").value || 0];
+          const userSla = +$("userSla").value || 1200;
+          const hopTo = +$("hopTo").value || 1000;
+          await Promise.all([runFixed(delays, hopTo, userSla), runBudget(delays, userSla)]);
+          $("btn").disabled = false;
+        };
+      })();
+    </script>
+  </body>
+</html>

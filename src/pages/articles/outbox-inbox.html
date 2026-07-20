@@ -1,0 +1,145 @@
+---
+{
+  "title": "Outbox &amp; inbox — side-effect không “nửa vời” · Articles",
+  "description": "Ghi DB + publish event không atomic qua mạng. Transactional outbox, inbox dedup, và nối idempotency.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Outbox &amp; inbox — side-effect không “nửa vời”</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Pattern hỏng kinh điển:
+          </p>
+          <pre><code>await db.insert(order);      // OK
+await broker.publish(event); // crash / timeout ở đây
+// → DB có order, không ai nhận event — hoặc ngược lại nếu đảo thứ tự</code></pre>
+          <p>
+            Hai hệ thống (DB và queue/broker) không chung một transaction phân
+            tán rẻ tiền. “2 phase commit khắp nơi” hiếm khi là câu trả lời bạn
+            muốn vận hành.
+          </p>
+          <p>
+            <strong>Transactional outbox:</strong> ghi business row
+            <em>và</em> hàng outbox <strong>cùng một transaction DB</strong>.
+            Process riêng (poller / CDC) đọc outbox rồi publish — at-least-once
+            ra broker. Phía nhận:
+            <strong>inbox</strong> (dedup) để không xử lý trùng.
+          </p>
+          <p>
+            Demo mô phỏng crash giữa chừng:
+            <a href="/demos/outbox-inbox.html">Outbox vs publish thẳng</a>.
+          </p>
+
+          <h2>Outbox flow</h2>
+          <pre><code>BEGIN;
+  INSERT INTO orders …;
+  INSERT INTO outbox (id, topic, payload, created_at)
+    VALUES (…, 'order.created', …);
+COMMIT;
+
+-- publisher (định kỳ / LISTEN)
+SELECT * FROM outbox WHERE published_at IS NULL LIMIT 100;
+publish(row);
+-- mark published (hoặc delete) — ideally sau ack broker
+UPDATE outbox SET published_at = now() WHERE id = …;</code></pre>
+          <p>
+            Crash sau commit, trước publish: outbox vẫn còn row → publisher chạy
+            lại. Crash sau publish, trước mark: publish trùng →
+            <strong>consumer phải idempotent</strong> /
+            <a href="/articles/idempotency.html">idempotency key</a> /
+            inbox.
+          </p>
+
+          <h2>Inbox (consumer dedup)</h2>
+          <pre><code>BEGIN;
+  INSERT INTO inbox (event_id) VALUES ($1);  -- unique
+  -- nếu conflict → đã xử lý, skip
+  -- apply business logic
+COMMIT;</code></pre>
+          <p>
+            Hoặc “claim + process” theo
+            <a href="/articles/toctou-async.html">unique constraint / TOCTOU</a>:
+            đừng check-then-act thiếu atomic.
+          </p>
+
+          <h2>Vì sao không “publish rồi ghi DB”</h2>
+          <ul>
+            <li>
+              Publish OK, DB fail → event “ma”, consumer tạo state không có
+              source of truth.
+            </li>
+            <li>
+              Khó compensate hơn outbox (outbox trễ event còn hơn event giả).
+            </li>
+          </ul>
+          <p>
+            Rule ngón tay cái: <strong>source of truth trước, fan-out sau</strong>
+            — outbox bám DB (hoặc store chính).
+          </p>
+
+          <h2>CDC vs poller</h2>
+          <ul>
+            <li>
+              <strong>Poller:</strong> đơn giản, latency theo chu kỳ, dễ hiểu.
+            </li>
+            <li>
+              <strong>CDC</strong> (Debezium…): thấp trễ hơn, ops nặng hơn;
+              vẫn at-least-once về semantic.
+            </li>
+          </ul>
+
+          <h2>Sketch publisher (ý)</h2>
+          <pre><code>async function flushOutbox(db, broker, limit = 50) {
+  const batch = await db.claimOutboxBatch(limit); // FOR UPDATE SKIP LOCKED
+  for (const row of batch) {
+    try {
+      await broker.publish(row.topic, row.payload, {
+        messageId: row.id, // cho inbox
+      });
+      await db.markPublished(row.id);
+    } catch (e) {
+      // để lại row — lần sau; không xóa
+      await db.bumpAttempt(row.id, e);
+    }
+  }
+}</code></pre>
+          <p>
+            <code>SKIP LOCKED</code>: nhiều publisher instance không giành cùng
+            row — tránh
+            <a href="/articles/toctou-async.html">race</a> ngớ ngẩn.
+          </p>
+
+          <h2>Liên hệ series</h2>
+          <ul>
+            <li>
+              Publish at-least-once →
+              <a href="/articles/idempotency.html">idempotency</a> consumer.
+            </li>
+            <li>
+              Publisher fail lặp →
+              <a href="/articles/poison-dlq.html">DLQ outbox row</a> sau N
+              attempt + alert.
+            </li>
+            <li>
+              Đừng spam publish khi broker yếu —
+              <a href="/articles/backpressure.html">backpressure</a> /
+              <a href="/articles/circuit-breaker.html">breaker</a>.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Không atomic được hai store thì ghi một store hai việc
+            (business + outbox), rồi fan-out có retry.</strong> Inbox ở đầu kia
+            khép dual-write: trễ một nhịp vẫn hơn mất event hoặc double apply
+            mù.
+          </p>
+        </div>
+      </article>

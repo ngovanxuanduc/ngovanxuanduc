@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · VSS / RSS / USS / PSS + SHM</title>
+    <meta
+      name="description"
+      content="Mô phỏng đếm memory Linux: VSS, RSS, USS, PSS với shared lib và SHM."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --shm: #f472b6;
+        --priv: #5eea93;
+        --shared: #60a5fa;
+        --virt: #9a9aa8;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        max-width: 44rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem 1.1rem;
+        align-items: flex-end;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        min-width: 7rem;
+      }
+      .field label {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+      }
+      .field input[type="range"] {
+        width: 9rem;
+      }
+      .field .val {
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      label.check {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        margin-bottom: 0.35rem;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.1rem;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+      }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 2px;
+        margin-right: 0.35rem;
+        vertical-align: middle;
+      }
+      .legend .priv::before {
+        background: var(--priv);
+      }
+      .legend .shared::before {
+        background: var(--shared);
+      }
+      .legend .shm::before {
+        background: var(--shm);
+      }
+      .legend .virt::before {
+        background: var(--virt);
+        opacity: 0.5;
+      }
+      .procs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .procs {
+          grid-template-columns: 1fr;
+        }
+      }
+      .proc {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.85rem;
+        background: var(--bg);
+      }
+      .proc h3 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 0.75rem;
+      }
+      .seg {
+        border-radius: 4px;
+        padding: 0.35rem 0.5rem;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: #0a0a0b;
+        min-height: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .seg.priv {
+        background: var(--priv);
+      }
+      .seg.shared {
+        background: var(--running);
+        color: #0a0a0b;
+      }
+      .seg.shm {
+        background: var(--shm);
+      }
+      .seg.virt {
+        background: transparent;
+        border: 1px dashed var(--border);
+        color: var(--text-dim);
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem 0.75rem;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+      }
+      .metrics dt {
+        color: var(--text-dim);
+      }
+      .metrics dd {
+        text-align: right;
+        color: var(--text);
+      }
+      .sum {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+      }
+      .sum strong {
+        color: var(--text);
+      }
+      .sum .warn {
+        color: var(--warn);
+      }
+      .sum .ok {
+        color: var(--success);
+      }
+      .note {
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin-top: 0.65rem;
+      }
+      .host {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+      }
+      .host h3 {
+        font-size: 0.8rem;
+        color: var(--text-dim);
+        margin-bottom: 0.4rem;
+      }
+      .host-bar {
+        display: flex;
+        height: 22px;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: #1a1a1e;
+      }
+      .host-bar i {
+        display: block;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>VSS / RSS / USS / PSS + SHM</h1>
+        <p>
+          Hai process. Kéo slider — xem RSS cộng dồn vs “RAM thật” (mô phỏng).
+          <a href="/articles/linux-vss-rss-uss.html">← bài viết</a>
+        </p>
+      </header>
+
+      <div class="panel">
+        <h2>Memory pieces (MB)</h2>
+        <div class="controls">
+          <div class="field">
+            <label>Private A (heap…)</label>
+            <input id="privA" type="range" min="0" max="200" value="80" />
+            <span class="val" id="privAVal"></span>
+          </div>
+          <div class="field">
+            <label>Private B</label>
+            <input id="privB" type="range" min="0" max="200" value="60" />
+            <span class="val" id="privBVal"></span>
+          </div>
+          <div class="field">
+            <label>Shared lib (cả hai map, resident)</label>
+            <input id="lib" type="range" min="0" max="150" value="40" />
+            <span class="val" id="libVal"></span>
+          </div>
+          <div class="field">
+            <label>SHM (cả hai attach)</label>
+            <input id="shm" type="range" min="0" max="200" value="50" />
+            <span class="val" id="shmVal"></span>
+          </div>
+          <div class="field">
+            <label>Virtual-only / chưa fault (mỗi process)</label>
+            <input id="virt" type="range" min="0" max="400" value="120" />
+            <span class="val" id="virtVal"></span>
+          </div>
+        </div>
+        <div style="margin-top: 0.85rem">
+          <label class="check">
+            <input type="checkbox" id="mapA" checked />
+            Process A map shared lib + SHM
+          </label>
+          <label class="check">
+            <input type="checkbox" id="mapB" checked />
+            Process B map shared lib + SHM
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Per process</h2>
+        <div class="legend">
+          <span class="priv">private (USS)</span>
+          <span class="shared">shared lib</span>
+          <span class="shm">SHM</span>
+          <span class="virt">virtual only (VSS, không vào RSS)</span>
+        </div>
+        <div class="procs">
+          <div class="proc">
+            <h3>Process A</h3>
+            <div class="stack" id="stackA"></div>
+            <dl class="metrics" id="metA"></dl>
+          </div>
+          <div class="proc">
+            <h3>Process B</h3>
+            <div class="stack" id="stackB"></div>
+            <dl class="metrics" id="metB"></dl>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Host view (mô phỏng)</h2>
+        <div class="sum" id="sums"></div>
+        <div class="host">
+          <h3>Physical RAM “thật” (private A + private B + lib 1 lần + SHM 1 lần)</h3>
+          <div class="host-bar" id="hostBar"></div>
+        </div>
+        <p class="note" id="note"></p>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+
+        function n(id) {
+          return +$(id).value || 0;
+        }
+
+        function metrics(priv, mapShared, lib, shm, virtOnly, nLibSharers, nShmSharers) {
+          const libPart = mapShared ? lib : 0;
+          const shmPart = mapShared ? shm : 0;
+          // VSS: everything mapped including non-resident reservation
+          const vss = priv + libPart + shmPart + virtOnly;
+          // RSS: resident only
+          const rss = priv + libPart + shmPart;
+          // USS: private only
+          const uss = priv;
+          // PSS: private + shared/n
+          const pssLib = libPart && nLibSharers ? lib / nLibSharers : 0;
+          const pssShm = shmPart && nShmSharers ? shm / nShmSharers : 0;
+          const pss = priv + pssLib + pssShm;
+          return { vss, rss, uss, pss, libPart, shmPart, virtOnly, priv };
+        }
+
+        function seg(cls, label, mb) {
+          if (mb <= 0) return "";
+          const h = Math.max(22, Math.min(72, mb * 0.45));
+          return (
+            '<div class="seg ' +
+            cls +
+            '" style="height:' +
+            h +
+            'px"><span>' +
+            label +
+            "</span><span>" +
+            mb +
+            " MB</span></div>"
+          );
+        }
+
+        function fillMet(el, m) {
+          el.innerHTML =
+            "<dt>VSS</dt><dd>" +
+            m.vss +
+            " MB</dd>" +
+            "<dt>RSS</dt><dd>" +
+            m.rss +
+            " MB</dd>" +
+            "<dt>USS</dt><dd>" +
+            m.uss +
+            " MB</dd>" +
+            "<dt>PSS</dt><dd>" +
+            Math.round(m.pss * 10) / 10 +
+            " MB</dd>";
+        }
+
+        function render() {
+          const privA = n("privA");
+          const privB = n("privB");
+          const lib = n("lib");
+          const shm = n("shm");
+          const virt = n("virt");
+          $("privAVal").textContent = privA + " MB";
+          $("privBVal").textContent = privB + " MB";
+          $("libVal").textContent = lib + " MB";
+          $("shmVal").textContent = shm + " MB";
+          $("virtVal").textContent = virt + " MB";
+
+          const mapA = $("mapA").checked;
+          const mapB = $("mapB").checked;
+          const nLib = (mapA ? 1 : 0) + (mapB ? 1 : 0);
+          const nShm = nLib; // same mapping toggles in this demo
+
+          const mA = metrics(privA, mapA, lib, shm, virt, nLib || 1, nShm || 1);
+          const mB = metrics(privB, mapB, lib, shm, virt, nLib || 1, nShm || 1);
+
+          $("stackA").innerHTML =
+            seg("priv", "private", mA.priv) +
+            seg("shared", "libc… shared", mA.libPart) +
+            seg("shm", "SHM", mA.shmPart) +
+            seg("virt", "mapped, not resident", mA.virtOnly);
+          $("stackB").innerHTML =
+            seg("priv", "private", mB.priv) +
+            seg("shared", "libc… shared", mB.libPart) +
+            seg("shm", "SHM", mB.shmPart) +
+            seg("virt", "mapped, not resident", mB.virtOnly);
+
+          fillMet($("metA"), mA);
+          fillMet($("metB"), mB);
+
+          const sumRss = mA.rss + mB.rss;
+          const sumUss = mA.uss + mB.uss;
+          const sumPss = mA.pss + mB.pss;
+          // physical once
+          const physLib = nLib > 0 ? lib : 0;
+          const physShm = nShm > 0 ? shm : 0;
+          const phys = privA + privB + physLib + physShm;
+
+          $("sums").innerHTML =
+            "<span>Σ RSS = <strong class='warn'>" +
+            sumRss +
+            " MB</strong></span>" +
+            "<span>Σ USS = <strong>" +
+            sumUss +
+            " MB</strong></span>" +
+            "<span>Σ PSS ≈ <strong class='ok'>" +
+            Math.round(sumPss * 10) / 10 +
+            " MB</strong></span>" +
+            "<span>RAM thật (mô phỏng) = <strong class='ok'>" +
+            phys +
+            " MB</strong></span>";
+
+          const total = Math.max(phys, 1);
+          const bar = $("hostBar");
+          bar.innerHTML =
+            '<i style="width:' +
+            (privA / total) * 100 +
+            '%;background:var(--priv)" title="priv A"></i>' +
+            '<i style="width:' +
+            (privB / total) * 100 +
+            '%;background:#34d399" title="priv B"></i>' +
+            '<i style="width:' +
+            (physLib / total) * 100 +
+            '%;background:var(--running)" title="lib"></i>' +
+            '<i style="width:' +
+            (physShm / total) * 100 +
+            '%;background:var(--shm)" title="shm"></i>';
+
+          let note =
+            "Σ RSS (" +
+            sumRss +
+            ") " +
+            (sumRss > phys ? ">" : "≤") +
+            " RAM thật (" +
+            phys +
+            ") — ";
+          if (sumRss > phys) {
+            note +=
+              "shared lib + SHM bị đếm ở cả hai RSS. Σ PSS ≈ RAM thật khi mọi thứ resident và share đúng model.";
+          } else {
+            note += "bớt map shared / SHM thì RSS gần tổng private.";
+          }
+          if (virt > 0) {
+            note +=
+              " VSS mỗi process cộng thêm " +
+              virt +
+              " MB ảo (chưa fault) — không vào RSS/USS.";
+          }
+          $("note").textContent = note;
+        }
+
+        ["privA", "privB", "lib", "shm", "virt", "mapA", "mapB"].forEach((id) => {
+          $(id).addEventListener("input", render);
+          $(id).addEventListener("change", render);
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

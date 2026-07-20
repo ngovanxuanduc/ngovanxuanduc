@@ -1,0 +1,154 @@
+---
+{
+  "title": "Timeout budget — deadline xuyên tầng · Articles",
+  "description": "Mỗi hop tự timeout 30s là bẫy. Budget/deadline chung, cancel sớm, đừng retry khi đã hết giờ.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Timeout budget — deadline xuyên tầng</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Client chờ 30s. API gateway 30s. Service A gọi B 30s. B gọi C 30s.
+            C chậm 25s → A/B vẫn “ok trong hạn” nhưng user đã bỏ app từ lâu; hoặc
+            ngược lại: mỗi tầng retry 3 lần × 10s timeout → một request logic
+            kéo cả phút và giữ connection/pool.
+          </p>
+          <p>
+            <strong>Timeout budget</strong> (deadline propagation): cả chuỗi
+            chia <em>một</em> hạn tổng. Còn 200ms thì đừng bắt đầu call 2s; cancel
+            work đang chạy khi deadline qua.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/timeout-budget.html"
+              >Budget vs timeout cố định mỗi hop</a
+            >.
+          </p>
+
+          <h2>Timeout cố định mỗi tầng — sai ở đâu</h2>
+          <pre><code>User ──30s──► API ──30s──► A ──30s──► B
+                 └── retry ×3 (mỗi lần full 30s?)</code></pre>
+          <ul>
+            <li>
+              <strong>Thời gian tường thuật</strong> có thể vượt xa SLA user.
+            </li>
+            <li>
+              Tầng trong vẫn làm việc sau khi client đã disconnect — đốt CPU/DB
+              vô ích (cần abort).
+            </li>
+            <li>
+              Tail latency: vài hop “hơi chậm” cộng dồn thành p99 nổ.
+            </li>
+          </ul>
+
+          <h2>Deadline chung</h2>
+          <pre><code>// Ý: deadline = thời điểm tuyệt đối, không phải “timeout lẻ” mỗi lần
+const deadline = Date.now() + 2000; // 2s cho cả request
+
+async function callB(deadline) {
+  const remaining = deadline - Date.now();
+  if (remaining &lt;= 0) throw new Error("deadline_exceeded");
+  return fetch(url, {
+    signal: AbortSignal.timeout(remaining), // hoặc AbortSignal.any([...])
+  });
+}</code></pre>
+          <p>
+            Truyền <code>deadline</code> (hoặc <code>AbortSignal</code> cha)
+            xuống mọi I/O. Thư viện gRPC có deadline; HTTP hay dùng header
+            nội bộ / context (Go <code>context.WithDeadline</code>, JS
+            <code>AbortSignal</code>).
+          </p>
+
+          <h2>Sketch: budget wrapper</h2>
+          <pre><code>function createBudget(totalMs) {
+  const ac = new AbortController();
+  const deadline = Date.now() + totalMs;
+  const timer = setTimeout(() =&gt; ac.abort(new Error("budget_exhausted")), totalMs);
+
+  return {
+    signal: ac.signal,
+    remaining() {
+      return Math.max(0, deadline - Date.now());
+    },
+    async run(fn) {
+      if (ac.signal.aborted) throw ac.signal.reason;
+      const left = this.remaining();
+      if (left &lt;= 0) {
+        ac.abort();
+        throw new Error("budget_exhausted");
+      }
+      try {
+        return await fn({ signal: ac.signal, remaining: left, deadline });
+      } finally {
+        /* caller có thể clear timer khi request xong */
+      }
+    },
+    dispose() {
+      clearTimeout(timer);
+    },
+  };
+}
+
+// API handler
+const budget = createBudget(2000);
+try {
+  const a = await budget.run(({ signal, remaining }) =&gt;
+    callServiceA({ signal, timeout: remaining })
+  );
+  const b = await budget.run(({ signal, remaining }) =&gt;
+    callServiceB({ signal, timeout: remaining }) // remaining đã giảm
+  );
+  return { a, b };
+} finally {
+  budget.dispose();
+}</code></pre>
+
+          <h2>Retry trong budget</h2>
+          <p>
+            <a href="/articles/retry-backoff-jitter.html">Backoff</a> chỉ hợp lệ
+            khi <code>remaining &gt; next_delay + min_useful_work</code>. Hết
+            budget → fail ngay, không sleep thêm 2s chỉ để timeout.
+          </p>
+          <pre><code>if (budget.remaining() &lt; delay + 50) throw lastErr; // đừng retry
+await sleep(delay, { signal: budget.signal });
+await attempt({ signal: budget.signal });</code></pre>
+
+          <h2>Hedge / fan-out</h2>
+          <p>
+            Gọi 2 replica, lấy ai nhanh hơn: dễ tăng load. Chỉ khi p99 đau và
+            budget cho phép; cancel nhánh thua (AbortSignal) — không để cả hai
+            chạy hết.
+          </p>
+
+          <h2>Bẫy thực tế</h2>
+          <ul>
+            <li>
+              Timeout client &lt; tổng thời gian server “hợp lệ” → user lỗi, server
+              vẫn commit (cần
+              <a href="/articles/idempotency.html">idempotency</a> + thiết kế
+              async).
+            </li>
+            <li>
+              Không abort DB query / upstream khi client cancel — work ma.
+            </li>
+            <li>
+              Log “timeout” không ghi <code>remaining</code> / hop nào hết trước
+              → debug mù.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Một deadline cho cả câu chuyện request</strong> — mỗi hop
+            chỉ được tiêu phần thời gian còn lại, và phải biết hủy khi hết.
+            Timeout copy-paste 30s mỗi tầng là cách nuôi p99 và zombie work.
+          </p>
+        </div>
+      </article>

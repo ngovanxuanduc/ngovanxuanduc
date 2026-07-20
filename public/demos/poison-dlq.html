@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Poison message & DLQ</title>
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --bg-elevated: #121214;
+        --bg-hover: #1a1a1e;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --text-muted: #b0b0bc;
+        --text-dim: #9a9aa8;
+        --accent: #b8a4ff;
+        --success: #5eea93;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --running: #60a5fa;
+        --radius: 12px;
+        --radius-sm: 8px;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.25rem;
+      }
+      header h1 {
+        font-size: clamp(1.25rem, 3vw, 1.65rem);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+      }
+      header p {
+        color: var(--text-muted);
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .panel {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .panel h2 {
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        margin-bottom: 0.75rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.9rem;
+        cursor: pointer;
+        background: var(--bg-hover);
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #0a0a0b;
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .lanes {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.5rem;
+      }
+      @media (max-width: 700px) {
+        .lanes {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .lane {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 0.6rem;
+        background: var(--bg);
+        min-height: 120px;
+      }
+      .lane h3 {
+        font-size: 0.75rem;
+        color: var(--text-dim);
+        margin-bottom: 0.4rem;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.2rem 0.4rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        margin: 0.2rem;
+        display: inline-block;
+      }
+      .chip.ok {
+        border-color: rgba(94, 234, 147, 0.4);
+        color: var(--success);
+      }
+      .chip.bad {
+        border-color: rgba(255, 143, 143, 0.45);
+        color: var(--danger);
+      }
+      .chip.work {
+        border-color: rgba(96, 165, 250, 0.45);
+        color: var(--running);
+      }
+      .chip.dlq {
+        border-color: rgba(251, 191, 36, 0.45);
+        color: var(--warn);
+      }
+      .log {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        max-height: 12rem;
+        overflow: auto;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+      .field label {
+        font-size: 0.72rem;
+        color: var(--text-dim);
+      }
+      .field input {
+        font-family: var(--mono);
+        width: 5rem;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.35rem 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Poison → retry → DLQ</h1>
+        <p>
+          Job xanh = OK. Job đỏ = poison (luôn fail). Hết attempts → DLQ.
+          <a href="/articles/poison-dlq.html">← bài viết</a>
+        </p>
+      </header>
+      <div class="panel">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="field">
+            <label>Max attempts</label>
+            <input id="maxA" type="number" value="3" min="1" max="8" />
+          </div>
+          <button type="button" class="primary" id="btnAdd">+ Job OK</button>
+          <button type="button" id="btnPoison">+ Poison</button>
+          <button type="button" id="btnBurst">+3 OK +1 Poison</button>
+          <button type="button" id="btnRun">Chạy worker</button>
+          <button type="button" id="btnReset">Reset</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Lanes</h2>
+        <div class="lanes">
+          <div class="lane"><h3>waiting</h3><div id="waiting"></div></div>
+          <div class="lane"><h3>active</h3><div id="active"></div></div>
+          <div class="lane"><h3>completed</h3><div id="completed"></div></div>
+          <div class="lane"><h3>DLQ</h3><div id="dlq"></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Log</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        let seq = 0;
+        let waiting = [];
+        let active = null;
+        let completed = [];
+        let dlq = [];
+        let running = false;
+
+        function log(m) {
+          const el = $("log");
+          const d = document.createElement("div");
+          d.textContent = new Date().toISOString().slice(11, 23) + "  " + m;
+          el.prepend(d);
+        }
+
+        function chip(job) {
+          const s = document.createElement("span");
+          s.className =
+            "chip " +
+            (job.poison ? "bad" : job.lane === "dlq" ? "dlq" : job.lane === "active" ? "work" : job.lane === "done" ? "ok" : "");
+          s.textContent = job.id + (job.poison ? " ☠" : "") + " a=" + job.attempts;
+          return s;
+        }
+
+        function render() {
+          for (const [id, arr] of [
+            ["waiting", waiting],
+            ["completed", completed],
+            ["dlq", dlq],
+          ]) {
+            const el = $(id);
+            el.innerHTML = "";
+            arr.forEach((j) => {
+              j.lane = id === "dlq" ? "dlq" : id === "completed" ? "done" : "wait";
+              el.appendChild(chip(j));
+            });
+          }
+          const a = $("active");
+          a.innerHTML = "";
+          if (active) {
+            active.lane = "active";
+            a.appendChild(chip(active));
+          }
+        }
+
+        function addJob(poison) {
+          const job = {
+            id: "j" + ++seq,
+            poison: !!poison,
+            attempts: 0,
+          };
+          waiting.push(job);
+          log("enqueue " + job.id + (poison ? " (poison)" : ""));
+          render();
+        }
+
+        function sleep(ms) {
+          return new Promise((r) => setTimeout(r, ms));
+        }
+
+        async function processOne(job) {
+          active = job;
+          waiting = waiting.filter((j) => j !== job);
+          job.attempts++;
+          render();
+          log("active " + job.id + " attempt " + job.attempts);
+          await sleep(450);
+          if (job.poison) {
+            const maxA = Math.max(1, +$("maxA").value || 3);
+            if (job.attempts >= maxA) {
+              active = null;
+              dlq.push(job);
+              log("→ DLQ " + job.id + " after " + job.attempts + " fails", "dlq");
+            } else {
+              active = null;
+              waiting.push(job);
+              log("fail " + job.id + " → requeue (backoff)");
+              await sleep(200);
+            }
+          } else {
+            active = null;
+            completed.push(job);
+            log("completed " + job.id);
+          }
+          render();
+        }
+
+        async function runWorker() {
+          if (running) return;
+          running = true;
+          $("btnRun").disabled = true;
+          while (waiting.length) {
+            await processOne(waiting[0]);
+          }
+          running = false;
+          $("btnRun").disabled = false;
+          log("--- idle ---");
+        }
+
+        $("btnAdd").onclick = () => addJob(false);
+        $("btnPoison").onclick = () => addJob(true);
+        $("btnBurst").onclick = () => {
+          addJob(false);
+          addJob(false);
+          addJob(true);
+          addJob(false);
+        };
+        $("btnRun").onclick = runWorker;
+        $("btnReset").onclick = () => {
+          waiting = [];
+          active = null;
+          completed = [];
+          dlq = [];
+          seq = 0;
+          $("log").innerHTML = "";
+          log("reset");
+          render();
+        };
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Retry ngay khi fail biến blip thành storm. Exponential backoff, full/equal jitter, max attempts, và khi nào không được retry." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Retry + backoff + jitter — đừng thundering herd · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/retry-backoff-jitter.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Retry + backoff + jitter — đừng thundering herd · Articles" />
+    <meta property="og:description" content="Retry ngay khi fail biến blip thành storm. Exponential backoff, full/equal jitter, max attempts, và khi nào không được retry." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/retry-backoff-jitter.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Retry + backoff + jitter — đừng thundering herd · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Retry + backoff + jitter — đừng thundering herd · Articles" />
+    <meta name="twitter:description" content="Retry ngay khi fail biến blip thành storm. Exponential backoff, full/equal jitter, max attempts, và khi nào không được retry." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Retry + backoff + jitter — đừng thundering herd · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Retry + backoff + jitter — đừng thundering herd</h1>
+          <p class="article-header__meta">2026-07-20 · ~7 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Service vừa sống lại sau 2 giây downtime. 500 client cùng timeout,
+            cùng <code>retry()</code> ngay lập tức → 500 request đập một lúc.
+            Dependency gục lại. Bạn vừa biến lỗi tạm thành
+            <strong>thundering herd</strong>.
+          </p>
+          <p>
+            Retry là cần thiết (mạng hỏng, 503, blip). Retry
+            <em>không có nhịp và không có trần</em> là
+            <a href="/articles/backpressure.html">backpressure</a> ngược: bạn tự
+            tăng <code>rate_in</code> đúng lúc hệ thống yếu.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/retry-backoff.html"
+              >Retry storm vs backoff + jitter</a
+            >.
+          </p>
+
+          <h2>Ba tầng của “retry đúng”</h2>
+          <ol>
+            <li>
+              <strong>Có nên retry không?</strong> — idempotent?
+              <a href="/articles/idempotency.html">idempotency key</a>? Lỗi
+              transient (timeout, 429, 502/503) hay business (400, 401, 404)?
+            </li>
+            <li>
+              <strong>Chờ bao lâu giữa các lần?</strong> — backoff (+ jitter).
+            </li>
+            <li>
+              <strong>Bao nhiêu lần / bao lâu tổng?</strong> — max attempts, tổng
+              budget thời gian (nối
+              <a href="/articles/timeout-budget.html">timeout budget</a>).
+            </li>
+          </ol>
+
+          <h2>Công thức backoff</h2>
+          <pre><code>// fixed
+delay = base
+
+// exponential
+delay = base * 2^attempt   // 100, 200, 400, 800…
+
+// exponential + full jitter (AWS kiến nghị phổ biến)
+delay = random_between(0, min(cap, base * 2^attempt))
+
+// equal jitter (bớt “may rủi” quá thấp)
+temp = min(cap, base * 2^attempt)
+delay = temp/2 + random_between(0, temp/2)</code></pre>
+          <p>
+            <strong>Jitter</strong> phá đồng bộ: 100 client không cùng thức dậy
+            đúng ms thứ 800. Không jitter, exponential vẫn có thể “sóng” — cùng
+            phase sau mỗi lần fail đồng loạt.
+          </p>
+          <p>
+            <strong>Cap</strong> (<code>maxDelay</code>) tránh lần sau chờ 30
+            phút vì exponent. <strong>Max attempts</strong> tránh retry vô tận
+            trong loop.
+          </p>
+
+          <h2>Sketch</h2>
+          <pre><code>async function withRetry(fn, {
+  baseMs = 100,
+  maxDelayMs = 5000,
+  maxAttempts = 5,
+  shouldRetry = (e) =&gt; isTransient(e),
+  jitter = "full", // full | equal | none
+} = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt &lt; maxAttempts; attempt++) {
+    try {
+      return await fn(attempt);
+    } catch (e) {
+      lastErr = e;
+      if (attempt === maxAttempts - 1 || !shouldRetry(e)) throw e;
+      const exp = Math.min(maxDelayMs, baseMs * 2 ** attempt);
+      let delay = exp;
+      if (jitter === "full") delay = Math.random() * exp;
+      if (jitter === "equal") delay = exp / 2 + Math.random() * (exp / 2);
+      await new Promise((r) =&gt; setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}</code></pre>
+
+          <h2>Khi nào không retry</h2>
+          <ul>
+            <li>
+              <strong>4xx “đúng là sai”</strong> — validation, auth, not found
+              (trừ 408/429).
+            </li>
+            <li>
+              <strong>Side-effect chưa idempotent</strong> — charge, gửi mail
+              “một lần” mà không có key → retry = double.
+            </li>
+            <li>
+              <strong>Caller đã gần hết deadline</strong> — retry chỉ để tự
+              timeout tiếp (xem timeout budget).
+            </li>
+            <li>
+              <strong>Circuit open</strong> — retry vào breaker open chỉ đốt
+              client;
+              <a href="/articles/circuit-breaker.html">fail-fast</a> đúng chỗ.
+            </li>
+          </ul>
+
+          <h2>Retry ở đâu trong stack</h2>
+          <ul>
+            <li>
+              <strong>Client / SDK:</strong> có budget, honor
+              <code>Retry-After</code> trên 429.
+            </li>
+            <li>
+              <strong>Queue worker</strong> (<a href="/articles/bullmq.html"
+                >BullMQ</a
+              >): attempts + backoff của job — đừng vừa worker retry vừa HTTP
+              client retry ×N không kiểm soát.
+            </li>
+            <li>
+              <strong>Gateway:</strong> retry tự động nguy hiểm (nhân traffic);
+              thường để client/queue lo.
+            </li>
+          </ul>
+          <p>
+            Quy tắc thực dụng: <em>một</em> tầng “chịu trách nhiệm retry” cho
+            mỗi hop quan trọng; các tầng khác fail rõ hoặc chỉ retry rất hẹp.
+          </p>
+
+          <h2>Metric</h2>
+          <ul>
+            <li><code>retry_attempts</code> histogram / counter theo attempt #</li>
+            <li><code>retry_give_up</code></li>
+            <li>Correlation: spike retry vs latency dependency</li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>Retry ngay = herd. Backoff + jitter = nhường dependency thở.
+            Cap + max attempts + idempotency = không tự bắn vào chân.</strong>
+          </p>
+          <p>
+            Ghép breaker (đừng gọi khi đỏ), budget thời gian (đừng retry khi hết
+            giờ), và idempotency (đừng nhân side-effect): bộ ba tối thiểu cho
+            mọi client gọi qua mạng.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

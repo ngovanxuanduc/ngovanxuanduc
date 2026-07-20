@@ -1,0 +1,170 @@
+---
+{
+  "title": "TOCTOU trong async JS — check rồi act đã muộn · Articles",
+  "description": "Time-of-check to time-of-use: await giữa if và update mở cửa race. Lock, CAS, unique constraint — không phải if (exists) đủ.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>TOCTOU trong async JS — check rồi act đã muộn</h1>
+          <p class="article-header__meta">2026-07-20 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Class bug cổ điển của hệ thống file / OS:
+            <strong>TOCTOU</strong> — <em>time-of-check to time-of-use</em>. Bạn
+            kiểm tra điều kiện, rồi mới dùng kết quả kiểm tra đó; giữa hai bước
+            thế giới đã đổi.
+          </p>
+          <p>
+            Trong JS single-thread, người ta hay nghĩ “không race”. Sai chỗ:
+            <strong>mỗi <code>await</code> là điểm nhường</strong> — task khác
+            (request khác, job khác, click khác) có thể chạy logic tương tự trên
+            cùng resource. Không cần hai CPU; chỉ cần hai async flow xen kẽ.
+          </p>
+          <p>
+            Demo:
+            <a href="/demos/toctou.html"
+              >TOCTOU — hai request “check balance rồi trừ”</a
+            >.
+          </p>
+
+          <h2>Pattern hỏng</h2>
+          <pre><code>async function withdraw(userId, amount) {
+  const bal = await db.getBalance(userId); // CHECK
+  if (bal &lt; amount) throw new Error("insufficient");
+  // ← await khác có thể xen vào đây
+  await db.setBalance(userId, bal - amount); // USE (dựa trên bal cũ)
+}</code></pre>
+          <p>
+            Hai request song song, balance = 100, mỗi cái rút 80:
+          </p>
+          <pre><code>A: get → 100, ok
+B: get → 100, ok
+A: set 100-80 = 20
+B: set 100-80 = 20   // cả hai “thành công”, đã rút 160 từ 100</code></pre>
+          <p>
+            Cùng họ với:
+          </p>
+          <ul>
+            <li><code>if (!await exists(id)) await create(id)</code> → duplicate</li>
+            <li><code>if (!inflight.has(k)) { ... set }</code> không atomic với
+              async work (single-flight đúng phải set promise
+              <em>trước</em> await work — xem
+              <a href="/articles/reuse-promise.html">single-flight</a>)</li>
+            <li>Idempotency “get key miss rồi charge” không lock — double charge</li>
+            <li>Coupon “còn lượt?” rồi redeem — oversell</li>
+          </ul>
+
+          <h2>Vì sao single-thread vẫn dính</h2>
+          <p>
+            Event loop không chạy hai hàm đồng thời trên một call stack — nhưng
+            sau <code>await db.getBalance</code>, continuation của A bị xếp
+            hàng; B có thể chạy hết check của mình trước khi A resume
+            <code>setBalance</code>. Đó là
+            <strong>interleaving trên shared state</strong>, không phải data
+            race memory kiểu C++.
+          </p>
+          <pre><code>// “An toàn” giả: không await giữa check và act… 
+// …nhưng I/O bắt buộc phải await. Vấn đề nằm ở shared mutable state + yield.</code></pre>
+
+          <h2>Cách chữa (từ rẻ đến chắc)</h2>
+
+          <h3>1. Atomic operation ở store</h3>
+          <pre><code>// SQL
+UPDATE accounts SET balance = balance - $1
+WHERE id = $2 AND balance &gt;= $1;
+-- rowCount === 0 → insufficient hoặc conflict</code></pre>
+          <pre><code>// Redis
+// Lua / MULTI: GET + điều kiện + DECRBY một atomic unit</code></pre>
+          <p>
+            Check và use <strong>gộp một vòng</strong> phía engine — không mang
+            <code>bal</code> về app rồi tính.
+          </p>
+
+          <h3>2. Optimistic concurrency (version / ETag)</h3>
+          <pre><code>async function withdraw(userId, amount) {
+  for (let i = 0; i &lt; 5; i++) {
+    const row = await db.get(userId); // { balance, version }
+    if (row.balance &lt; amount) throw insufficient;
+    const ok = await db.updateWhere(
+      userId,
+      { balance: row.balance - amount, version: row.version + 1 },
+      { version: row.version } // CAS
+    );
+    if (ok) return;
+    // conflict → đọc lại
+  }
+  throw new Error("conflict");
+}</code></pre>
+          <p>
+            Ai ghi sau với version cũ fail → retry. Đúng mental model
+            compare-and-swap.
+          </p>
+
+          <h3>3. Pessimistic lock</h3>
+          <pre><code>BEGIN;
+SELECT balance FROM accounts WHERE id = $1 FOR UPDATE;
+-- check + update trong transaction
+COMMIT;</code></pre>
+          <p>
+            Đơn giản về correctness; dễ contention; timeout lock cần nghĩ.
+          </p>
+
+          <h3>4. Unique constraint / “insert claim”</h3>
+          <pre><code>// thay vì if (!exists) create
+INSERT INTO redemptions (coupon_id, user_id) VALUES ($1, $2);
+// unique(coupon_id, user_id) → lần 2 bị 23505 → coi như đã redeem</code></pre>
+          <p>
+            Rất hợp
+            <a href="/articles/idempotency.html">idempotency record</a>:
+            “claim key” bằng insert unique, không phải check-then-insert.
+          </p>
+
+          <h2>In-process: mutex async</h2>
+          <p>
+            Khi state chỉ trong một process (rate limit memory, in-memory wallet
+            demo):
+          </p>
+          <pre><code>const locks = new Map(); // key → Promise chain
+
+function withLock(key, fn) {
+  const prev = locks.get(key) || Promise.resolve();
+  let release;
+  const gate = new Promise((r) =&gt; { release = r; });
+  const next = prev.then(() =&gt; gate);
+  locks.set(key, next);
+
+  return prev.then(fn).finally(() =&gt; {
+    release();
+    if (locks.get(key) === next) locks.delete(key);
+  });
+}
+
+await withLock(userId, () =&gt; withdrawUnsafe(userId, amount));</code></pre>
+          <p>
+            Chỉ gộp trong một process — multi-instance vẫn cần DB/Redis lock.
+            Giống bài học single-flight local vs distributed.
+          </p>
+
+          <h2>Checklist review PR</h2>
+          <ul>
+            <li>Có <code>await</code> giữa “đọc quyết định” và “ghi side-effect”?</li>
+            <li>Hai request cùng resource có thể chồng không?</li>
+            <li>Fail path có để state nửa vời không?</li>
+            <li>Test có case song song (hai Promise cùng lúc) không — test tuần tự không bắt được TOCTOU.</li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong><code>if (await check) await act</code> không atomic.</strong>
+            Mỗi await là khe hở. Gộp check+act vào một primitive atomic, CAS +
+            retry, lock, hoặc unique claim — đừng tin “mình vừa đọc xong thì
+            vẫn đúng”.
+          </p>
+        </div>
+      </article>

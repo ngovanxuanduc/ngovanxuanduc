@@ -1,0 +1,244 @@
+---
+{
+  "title": "Garbage collector — ai dọn heap, khi nào đứng · Articles",
+  "description": "GC tự thu hồi object không còn reference. Allocation, reachability, STW, generational, Go/JVM/V8/Python khác nhau ở đâu — và khi nào “GC pause” là bug của mình.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Garbage collector</h1>
+          <p class="article-header__meta">2026-07-20 · ~8 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Trong runtime managed (JVM, Go, V8/Node, Python, .NET…), bạn
+            <code>new</code> / allocate object trên
+            <strong>heap</strong> — thường
+            <em>không</em> gọi <code>free</code> tay. Ai thu hồi bộ nhớ object
+            không còn dùng?
+            <strong>Garbage collector (GC)</strong>.
+          </p>
+          <p>
+            GC không phải “magic làm app không bao giờ hết RAM”. Nó chỉ
+            <strong>tái sử dụng object mà chương trình không còn với tới
+            được</strong>. Leak logic (còn reference trong map/cache/closure)
+            thì GC cũng chịu.
+          </p>
+          <p>
+            Demo mô phỏng allocate → mất root → GC quét:
+            <a href="/demos/garbage-collector.html">GC mini heap</a>.
+            Nối
+            <a href="/articles/linux-vss-rss-uss.html">VSS / RSS / USS</a>: GC
+            chạy trong process — số RSS bạn thấy là kết quả allocate + GC +
+            native, không phải “heap Java = RSS”.
+          </p>
+
+          <h2>Bài toán một dòng</h2>
+          <pre><code>allocate nhiều → heap phình
+một số object không còn ai trỏ tới (= garbage)
+GC tìm garbage → thu hồi → chỗ trống cho allocate sau
+// trong lúc làm việc đó, đôi khi phải pause app (STW)</code></pre>
+          <p>
+            Hai câu hỏi GC luôn trả lời:
+          </p>
+          <ol>
+            <li>
+              <strong>Cái gì còn sống?</strong> (reachability từ roots)
+            </li>
+            <li>
+              <strong>Khi nào / bao nhiêu công sức dọn?</strong> (throughput vs
+              latency pause)
+            </li>
+          </ol>
+
+          <h2>Sống = còn “chạm” được từ root</h2>
+          <p>
+            <strong>Roots:</strong> stack frame (biến local), thanh ghi, global
+            / static, đôi khi handles JNI/native… Từ root đi theo con trỏ
+            field → object graph. Object
+            <em>không reachable</em> từ root = garbage, kể cả còn trỏ lẫn
+            nhau thành chu trình (cycle) — trừ model chỉ đếm refcount thuần
+            (Python cần thêm cycle GC).
+          </p>
+          <pre><code>root ──► A ──► B
+          │
+          └──► C     // A,B,C sống
+
+root ──► A
+     X── B ──► C     // B,C không reachable → garbage
+                     // (dù B.ref = C, C.ref = B)</code></pre>
+          <p>
+            “Xóa biến” / ra khỏi scope / <code>map.delete</code> / đổi
+            reference — không free ngay; chỉ
+            <em>bỏ root/path</em>. GC lần sau mới hốt (hoặc refcount về 0 thì
+            free sớm hơn, tùy runtime).
+          </p>
+
+          <h2>Vòng đời thô của một collector</h2>
+          <ol>
+            <li>
+              <strong>Mark</strong> — đánh dấu object reachable (hoặc copy
+              surviving sang chỗ mới — copying GC).
+            </li>
+            <li>
+              <strong>Sweep / compact</strong> — vùng không mark thành free;
+              đôi khi dồn object sống lại cho đỡ phân mảnh.
+            </li>
+            <li>
+              <strong>Allocate tiếp</strong> từ free list / TLAB / bump pointer.
+            </li>
+          </ol>
+          <p>
+            Biến thể: concurrent mark (chạy song song mutator), incremental,
+            generational…
+          </p>
+
+          <h2>Generational — “chết trẻ”</h2>
+          <p>
+            Quan sát thực dụng: phần lớn object sống rất ngắn (request scope,
+            temporary). GC thế hệ:
+          </p>
+          <ul>
+            <li>
+              <strong>Young / nursery</strong> — allocate nóng, minor GC thường
+              xuyên, rẻ hơn nếu hầu hết chết sớm.
+            </li>
+            <li>
+              <strong>Old / tenured</strong> — object sống sót nhiều lần được
+              thăng hạng; major/full GC đắt hơn.
+            </li>
+          </ul>
+          <p>
+            JVM HotSpot (generational), .NET, V8 có ý tương tự theo thời gian.
+            Go historically non-generational non-compacting concurrent mark-sweep
+            (đang/đã có cải tiến qua các version) — mental model “young/old”
+            JVM không map 1-1.
+          </p>
+
+          <h2>Stop-the-world (STW)</h2>
+          <p>
+            Có đoạn GC cần
+            <strong>dừng mutator</strong> (code app): snapshot stack, đánh dấu
+            an toàn, compact… Thời gian đó = pause. p99 latency API / frame
+            game / tail request hay dính đây.
+          </p>
+          <ul>
+            <li>
+              Collector “concurrent” vẫn thường còn
+              <em>STW ngắn</em> (root scan, remark…), không phải zero pause.
+            </li>
+            <li>
+              Throughput GC (đốt CPU background) vs latency (pause) là trade-off
+              cấu hình (JVM: G1/ZGC/Shenandoah…; Go: <code>GOGC</code>,
+              <code>GOMEMLIMIT</code>).
+            </li>
+          </ul>
+
+          <h2>Runtime khác nhau (bản đồ ngắn)</h2>
+          <ul>
+            <li>
+              <strong>JVM:</strong> nhiều GC (G1 phổ biến server). Heap rõ
+              young/old; tool: GC log, JFR, <code>jstat</code>. OOM ≠ “hết
+              RAM máy” — hết
+              <em>heap Java</em> (hoặc native riêng).
+            </li>
+            <li>
+              <strong>Go:</strong> concurrent GC, pacer theo heap growth;
+              <code>GOGC</code> (mặc định 100 ≈ double heap mới GC);
+              <code>GOMEMLIMIT</code> soft limit. Escape analysis: nhiều thứ
+              “new” ra stack, không vào heap.
+            </li>
+            <li>
+              <strong>V8 / Node:</strong> generational + các phase; heap
+              limit; native addon / Buffer ngoài V8 heap. <code>process.memoryUsage()</code>
+              — <code>heapUsed</code> ≠ RSS.
+            </li>
+            <li>
+              <strong>Python (CPython):</strong> chủ yếu
+              <strong>reference count</strong> + cyclic GC cho chu trình. Gì
+              còn trong list/dict/closure thì không về 0.
+            </li>
+            <li>
+              <strong>Rust / C:</strong> không GC runtime mặc định — ownership /
+              free tay. (Có thể nhúng GC trong engine, nhưng không phải default
+              app model.)
+            </li>
+          </ul>
+
+          <h2>Khi “GC” là triệu chứng, không phải bệnh</h2>
+          <ul>
+            <li>
+              <strong>Allocate điên cuồng</strong> — parse JSON lớn mỗi
+              request, string concat trong loop, clone object đồ sộ → GC chạy
+              nhiều / heap phình. Tối ưu allocation &gt; “tăng heap mù”.
+            </li>
+            <li>
+              <strong>Leak reference</strong> — cache unbounded,
+              <code>Map</code> theo id không xóa, listener không off, static
+              list — object vẫn reachable → GC không hốt. Gần
+              <a href="/articles/unbounded-inflight.html">unbounded in-flight</a>
+              / map giữ promise.
+            </li>
+            <li>
+              <strong>Finalizer / cleaner / <code>__del__</code></strong> — trì
+              hoãn reclaim, khó đoán; đừng dựa vào để đóng file/socket (dùng
+              try/finally, <code>Defer</code>, scope).
+            </li>
+            <li>
+              <strong>Huge heap + full GC</strong> — pause dài; scale-out /
+              giảm live set / GC algorithm phù hợp latency.
+            </li>
+          </ul>
+
+          <h2>Nhìn metric gì</h2>
+          <ul>
+            <li>Heap used / live set / allocation rate</li>
+            <li>GC pause (p50/p99), tần suất minor vs major</li>
+            <li>
+              RSS / cgroup memory — gồm heap + native + stack + mapped file (
+              <a href="/articles/linux-vss-rss-uss.html">RSS ≠ heap</a>)
+            </li>
+            <li>
+              Go: <code>runtime.MemStats</code>,
+              <code>GODEBUG=gctrace=1</code>; JVM: GC logs; Node:
+              <code>--expose-gc</code> chỉ để debug, không production habit
+            </li>
+          </ul>
+
+          <h2>Checklist thực dụng</h2>
+          <ul>
+            <li>
+              Trước khi “tăng heap gấp đôi”: đo allocation rate + object giữ
+              lâu (heap dump / pprof).
+            </li>
+            <li>
+              Cache: max size + TTL / weak ref nếu semantics cho phép.
+            </li>
+            <li>
+              Pool object (buffer reuse) khi profile chỉ ra hot allocate —
+              đừng premature.
+            </li>
+            <li>
+              Latency-sensitive: chọn GC/runtime flag theo SLA; test load có
+              đo pause, không chỉ throughput trung bình.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong>GC thu object không còn reachable — không thu “object bạn
+            quên nhưng vẫn nhét trong map”.</strong>
+          </p>
+          <p>
+            Nó đổi
+            <em>free tay</em> lấy
+            <em>pause + throughput + quy tắc reachability</em>. Hiểu root,
+            live set, và allocation — debug “memory” mới đúng chỗ: leak
+            reference, allocate quá tay, hay thật sự cần chỉnh GC/limit.
+          </p>
+        </div>
+      </article>
