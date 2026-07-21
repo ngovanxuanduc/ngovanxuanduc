@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Shared log: resend/recover của bạn có thể double app khác. Error channel private, idempotent mọi consumer." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Shared channel multi-tenant — recover đụng group khác · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/shared-channel-multitenant.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Shared channel multi-tenant — recover đụng group khác · Articles" />
+    <meta property="og:description" content="[Preview] Shared log: resend/recover của bạn có thể double app khác. Error channel private, idempotent mọi consumer." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/shared-channel-multitenant.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Shared channel multi-tenant — recover đụng group khác · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Shared channel multi-tenant — recover đụng group khác · Articles" />
+    <meta name="twitter:description" content="[Preview] Shared log: resend/recover của bạn có thể double app khác. Error channel private, idempotent mọi consumer." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Shared channel multi-tenant — recover đụng group khác · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Shared channel multi-tenant — recover của bạn đụng group khác</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/write-vs-read-channel.html">Shared channel</a>:
+            nhiều consumer group / app đọc cùng log (billing + analytics +
+            audit…).
+          </p>
+          <p>
+            Group A fail. On-call A
+            <a href="/articles/resend-shared-channel.html">resend</a> message
+            vào topic “cho chắc”. Group B đã xử lý xong →
+            <strong>lần hai</strong> (email double, metric double, trừ tiền
+            nếu không idempotent).
+          </p>
+          <p>
+            Shared log là
+            <strong>multi-tenant failure domain</strong>: recover local có thể
+            thành broadcast.
+          </p>
+
+          <h2>Vì sao “của tôi” không chỉ của tôi</h2>
+          <ul>
+            <li>Offset/group độc lập — B không biết A đang panic.</li>
+            <li>Resend = event mới (hoặc re-append) cho mọi subscriber.</li>
+            <li>
+              Ignore phía A không xóa nhu cầu B; resend phía A không phải tool
+              riêng A.
+            </li>
+          </ul>
+
+          <h2>An toàn hơn</h2>
+          <pre><code>1) Retry / error / DLQ channel RIÊNG group (private)
+2) Mọi consumer trên shared: idempotent theo event id
+3) Unblock A bằng DLQ private — không nhét lại shared “tạm”
+4) Fan-out có chủ đích: document ai subscribe gì
+5) Tool admin resend: require reason + scope (group vs broadcast)</code></pre>
+          <p>
+            Matrix recovery: resend shared = NO mặc định —
+            <a href="/articles/async-recovery-playbook.html">playbook</a>.
+          </p>
+
+          <h2>Single group vs shared</h2>
+          <ul>
+            <li>
+              <strong>Single group work queue:</strong> resend/requeue thường
+              OK hơn (cùng “tenant” logic).
+            </li>
+            <li>
+              <strong>Shared stream:</strong> coi như bus đa app — thay đổi
+              traffic ảnh hưởng hàng xóm.
+            </li>
+          </ul>
+          <p>
+            <a href="/articles/fanout-vs-work-queue.html">Fan-out vs work queue</a>.
+          </p>
+
+          <h2>Checklist trước khi “resend production”</h2>
+          <ol>
+            <li>Channel shared hay private group?</li>
+            <li>Ai còn listen? Idempotent chưa?</li>
+            <li>Có error topic riêng không?</li>
+            <li>Redrive có bound không?</li>
+            <li>Order / wrong risk trên projection?</li>
+          </ol>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Shared log là chung cư — sửa ống nước nhà bạn đừng ngập tầng
+              dưới.<br />
+              Recover local đừng thành broadcast.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

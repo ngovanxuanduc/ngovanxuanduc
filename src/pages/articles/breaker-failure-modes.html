@@ -1,0 +1,80 @@
+---
+{
+  "title": "Breaker failure modes — flap, half-open, fail-open · Articles",
+  "description": "[Preview] Dual circuit breaker: flapping, half-open storm, fail-open vs fail-closed.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Breaker failure modes — flap, half-open herd, fail-open vs closed
+          </h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/circuit-breaker.html">Circuit breaker</a> bảo vệ
+            dependency. Bản thân nó cũng hỏng theo kiểu có tên.
+          </p>
+
+          <h2>Flapping</h2>
+          <p>
+            Mở/đóng liên tục vì threshold nhạy + traffic burst. Metric nhiễu;
+            client thấy 503 lác đác. Chữa: hysteresis, cửa sổ trượt đủ mẫu, cool
+            down tối thiểu.
+          </p>
+
+          <h2>Half-open storm</h2>
+          <pre><code>CLOSED --fail%--> OPEN --timer--> HALF_OPEN
+                                      │
+                    50 request cùng lúc “thử”  →  dependency gục lại
+                    đúng: 1 probe; còn lại fail-fast / xếp hàng ngắn</code></pre>
+          <p>
+            Chữa: một (vài) probe; request khác fail-fast hoặc queue ngắn; chỉ
+            CLOSED lại khi probe OK.
+          </p>
+
+          <h2>Fail-closed vs fail-open</h2>
+          <pre><code>Fail-closed  — khi breaker/lỗi: từ chối (an toàn, mất availability)
+Fail-open    — khi không chắc: cho qua (availability, rủi ro)
+
+Auth / money path     → nghiêng closed
+Feature phụ / banner  → có thể open + degrade
+Breaker chính hỏng    → quyết định explicit, đừng mặc định im</code></pre>
+
+          <h2>Ghép</h2>
+          <ul>
+            <li>
+              <a href="/articles/bulkhead.html">Bulkhead</a> — giới hạn concurrent
+              trước khi breaker mở.
+            </li>
+            <li>
+              <a href="/articles/retry-what-when.html">Retry</a> — không retry
+              khi breaker mở.
+            </li>
+            <li>
+              <a href="/articles/load-shedding.html">Shed</a> — khi quá tải toàn
+              cục.
+            </li>
+          </ul>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Breaker cũng cần thiết kế failure — không chỉ threshold
+              lỗi.<br />
+              Probe nhẹ; đừng flap; chọn open/closed theo rủi ro.</strong
+            >
+          </p>
+        </div>
+      </article>

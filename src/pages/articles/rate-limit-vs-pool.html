@@ -1,0 +1,94 @@
+---
+{
+  "title": "Rate limit vs pool — trần thời gian khác trần số bay · Articles",
+  "description": "[Preview] Pool = max in-flight. Rate limit = max starts/time. Cần cả hai khi nào. Token bucket vs semaphore.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Rate limit vs pool — trần theo thời gian khác trần số đang bay</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            “Giới hạn concurrency 10” và “giới hạn 100 request/giây” nghe cùng
+            họ — <strong>đơn vị khác nhau</strong>, chữa bệnh khác nhau.
+          </p>
+          <pre><code>Pool / semaphore     — tối đa K đang chạy (in-flight inventory)
+Rate limit           — tối đa N lần bắt đầu / đơn vị thời gian
+                       (token bucket, leaky bucket, fixed window…)</code></pre>
+          <p>
+            Demo trực quan:
+            <a href="/demos/rate-limit-vs-pool.html"
+              >pool vs rate — in-flight và starts/s</a
+            >.
+          </p>
+
+          <h2>Pool — trần inventory</h2>
+          <ul>
+            <li>
+              Bảo vệ RAM, DB connections, worker slots —
+              <a href="/articles/inflight-inventory.html">in-flight inventory</a>.
+            </li>
+            <li>
+              Job chậm 60s, pool 10 → throughput ~10/phút dù “muốn” nhanh hơn.
+            </li>
+            <li>
+              <a href="/articles/promise-all-batch-vs-pool.html">Batch vs pool</a>
+              — cách implement K.
+            </li>
+          </ul>
+
+          <h2>Rate limit — trần tốc độ vào</h2>
+          <ul>
+            <li>API quota, fair share multi-tenant, chống burst short.</li>
+            <li>
+              Job siêu nhanh: chỉ pool 10 có thể &gt;1000 start/s — rate chặn
+              burst.
+            </li>
+            <li>
+              Job siêu chậm: rate 100/s + pool 10 → hàng đợi start, không 100
+              parallel.
+            </li>
+          </ul>
+
+          <h2>Chỉ một cái — thiếu gì</h2>
+          <pre><code>Chỉ pool, không rate
+  → start có thể cực nhanh khi job ngắn; downstream QPS nổ
+  → hoặc chấp nhận nếu downstream chỉ care concurrent
+
+Chỉ rate, không pool
+  → 100 start/s × job 30s = 3000 in-flight tiềm năng → OOM
+  → unbounded inventory dưới vỏ “đã rate limit”</code></pre>
+
+          <h2>Thường cần cả hai</h2>
+          <pre><code>rate:  max 50 starts/s   (bảo vệ QPS dependency)
+pool:  max 20 in-flight  (bảo vệ memory + connection)
+queue: bound             (backpressure khi cả hai no)</code></pre>
+          <p>
+            Đầy pool / đầy queue:
+            <a href="/articles/backpressure.html">backpressure</a> hoặc
+            <a href="/articles/load-shedding.html">load shedding</a>.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Pool = bao nhiêu đang ôm; rate = bao nhanh được bốc thêm.<br />
+              Hai số, hai bệnh — đừng chỉ chỉnh một nút.</strong
+            >
+          </p>
+        </div>
+      </article>

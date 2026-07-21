@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Lag = stale view. Đọc metric: scale vs poison block. SLA stale với product." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Consumer lag — offset trễ là tín hiệu sản phẩm · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/consumer-lag.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Consumer lag — offset trễ là tín hiệu sản phẩm · Articles" />
+    <meta property="og:description" content="[Preview] Lag = stale view. Đọc metric: scale vs poison block. SLA stale với product." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/consumer-lag.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Consumer lag — offset trễ là tín hiệu sản phẩm · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Consumer lag — offset trễ là tín hiệu sản phẩm · Articles" />
+    <meta name="twitter:description" content="[Preview] Lag = stale view. Đọc metric: scale vs poison block. SLA stale với product." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Consumer lag — offset trễ là tín hiệu sản phẩm · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Consumer lag — offset trễ là tín hiệu sản phẩm, không chỉ ops</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Lag = production (log/offset) đi trước consumer. Trên read side user
+            thấy
+            <a href="/articles/stale-missing-wrong.html">stale</a> — “vừa bấm
+            xong F5 vẫn cũ”.
+          </p>
+          <p>
+            Ops page “lag cao”. Product hỏi “dashboard real-time chứ?”. Cùng một
+            số, hai ngôn ngữ. Bài này nối chúng.
+          </p>
+
+          <h2>Lag đo gì</h2>
+          <pre><code>messages / time  behind head
+hoặc age of oldest unprocessed event
+(quan trọng với SLA: “trễ tối đa X phút”)</code></pre>
+          <p>
+            Lag = 0 không đảm bảo
+            <a href="/articles/stale-missing-wrong.html">wrong/missing</a> —
+            chỉ nói “đã consume tới đầu”; handler vẫn có thể map sai.
+          </p>
+
+          <h2>Đọc lag như bác sĩ</h2>
+          <pre><code>Lag↑ + CPU consumer ~100%  →  thiếu capacity / handler chậm
+                              →  scale worker hoặc tối ưu code
+
+Lag↑ + CPU rảnh / retry↑   →  poison, block, chờ dependency
+                              →  unblock, DLQ, breaker — không scale mù
+
+Lag ổn định &gt; 0            →  stale budget? document với product
+
+Lag↓ sau deploy rồi↑ lại   →  regress hoặc traffic</code></pre>
+          <ul>
+            <li>
+              Scale khi đúng ô 1 —
+              <a href="/articles/competing-consumers.html">competing</a> /
+              optimize.
+            </li>
+            <li>
+              Ô 2:
+              <a href="/articles/unblock.html">unblock</a>,
+              <a href="/articles/poison-dlq.html">DLQ</a>, không thêm pod “cho
+              chắc”.
+            </li>
+          </ul>
+
+          <h2>Product: budget stale</h2>
+          <p>
+            Song song
+            <a href="/articles/order-budget.html">order budget</a> và
+            <a href="/articles/timeout-budget.html">timeout budget</a>:
+            <strong>stale budget</strong> — “user thấy data trễ tối đa bao
+            lâu?”. Lag alert nên bám con số đó, không bám cảm tính on-call.
+          </p>
+
+          <h2>Lag và recovery</h2>
+          <ul>
+            <li>
+              Redrive DLQ ồ ạt → lag spike có chủ đích; bound
+              <a href="/articles/dlq-triage.html">redrive</a>.
+            </li>
+            <li>
+              Seek/reset offset → có thể stale hoặc replay storm; idempotent
+              handler.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Lag là độ trễ sự thật của view — metric sản phẩm đội lốt
+              ops.<br />
+              Đọc cùng CPU/retry: biết scale hay unblock.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

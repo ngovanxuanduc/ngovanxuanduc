@@ -1,0 +1,81 @@
+---
+{
+  "title": "Playbook service chậm — 10 phút hỏi gì · Articles",
+  "description": "[Preview] Checklist latency: deal/do, pool, budget, dependency, lag, RAM. Nối hub triệu chứng.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Playbook “service chậm” — checklist khoảng 10 phút</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Bổ sung
+            <a href="/articles/symptom-map.html">hub triệu chứng</a>: thứ tự hỏi
+            khi p99/latency kêu — trước khi scale mù.
+          </p>
+
+          <h2>10 phút</h2>
+          <ol>
+            <li>Chậm từ khi nào — deploy, traffic, dependency?</li>
+            <li>
+              CPU cao hay rảnh?
+              <a href="/articles/connection-pool-exhaustion.html"
+                >Rảnh → pool/I/O/lock</a
+              >;
+              <a href="/articles/event-loop.html">cao 1 core → loop/sync</a>.
+            </li>
+            <li>
+              In-flight / queue / DB pool active?
+              <a href="/articles/inflight-inventory.html">inventory</a>
+            </li>
+            <li>
+              Dependency latency / error / breaker?
+              <a href="/articles/circuit-breaker.html">breaker</a>
+            </li>
+            <li>
+              Timeout / retry phóng đại?
+              <a href="/articles/timeout-budget.html">budget</a>,
+              <a href="/articles/retry-what-when.html">retry</a>,
+              <a href="/articles/cancellation.html">cancel</a>
+            </li>
+            <li>
+              GC / RSS / cgroup?
+              <a href="/articles/heap-rss-cgroup.html">heap/RSS</a>
+            </li>
+            <li>Một endpoint hay toàn cục? Hot key?</li>
+            <li>
+              Trace: span nào ngốn? queue wait?
+              <a href="/articles/tracing-timeout-budget.html">tracing</a>
+            </li>
+            <li>
+              Stampede / thundering?
+              <a href="/articles/cache-stampede.html">cache</a>,
+              <a href="/articles/retry-backoff-jitter.html">jitter</a>
+            </li>
+            <li>
+              Tạm: shed / rollback / scale — rồi root cause
+              <a href="/articles/load-shedding.html">shed</a>
+            </li>
+          </ol>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Chậm là triệu chứng — hỏi chờ gì, ôm gì, đốt budget ở đâu trước
+              khi scale mù.</strong
+            >
+          </p>
+        </div>
+      </article>

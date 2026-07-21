@@ -1,0 +1,115 @@
+---
+{
+  "title": "Ignore khi nào là đúng · Articles",
+  "description": "[Preview] Ack/skip có chủ đích: metric, best-effort, dedup. Cấm mặc định trên read bắt buộc đủ. Matrix recovery.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Ignore khi nào là đúng — bỏ message không phải lúc nào cũng sai</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Trong
+            <a href="/articles/async-recovery-playbook.html">recovery matrix</a>,
+            <strong>Ignore</strong> = ack/commit bỏ qua, không retry, không DLQ
+            (hoặc drop sau phân loại). Nghe như tội — đôi khi là
+            <strong>quyết định sản phẩm đúng</strong>.
+          </p>
+          <p>
+            Sai lầm hai phía: (1) never ignore → poison kẹt mãi; (2) ignore cho
+            lẹ →
+            <a href="/articles/stale-missing-wrong.html">missing</a> thầm.
+          </p>
+
+          <h2>Ignore hợp lý</h2>
+          <ul>
+            <li>
+              <strong>Best-effort:</strong> push marketing, analytics sample,
+              log phụ — mất vài event trong SLA.
+            </li>
+            <li>
+              <strong>Duplicate đã dedup:</strong> bản sau ack bỏ (đã effect).
+            </li>
+            <li>
+              <strong>Poison đã triage:</strong> data không sửa được, business
+              chấp nhận drop + metric (hiếm; document).
+            </li>
+            <li>
+              <strong>Schema unknown + policy drop:</strong> version không hỗ
+              trợ, có alert tỷ lệ — không im lặng 100%.
+            </li>
+          </ul>
+
+          <h2>Ignore nguy hiểm (mặc định cấm)</h2>
+          <ul>
+            <li>
+              <strong>Read / projection phải đủ:</strong> ignore = missing view.
+              Matrix: NO trên read trừ metric chấp nhận mất.
+            </li>
+            <li>
+              <strong>Write money path:</strong> bỏ action = mất charge/refund
+              / bước workflow.
+            </li>
+            <li>
+              <strong>Shared log:</strong> bạn ignore không có nghĩa app khác
+              không cần — và bạn không được resend thay ignore lung tung.
+            </li>
+            <li>
+              <strong>Ignore để “xanh lag”:</strong> che nợ correctness.
+            </li>
+          </ul>
+
+          <h2>Ignore vs DLQ vs Unblock</h2>
+          <pre><code>Ignore     — biến mất với group này; rẻ; dễ quên audit
+DLQ        — cất + alert; unblock + còn cơ hội redrive
+           (xem poison-dlq, dlq-triage, unblock)
+Release    — giữ message, có thể block lane</code></pre>
+          <p>
+            Unblock có thể bằng DLQ
+            <em>hoặc</em> ignore. DLQ = “nhả hàng nhưng còn địa chỉ”. Ignore =
+            “nhả và thôi” — chỉ khi product ký.
+          </p>
+
+          <h2>Hai case product</h2>
+          <ul>
+            <li>
+              <strong>OK:</strong> event “banner_impression” sample 10% — mất
+              vài bản = OK, có metric drop.
+            </li>
+            <li>
+              <strong>Không OK:</strong> event “payment_captured” ignore vì
+              schema lạ — biến thành
+              <a href="/articles/stale-missing-wrong.html">missing</a> tiền;
+              phải DLQ + triage.
+            </li>
+          </ul>
+
+          <h2>Làm đúng nếu ignore</h2>
+          <ol>
+            <li>Metric + alert drop rate / reason code.</li>
+            <li>Document SLA (“best-effort, có thể mất”).</li>
+            <li>Không gộp permanent bug vào ignore để khỏi sửa code.</li>
+            <li>Review định kỳ: ignore có tăng bất thường không?</li>
+          </ol>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Ignore là decision sản phẩm, không phải catch rỗng.<br />
+              Unblock được — correctness phải được nói to.</strong
+            >
+          </p>
+        </div>
+      </article>

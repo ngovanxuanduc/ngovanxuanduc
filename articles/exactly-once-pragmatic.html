@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Broker “exactly-once” không miễn handler idempotent. Delivery vs processing vs effect. Công thức production." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Exactly-once thực dụng — at-least + idempotent · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/exactly-once-pragmatic.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Exactly-once thực dụng — at-least + idempotent · Articles" />
+    <meta property="og:description" content="[Preview] Broker “exactly-once” không miễn handler idempotent. Delivery vs processing vs effect. Công thức production." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/exactly-once-pragmatic.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Exactly-once thực dụng — at-least + idempotent · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Exactly-once thực dụng — at-least + idempotent · Articles" />
+    <meta name="twitter:description" content="[Preview] Broker “exactly-once” không miễn handler idempotent. Delivery vs processing vs effect. Công thức production." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Exactly-once thực dụng — at-least + idempotent · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Exactly-once thực dụng — at-least-once + idempotent handler</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~7 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Slide vendor: <em>exactly-once delivery</em>. Incident thật: user bị
+            charge hai lần sau redelivery / timeout retry.
+          </p>
+          <p>
+            Mạng + crash + timeout ⇒ hệ phân tán
+            <strong>không có phép màu “giao đúng một lần” miễn phí</strong>.
+            Điều bạn cần là
+            <strong>effect xảy ra một lần</strong> (hoặc an toàn nếu hai lần) —
+            công thức đời thực gần như luôn là:
+          </p>
+          <pre><code>at-least-once delivery  ×  idempotent processing  (+ outbox khi publish)
+≈ “exactly-once effect” theo nghĩa thực dụng</code></pre>
+          <p>
+            <a href="/articles/async-recovery-playbook.html">Recovery playbook</a>
+            đã giả định idempotent handler — đây là vì sao.
+          </p>
+
+          <h2>Ba lớp hay nhầm một từ</h2>
+          <pre><code>Delivery    — broker/consumer nhận message mấy lần?
+Processing  — handler function chạy mấy lần?
+Effect      — side-effect (charge, row, email) xuất hiện mấy lần?</code></pre>
+          <ul>
+            <li>
+              EOS marketing hay nói
+              <em>delivery/processing trong một hệ hẹp</em> (Kafka transactions,
+              v.v.) — vẫn không thay
+              <a href="/articles/idempotency.html">idempotent business logic</a>
+              khi bạn gọi Stripe / gửi SMS / ghi bảng ngoài transaction.
+            </li>
+            <li>
+              Bạn (và kế toán) care
+              <strong>effect</strong>.
+            </li>
+          </ul>
+
+          <h2>At-least-once là mặc định</h2>
+          <ul>
+            <li>
+              <a href="/articles/visibility-timeout.html">Visibility / lease</a>:
+              worker chết → message hiện lại.
+            </li>
+            <li>Ack mất / process kill sau side-effect trước ack → redelivery.</li>
+            <li>
+              Client timeout +
+              <a href="/articles/retry-what-when.html">retry</a> = lần hai có
+              chủ đích hoặc không.
+            </li>
+          </ul>
+          <p>
+            Thiết kế như redelivery
+            <em>sẽ</em> xảy ra — vì nó sẽ.
+          </p>
+
+          <h2>Idempotent processing</h2>
+          <ul>
+            <li>Dedup store / unique constraint theo
+              <a href="/articles/idempotency-key-scope.html">key scope</a>.</li>
+            <li>Natural idempotent: “set state = X” thay “increment” mù.</li>
+            <li>
+              Handler đọc “đã xử lý messageId?” trước side-effect đắt.
+            </li>
+          </ul>
+
+          <h2>Publish: dual-write vs outbox</h2>
+          <p>
+            <code>db.save(); bus.publish();</code> chết giữa hai dòng → mất
+            event hoặc orphan event.
+            <a href="/articles/outbox-inbox.html">Outbox</a> ghi event cùng
+            transaction; publisher at-least-once đọc outbox + consumer
+            idempotent.
+            Xem
+            <a href="/articles/dual-write-vs-outbox.html">dual-write vs outbox</a>.
+          </p>
+
+          <h2>Unknown timeout</h2>
+          <p>
+            Không biết lần 1 đã effect chưa →
+            <a href="/articles/stale-missing-wrong.html">uncertain</a>.
+            Retry không key = có thể double.
+            Đúng: tra cứu / cùng idempotency key / “create if not exists”.
+          </p>
+
+          <h2>Checklist “claim EOS”</h2>
+          <ol>
+            <li>Redelivery path đã test chưa (kill worker giữa job)?</li>
+            <li>Side-effect ngoài DB có key/dedup không?</li>
+            <li>Publish có outbox (hoặc tương đương) không?</li>
+            <li>Timeout client có an toàn retry không?</li>
+            <li>
+              Inbox/dedup multi-instance (không chỉ Map in-memory một pod)?
+            </li>
+          </ol>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Exactly-once effect ≈ at-least-once delivery × idempotent
+              processing.<br />
+              Chữ trên slide broker không thay unique constraint.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

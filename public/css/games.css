@@ -765,6 +765,114 @@
 .ms-cell.is-n7 { color: var(--text); }
 .ms-cell.is-n8 { color: var(--text-dim); }
 
+/* ===== Simon ===== */
+.simon-stats {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.simon-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  width: min(100%, 280px);
+  aspect-ratio: 1 / 1;
+  padding: 0.15rem;
+}
+
+.simon-pad {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  padding: 0;
+  min-height: 0;
+  transition:
+    filter 0.08s ease,
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    opacity 0.12s ease;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0.72;
+}
+
+.simon-pad:disabled {
+  cursor: default;
+}
+
+.simon-pad:not(:disabled):active,
+.simon-pad.is-lit {
+  opacity: 1;
+  transform: scale(0.97);
+  filter: brightness(1.35);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.simon-pad--0 {
+  background: #1a4d32;
+  border-color: rgba(94, 234, 147, 0.35);
+}
+.simon-pad--0.is-lit,
+.simon-pad--0:not(:disabled):active {
+  background: #5eea93;
+  border-color: #5eea93;
+  box-shadow: 0 0 22px rgba(94, 234, 147, 0.45);
+}
+
+.simon-pad--1 {
+  background: #5a2228;
+  border-color: rgba(255, 143, 143, 0.35);
+}
+.simon-pad--1.is-lit,
+.simon-pad--1:not(:disabled):active {
+  background: #ff8f8f;
+  border-color: #ff8f8f;
+  box-shadow: 0 0 22px rgba(255, 143, 143, 0.45);
+}
+
+.simon-pad--2 {
+  background: #5a4a18;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+.simon-pad--2.is-lit,
+.simon-pad--2:not(:disabled):active {
+  background: #fbbf24;
+  border-color: #fbbf24;
+  box-shadow: 0 0 22px rgba(251, 191, 36, 0.4);
+}
+
+.simon-pad--3 {
+  background: #1a3a5a;
+  border-color: rgba(96, 165, 250, 0.35);
+}
+.simon-pad--3.is-lit,
+.simon-pad--3:not(:disabled):active {
+  background: #60a5fa;
+  border-color: #60a5fa;
+  box-shadow: 0 0 22px rgba(96, 165, 250, 0.45);
+}
+
+.simon-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+  margin: 0;
+}
+
+.simon-hint kbd {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+  margin: 0 0.12rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-muted);
+}
+
 /* ===== Reaction ===== */
 .rx-stats {
   flex-wrap: wrap;

@@ -1,7 +1,7 @@
 ---
 {
-  "title": "Blocking vs non-blocking — chờ có kẹt “deal” không · Articles",
-  "description": "Blocking: unit thực thi đứng chờ xong mới làm tiếp. Non-blocking: chờ mà vẫn dealing with việc khác. Nối concurrency (deal) và parallel (do).",
+  "title": "Blocking vs non-blocking — chờ mà kẹt, hay chờ vẫn chạy việc khác · Articles",
+  "description": "Blocking: đứng chờ, unit bị kẹt. Non-blocking: chờ mà vẫn chạy việc khác. Nối concurrency (deal) và parallel (do).",
   "page": "articles",
   "scripts": []
 }
@@ -9,7 +9,7 @@
 <article class="container">
         <header class="article-header animate-in">
           <a class="article-header__back" href="/articles/">← Articles</a>
-          <h1>Blocking vs non-blocking</h1>
+          <h1>Blocking vs non-blocking — chờ mà kẹt, hay chờ vẫn chạy việc khác</h1>
           <p class="article-header__meta">2026-07-20 · ~5 phút đọc · demo</p>
         </header>
 
@@ -168,6 +168,21 @@ Blocking + N thread
               Pool size = ngầm “max blocking in-flight” — nối
               <a href="/articles/unbounded-inflight.html">unbounded</a>,
               <a href="/articles/backpressure.html">backpressure</a>.
+            </li>
+          </ul>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/coroutine.html">Coroutine</a>
+              — unit suspend/resume: cơ chế khiến non-block + async sống được
+              trên ít thread.
+            </li>
+            <li>
+              <a href="/articles/concurrency-vs-parallel.html"
+                >Concurrency vs parallel</a
+              >
+              — deal vs do.
             </li>
           </ul>
 

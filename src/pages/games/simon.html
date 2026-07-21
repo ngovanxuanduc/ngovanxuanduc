@@ -1,0 +1,73 @@
+---
+{
+  "title": "Simon · Games",
+  "description": "Simon — xem chuỗi màu, lặp lại. Mỗi vòng thêm 1 bước, lưu best local.",
+  "page": "games",
+  "scripts": ["/js/simon.js"]
+}
+---
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Simon</h1>
+          <p>
+            Xem chuỗi sáng → lặp lại đúng thứ tự. Mỗi vòng thêm 1 màu. Sai =
+            hết ván.
+          </p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <div class="simon-stats memory-stats">
+            <span>Vòng: <strong id="simon-level">0</strong></span>
+            <span>Best: <strong id="simon-best">—</strong></span>
+          </div>
+          <p id="simon-status" class="game-status">Bấm Bắt đầu.</p>
+          <div
+            id="simon-board"
+            class="simon-board"
+            role="group"
+            aria-label="Bàn Simon 4 màu"
+          >
+            <button
+              type="button"
+              class="simon-pad simon-pad--0"
+              data-i="0"
+              aria-label="Xanh lá"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--1"
+              data-i="1"
+              aria-label="Đỏ"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--2"
+              data-i="2"
+              aria-label="Vàng"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--3"
+              data-i="3"
+              aria-label="Xanh dương"
+              disabled
+            ></button>
+          </div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--sm" id="simon-start">
+              Bắt đầu
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="simon-reset-best">
+              Xóa best
+            </button>
+          </div>
+          <p class="simon-hint">
+            Phím <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> hoặc click /
+            chạm.
+          </p>
+        </div>
+      </div>

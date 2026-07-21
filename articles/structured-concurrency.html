@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Scope: không leak fire-and-forget. Cancel lan theo cây. Lỗi con, inventory ẩn, so với Promise.all." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Structured concurrency — task con theo cha · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/structured-concurrency.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Structured concurrency — task con theo cha · Articles" />
+    <meta property="og:description" content="[Preview] Scope: không leak fire-and-forget. Cancel lan theo cây. Lỗi con, inventory ẩn, so với Promise.all." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/structured-concurrency.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Structured concurrency — task con theo cha · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Structured concurrency — task con theo cha · Articles" />
+    <meta name="twitter:description" content="[Preview] Scope: không leak fire-and-forget. Cancel lan theo cây. Lỗi con, inventory ẩn, so với Promise.all." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Structured concurrency — task con theo cha · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Structured concurrency — task con sống chết theo scope cha</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Handler nhận request, bắn ba job:
+            <code>void audit(); void notify(); await save();</code>
+            rồi return 200. Process restart: audit/notify dở dang, lỗi nuốt,
+            metric “success” trong khi side-effect không xong.
+            Đó là
+            <strong>async mồ côi</strong> — không cha, không cancel, không
+            join.
+          </p>
+          <p>
+            <strong>Structured concurrency</strong>: mọi task con nằm trong
+            <em>scope</em> (nursery). Scope chỉ kết thúc khi con xong — hoặc
+            bị
+            <a href="/articles/cancellation.html">cancel</a>
+            theo cây khi cha hủy / lỗi policy.
+          </p>
+
+          <h2>Vấn đề fire-and-forget</h2>
+          <pre><code>// JS — “xong” với caller, chưa xong với thế giới
+async function handle(req) {
+  void writeAudit(req)        // lỗi? ai bắt?
+  void sendEmail(req.user)    // inventory ẩn
+  return { ok: true }
+}
+// Client disconnect: hai task vẫn chạy (orphan)
+// xem cancellation + inflight-inventory</code></pre>
+          <ul>
+            <li>
+              Lỗi con không bubble → fail im.
+            </li>
+            <li>
+              <a href="/articles/inflight-inventory.html">In-flight</a> không
+              đếm → OOM “không hiểu”.
+            </li>
+            <li>
+              Cancel request không lan → việc mồ côi.
+            </li>
+          </ul>
+
+          <h2>Scope = cha</h2>
+          <pre><code>// Ý structured (pseudo)
+await withScope(async (scope) =&gt; {
+  scope.fork(() =&gt; writeAudit(req))
+  scope.fork(() =&gt; sendEmail(req.user))
+  await save(req)
+}) // đợi / cancel cả fork; policy lỗi rõ ràng</code></pre>
+          <p>
+            Kotlin <code>coroutineScope</code>, Java structured concurrency
+            API, Trio nursery, Swift task group — cùng ý: cây task, không
+            “đẻ rơi”.
+          </p>
+
+          <h2>Policy khi con fail</h2>
+          <ul>
+            <li>
+              <strong>Cancel siblings + escalate:</strong> một fail → hủy anh
+              em, scope throw (all-or-fail).
+            </li>
+            <li>
+              <strong>Isolate:</strong> log lỗi con, cha vẫn chạy (cần nói to —
+              giống best-effort
+              <a href="/articles/ignore-when-ok.html">ignore</a>).
+            </li>
+          </ul>
+          <p>
+            <code>Promise.all</code> gần all-or-fail nhưng không cancel sibling
+            mặc định (trừ AbortSignal tự truyền). Structured = cancel + lifetime
+            gắn scope, không chỉ “đợi cả đám”.
+          </p>
+
+          <h2>Với series</h2>
+          <ul>
+            <li>
+              <a href="/articles/cancellation.html">Cancel</a> theo cây, không
+              chỉ một fetch.
+            </li>
+            <li>
+              <a href="/articles/timeout-budget.html">Budget</a> gắn scope cha —
+              hết giờ hủy cả nhóm.
+            </li>
+            <li>
+              Không thay
+              <a href="/articles/idempotency.html">idempotency</a> khi job bị
+              cancel giữa chừng rồi redelivery.
+            </li>
+          </ul>
+
+          <h2>Checklist</h2>
+          <ol>
+            <li>Request path có <code>void</code> / fire-and-forget không?</li>
+            <li>Disconnect/budget có hủy hết con không?</li>
+            <li>Lỗi con có metric + policy không?</li>
+            <li>Shutdown process: join hay kill mồ côi?</li>
+          </ol>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Task có cha có mẹ — đừng đẻ async mồ côi.<br />
+              Scope = lifetime + cancel + chỗ bắt lỗi, không chỉ
+              Promise.all.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

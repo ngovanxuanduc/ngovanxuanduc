@@ -1,7 +1,7 @@
 ---
 {
   "title": "Articles · Ngo Van Xuan Duc",
-  "description": "Bài viết ngắn — notes &amp; thoughts.",
+  "description": "Ghi chú ngắn — concurrency, reliability, queue. Notes &amp; thoughts.",
   "page": "articles",
   "scripts": []
 }
@@ -11,18 +11,55 @@
           <h1>Articles</h1>
           <p>
             Ghi chú ngắn, không formal. Xếp theo chủ đề — trong mỗi nhóm theo
-            thứ tự đọc gợi ý.
+            thứ tự đọc gợi ý. Vào nhanh theo triệu chứng:
+            <a href="/articles/symptom-map.html">Bạn đang gặp gì?</a>
           </p>
         </div>
 
         <div class="animate-in animate-in-delay-1">
-          <!-- 1. Fundamentals: deal / do -->
+          <!-- 0 -->
+          <section class="article-section">
+            <h2 class="article-section__title">0 · Cửa vào</h2>
+            <p class="article-section__desc">
+              Theo triệu chứng — không cần biết tên pattern trước
+            </p>
+            <ul class="article-list">
+              <li>
+                <a href="/articles/symptom-map.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Bạn đang gặp gì? — chậm, RAM, double, view sai, consumer
+                    kẹt</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/slow-service-playbook.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Playbook “service chậm” — checklist khoảng 10 phút</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+            </ul>
+          </section>
+
+          <!-- 1 -->
           <section class="article-section">
             <h2 class="article-section__title">
               1 · Concurrency &amp; parallel
             </h2>
             <p class="article-section__desc">
-              Dealing with vs doing · blocking · data/task parallel
+              Deal / do · block · coroutine · event loop · workers vs line
             </p>
             <ul class="article-list">
               <li>
@@ -45,11 +82,62 @@
                   data-published="2026-07-20"
                 >
                   <span class="article-list__title"
-                    >Blocking vs non-blocking — chờ có kẹt deal không</span
+                    >Blocking vs non-blocking — chờ mà kẹt, hay chờ vẫn chạy việc
+                    khác</span
                   >
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/coroutine.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Coroutine — tạm dừng khi chờ, chạy tiếp đúng chỗ</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/event-loop.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Event loop — ai resume sau await, ai bị kẹt khi sync</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/cooperative-vs-preemptive.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Cooperative vs preemptive — nhường chỗ vs bị OS cắt</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/thread-pool-offload.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Thread pool / offload — CPU và sync I/O ra ngoài loop</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
                   </span>
                 </a>
               </li>
@@ -67,14 +155,44 @@
                   </span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="/articles/parallel-workers-vs-assembly-line.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Parallel workers vs assembly line — làm trọn job hay chia
+                    stage</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/structured-concurrency.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Structured concurrency — task con sống chết theo scope
+                    cha</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
             </ul>
           </section>
 
-          <!-- 2. Scheduling work -->
+          <!-- 2 -->
           <section class="article-section">
             <h2 class="article-section__title">2 · Schedule &amp; limit work</h2>
             <p class="article-section__desc">
-              Pool, single-flight, in-flight budget, backpressure
+              Pool · inventory · rate · bulkhead · shed · stampede
             </p>
             <ul class="article-list">
               <li>
@@ -121,6 +239,21 @@
               </li>
               <li>
                 <a
+                  href="/articles/inflight-inventory.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >In-flight = inventory — mỗi việc đang bay là một khoản
+                    nợ</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="/articles/backpressure.html"
                   data-published="2026-07-20"
                 >
@@ -133,16 +266,70 @@
                   </span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="/articles/rate-limit-vs-pool.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Rate limit vs pool — trần thời gian khác trần số bay</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/bulkhead.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Bulkhead — một dependency chết không kéo sập cả
+                    process</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/load-shedding.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Load shedding — đôi khi đúng là từ chối request</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/cache-stampede.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Cache stampede — TTL về 0, mọi người bắn cùng lúc</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
             </ul>
           </section>
 
-          <!-- 3. Call reliability -->
+          <!-- 3 -->
           <section class="article-section">
             <h2 class="article-section__title">
               3 · Gọi service — fail &amp; recover
             </h2>
             <p class="article-section__desc">
-              Retry, timeout, breaker, idempotency, race
+              Retry · cancel · breaker · idempotency · hedge · pool DB · SLO
             </p>
             <ul class="article-list">
               <li>
@@ -156,6 +343,20 @@
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/retry-what-when.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Retry cái gì, bỏ cái gì — và khi retry tự đấm mình</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
                   </span>
                 </a>
               </li>
@@ -175,6 +376,21 @@
               </li>
               <li>
                 <a
+                  href="/articles/cancellation.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Cancellation — hết giờ thì phải dừng việc, không chỉ báo
+                    lỗi</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="/articles/circuit-breaker.html"
                   data-published="2026-07-20"
                 >
@@ -184,6 +400,21 @@
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/breaker-failure-modes.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Breaker failure modes — flap, half-open, fail-open /
+                    closed</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
                   </span>
                 </a>
               </li>
@@ -203,6 +434,46 @@
               </li>
               <li>
                 <a
+                  href="/articles/idempotency-key-scope.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Idempotency key — sai scope là retry vẫn nhân đôi</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/exactly-once-pragmatic.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Exactly-once thực dụng — at-least-once + idempotent
+                    handler</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/hedging.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Hedging — bắn thêm một request để lấy cái về trước</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="/articles/toctou-async.html"
                   data-published="2026-07-20"
                 >
@@ -215,16 +486,58 @@
                   </span>
                 </a>
               </li>
+              <li>
+                <a
+                  href="/articles/connection-pool-exhaustion.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Connection pool hết chỗ — chậm mà CPU vẫn rảnh</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/tracing-timeout-budget.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Tracing — nhìn timeout budget trên chuỗi span</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/slo-error-budget.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >SLO / error budget — retry có đốt reliability không</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
             </ul>
           </section>
 
-          <!-- 4. Messaging -->
+          <!-- 4 -->
           <section class="article-section">
             <h2 class="article-section__title">
               4 · Queue, job &amp; messaging
             </h2>
             <p class="article-section__desc">
-              BullMQ, lease, DLQ, outbox → queue/stream → recovery playbook
+              Channel · recover · lag · order · saga · DLQ · truth (stale/wrong)
             </p>
             <ul class="article-list">
               <li>
@@ -235,49 +548,6 @@
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-17</span>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/articles/visibility-timeout.html"
-                  data-published="2026-07-20"
-                >
-                  <span class="article-list__title"
-                    >Visibility timeout / lease — worker chết job không
-                    mất</span
-                  >
-                  <span class="article-list__meta">
-                    <span class="article-list__new" hidden>New</span>
-                    <span class="article-list__date">2026-07-20</span>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/articles/poison-dlq.html"
-                  data-published="2026-07-20"
-                >
-                  <span class="article-list__title"
-                    >Poison message &amp; DLQ — job hỏng không kẹt mãi</span
-                  >
-                  <span class="article-list__meta">
-                    <span class="article-list__new" hidden>New</span>
-                    <span class="article-list__date">2026-07-20</span>
-                  </span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/articles/outbox-inbox.html"
-                  data-published="2026-07-20"
-                >
-                  <span class="article-list__title"
-                    >Outbox &amp; inbox — side-effect không “nửa vời”</span
-                  >
-                  <span class="article-list__meta">
-                    <span class="article-list__new" hidden>New</span>
-                    <span class="article-list__date">2026-07-20</span>
                   </span>
                 </a>
               </li>
@@ -311,6 +581,155 @@
               </li>
               <li>
                 <a
+                  href="/articles/stale-missing-wrong.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Stale · thiếu · sai — ba kiểu data hỏng (và “chưa
+                    chắc”)</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/order-budget.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Order budget — order tuyệt đối đắt, order “đủ dùng” rẻ
+                    hơn</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/partition-key-ordering.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Partition key &amp; ordering — thứ tự trong một key</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/visibility-timeout.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Visibility timeout / lease — worker chết job không
+                    mất</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/competing-consumers.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Competing consumers — N worker một queue</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/fanout-vs-work-queue.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Fan-out vs work queue — broadcast hay một người làm</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/consumer-lag.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Consumer lag — offset trễ là tín hiệu sản phẩm</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/unblock.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >Unblock — đừng đóng băng cả hàng vì một message hỏng</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/poison-dlq.html" data-published="2026-07-20">
+                  <span class="article-list__title"
+                    >Poison message &amp; DLQ — job hỏng không kẹt mãi</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="/articles/dlq-triage.html" data-published="2026-07-21">
+                  <span class="article-list__title"
+                    >DLQ triage — cất rồi làm gì, redrive thế nào</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/ignore-when-ok.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Ignore khi nào là đúng — bỏ message không phải lúc nào cũng
+                    sai</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
                   href="/articles/resend-shared-channel.html"
                   data-published="2026-07-20"
                 >
@@ -320,6 +739,62 @@
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/shared-channel-multitenant.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Shared channel multi-tenant — recover đụng group khác</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/outbox-inbox.html"
+                  data-published="2026-07-20"
+                >
+                  <span class="article-list__title"
+                    >Outbox &amp; inbox — side-effect không “nửa vời”</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__new" hidden>New</span>
+                    <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/dual-write-vs-outbox.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Dual-write vs outbox — ảo tưởng atomic qua hai hệ</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/saga-compensation.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Saga / compensation — bù trừ side-effect dài hạn</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
                   </span>
                 </a>
               </li>
@@ -340,11 +815,11 @@
             </ul>
           </section>
 
-          <!-- 5. Linux / runtime memory -->
+          <!-- 5 -->
           <section class="article-section">
             <h2 class="article-section__title">5 · Memory &amp; runtime</h2>
             <p class="article-section__desc">
-              Process RSS vs heap · garbage collector
+              RSS · heap · cgroup · GC
             </p>
             <ul class="article-list">
               <li>
@@ -358,6 +833,20 @@
                   <span class="article-list__meta">
                     <span class="article-list__new" hidden>New</span>
                     <span class="article-list__date">2026-07-20</span>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/articles/heap-rss-cgroup.html"
+                  data-published="2026-07-21"
+                >
+                  <span class="article-list__title"
+                    >Heap vs RSS vs cgroup — OOMKill vì con số nào</span
+                  >
+                  <span class="article-list__meta">
+                    <span class="article-list__preview">Preview</span>
+                    <span class="article-list__date">2026-07-21</span>
                   </span>
                 </a>
               </li>
@@ -378,9 +867,10 @@
             </ul>
           </section>
 
-          <!-- 6. Site -->
+          <!-- 6 -->
           <section class="article-section">
             <h2 class="article-section__title">6 · Site notes</h2>
+            <p class="article-section__desc">Không thuộc series systems</p>
             <ul class="article-list">
               <li>
                 <a href="/articles/chao-mung.html" data-published="2026-07-14">

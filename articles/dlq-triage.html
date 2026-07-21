@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] DLQ không phải xóa. Alert, phân loại, fix, redrive bound, drop có document. Tránh hố đen." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>DLQ triage — cất rồi làm gì · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/dlq-triage.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="DLQ triage — cất rồi làm gì · Articles" />
+    <meta property="og:description" content="[Preview] DLQ không phải xóa. Alert, phân loại, fix, redrive bound, drop có document. Tránh hố đen." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/dlq-triage.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DLQ triage — cất rồi làm gì · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DLQ triage — cất rồi làm gì · Articles" />
+    <meta name="twitter:description" content="[Preview] DLQ không phải xóa. Alert, phân loại, fix, redrive bound, drop có document. Tránh hố đen." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="DLQ triage — cất rồi làm gì · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>DLQ triage — cất rồi làm gì, redrive thế nào</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/poison-dlq.html">Poison / DLQ</a> +
+            <a href="/articles/unblock.html">unblock</a>: lane chính sống lại.
+            Nếu không ai đọc DLQ =
+            <strong>xóa có thêm bước</strong> (và lương tâm giả).
+          </p>
+          <p>
+            Bài này: vòng đời
+            <em>sau</em> khi message nằm trong dead-letter.
+          </p>
+
+          <h2>DLQ để làm gì</h2>
+          <ol>
+            <li><strong>Unblock</strong> consumer / partition.</li>
+            <li><strong>Giữ bằng chứng</strong> để sửa (payload, error, metadata).</li>
+            <li><strong>Redrive</strong> sau khi code/data đúng — có kiểm soát.</li>
+          </ol>
+          <p>
+            Thiếu (2)(3): bạn chỉ đạt (1) — business gap vẫn đó
+            (<a href="/articles/stale-missing-wrong.html">missing</a> trên
+            read).
+          </p>
+
+          <h2>Pipeline triage</h2>
+          <pre><code>1. Alert     DLQ depth &gt; 0 hoặc rate tăng (không chờ đầy đĩa)
+2. Classify  bug code | schema | data xấu | dependency | poison cố ý
+3. Fix       deploy / sửa payload / đổi mapping
+4. Redrive   bound concurrency + idempotent + ngoài peak nếu nặng
+5. Drop      chỉ khi ignore hợp lệ + document + metric
+6. Postmortem nếu systemic (không chỉ “xóa queue”)</code></pre>
+
+          <h2>Phân loại nhanh</h2>
+          <ul>
+            <li>
+              <strong>Code bug:</strong> fix + redrive cả lô cùng lỗi.
+            </li>
+            <li>
+              <strong>Schema / version:</strong> migrate consumer; không redrive
+              trước khi deploy.
+            </li>
+            <li>
+              <strong>Data một bản ghi:</strong> sửa tay hoặc drop có ticket.
+            </li>
+            <li>
+              <strong>Dependency tạm:</strong> đôi khi redrive sau khi dependency
+              khỏe — cẩn thundering.
+            </li>
+          </ul>
+
+          <h2>Redrive cẩn</h2>
+          <ul>
+            <li>
+              Bound in-flight —
+              <a href="/articles/inflight-inventory.html">inventory</a>,
+              <a href="/articles/backpressure.html">backpressure</a>.
+            </li>
+            <li>
+              Handler idempotent —
+              <a href="/articles/exactly-once-pragmatic.html">EOS thực dụng</a>.
+            </li>
+            <li>
+              Purpose:
+              <a href="/articles/write-vs-read-channel.html">write/read/shared</a>
+              — đừng nhét lại shared topic nếu chỉ một group cần.
+            </li>
+            <li>Order: redrive có thể xáo; projection cần strategy.</li>
+            <li>Metric success/fail sau redrive; age trong DLQ.</li>
+          </ul>
+
+          <h2>Anti-pattern</h2>
+          <pre><code>DLQ không alert
+Cron “xóa DLQ mỗi đêm”
+Redrive all lúc Black Friday traffic
+Redrive không idempotent “cho xong ticket”
+Ignore hàng loạt để lag xanh</code></pre>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >DLQ là phòng chờ có chủ — không phải thùng rác.<br />
+              Unblock xong phải có người (hoặc bot) triage.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

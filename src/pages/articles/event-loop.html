@@ -1,0 +1,272 @@
+---
+{
+  "title": "Event loop — ai resume sau await, ai bị kẹt khi sync · Articles",
+  "description": "Event loop: điều phối viên trên 1 thread. await nhả runner + xếp continuation; Promise/microtask drain trước timer. Sync CPU/I/O = không ai được resume. Demo timeline.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Event loop — ai resume sau await, ai bị kẹt khi sync</h1>
+          <p class="article-header__meta">2026-07-21 · ~8 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Bài
+            <a href="/articles/coroutine.html">coroutine</a>
+            nói unit có thể
+            <em>suspend / resume</em>. Còn thiếu một câu:
+            <strong>ai là người bấm resume?</strong>
+          </p>
+          <p>
+            Trên Node, browser, asyncio (và họ hàng): hầu hết lúc đó là
+            <strong>event loop</strong> — một vòng lặp trên
+            <em>một</em> thread (JS main thread / loop thread) quyết định
+            “tiếp theo chạy đoạn code nào”. Không phải OS tự cắt
+            <code>async function</code> như cắt thread.
+          </p>
+          <pre><code>Coroutine / async task  =  việc dang dở (có state)
+Event loop              =  điều phối viên: khi nào chạy tiếp việc nào
+OS thread               =  chỗ loop đang ngồi (thường 1 cho JS)</code></pre>
+          <p>
+            Demo (1 loop, 3 handler — await vs sync block):
+            <a href="/demos/event-loop.html">event loop · resume vs kẹt</a>.
+          </p>
+
+          <h2>Hình dung: 1 bếp trưởng, nhiều phiếu order</h2>
+          <p>
+            Loop ≈ một đầu bếp. Mỗi request/handler là phiếu:
+          </p>
+          <ul>
+            <li>
+              Đang làm (ôm bếp) — chỉ
+              <strong>một</strong> phiếu tại một thời điểm trên thread đó.
+            </li>
+            <li>
+              Chờ lò / chờ shipper (I/O) — phiếu ghim “khi chuông reo thì làm
+              tiếp”, bếp đi phiếu khác.
+            </li>
+            <li>
+              Chuông reo — không nhảy vào giữa nhát dao; xếp
+              <strong>hàng đợi</strong>, bếp xong việc hiện tại (và hết microtask)
+              mới lấy.
+            </li>
+          </ul>
+          <p>
+            Đó là
+            <a href="/articles/concurrency-vs-parallel.html">dealing with</a>
+            trên 1 core: nhiều phiếu mở, không phải nhiều đầu bếp
+            (<em>doing</em> parallel).
+          </p>
+
+          <h2>Ba chỗ việc sống</h2>
+          <pre><code>1) Call stack     — đang chạy đồng bộ (ôm loop)
+2) Hàng đợi task  — timer, I/O xong, message… (macrotask / phase)
+3) Microtask      — Promise reaction, queueMicrotask (JS)
+                    · asyncio: ready callbacks tương tự “chạy hết trước khi sleep”</code></pre>
+          <p>
+            Mô hình tinh thần (JS; Node có thêm phase libuv nhưng ý giống):
+          </p>
+          <pre><code>while (còn việc) {
+  // A. Lấy 1 macrotask (timer / I/O callback / …)
+  chạy đồng bộ đến hết stack
+
+  // B. Drain microtask: trong khi còn microtask
+  //    chạy hết — kể cả microtask mới sinh ra lúc này
+  //    → trước khi macrotask / render tiếp theo
+
+  // C. (browser) có thể render; (Node) phase khác: check, close…
+}</code></pre>
+          <p>
+            Hệ quả hay quên:
+            <strong>microtask có thể “đói” macrotask</strong> nếu bạn liên tục
+            <code>queueMicrotask</code> / chain Promise không nhường. Timer 0ms
+            không chạy xen khi microtask còn đầy.
+          </p>
+
+          <h2>await làm gì với loop?</h2>
+          <pre><code>async function handle() {
+  const a = 1 + 1           // ① stack, ôm loop
+  const row = await db.get() // ②
+  return row.id             // ③
+}</code></pre>
+          <ol>
+            <li>
+              <strong>①</strong> Chạy sync trên stack — không ai chen ngang
+              (cooperative).
+            </li>
+            <li>
+              <strong>②</strong> <code>await</code> một Promise chưa settle:
+              <ul>
+                <li>function suspend (continuation = “chạy từ dòng sau await”),</li>
+                <li>
+                  <strong>nhả stack / nhả loop</strong> — loop đi macrotask hoặc
+                  microtask khác,
+                </li>
+                <li>
+                  khi <code>db.get</code> xong: runtime
+                  <em>xếp</em> continuation (thường qua microtask khi Promise
+                  fulfill) — <strong>không</strong> cướp loop giữa chừng đoạn
+                  sync khác.
+                </li>
+              </ul>
+            </li>
+            <li>
+              <strong>③</strong> Chỉ chạy sau khi loop
+              <em>chọn</em> resume continuation đó.
+            </li>
+          </ol>
+          <p>
+            Vậy “ai resume sau await?” =
+            <strong>event loop (sau khi Promise settle + đến lượt queue)</strong>,
+            không phải thread pool tự động (trừ khi library offload bên dưới).
+          </p>
+          <p>
+            Nối
+            <a href="/articles/blocking-vs-nonblocking.html"
+              >non-blocking</a
+            >: await chỉ “non-block loop” nếu lúc chờ, loop
+            <em>thật sự rảnh</em> để deal việc khác — tức I/O không ôm thread
+            JS.
+          </p>
+
+          <h2>Ai bị kẹt khi sync?</h2>
+          <p>
+            Mọi thứ trên cùng loop
+            <strong>serialize trên 1 stack</strong>. Trong lúc bạn:
+          </p>
+          <pre><code>// 1) CPU nặng trên main
+for (let i = 0; i &lt; 1e9; i++) crunch(i)
+
+// 2) I/O sync
+fs.readFileSync('big')  // Node: block thread loop
+
+// 3) JSON.parse multi-MB, crypto sync, regex thảm họa</code></pre>
+          <p>
+            thì:
+          </p>
+          <ul>
+            <li>Không chạy handler khác.</li>
+            <li>Không resume await đã ready (data về rồi vẫn xếp hàng).</li>
+            <li>Timer trễ; WebSocket/heartbeat trễ; health check chết.</li>
+            <li>
+              “Concurrent trên giấy” — serial trên thực tế. Giống
+              blocking cả deal.
+            </li>
+          </ul>
+          <p>
+            Demo cột phải cố ý ôm loop vài tick: các resume khác
+            <em>đứng chờ</em> dù I/O đã xong.
+          </p>
+
+          <h2>Microtask vs macrotask — ví dụ một dòng</h2>
+          <pre><code>setTimeout(() =&gt; console.log('timer'), 0)
+Promise.resolve().then(() =&gt; console.log('micro'))
+console.log('sync')
+
+// In:  sync  →  micro  →  timer
+// Vì: hết stack → drain microtask → mới macrotask timer</code></pre>
+          <p>
+            <code>await</code> Promise đã resolved vẫn
+            <em>lịch</em> continuation microtask (nhường một nhịp) — không chạy
+            ngay như hàm sync. Đó là chỗ người ta nhầm “await luôn tiếp liền
+            không qua loop”.
+          </p>
+
+          <h2>Node: libuv, không chỉ “một queue”</h2>
+          <p>
+            Node loop (đơn giản hóa): timers → pending → idle/prepare → poll
+            (I/O) → check → close; giữa các phase vẫn đụng microtask/nextTick.
+            <code>fs.readFile</code> non-sync thường worker pool libuv; callback
+            “I/O xong” vào phase phù hợp rồi mới chạy JS.
+          </p>
+          <p>
+            Bạn hiếm khi cần thuộc hết phase. Cần thuộc:
+            <strong>JS của bạn vẫn một thread</strong>; block thread đó = block
+            mọi callback/async continuation.
+          </p>
+
+          <h2>Offload — khi việc không được ôm loop</h2>
+          <ul>
+            <li>
+              CPU: <code>worker_threads</code>, process pool, job queue riêng —
+              xem hướng
+              <a href="/articles/thread-pool-offload.html">thread pool / offload</a>
+              và
+              <a href="/articles/data-vs-task-parallelism.html"
+                >parallel doing</a
+              >.
+            </li>
+            <li>
+              Đừng “fake async”:
+              <code>await Promise.resolve(heavySync())</code> vẫn chạy heavy
+              <em>trước</em> khi await nhường — loop vẫn kẹt đúng đoạn sync.
+            </li>
+            <li>
+              Đếm việc bay:
+              <a href="/articles/inflight-inventory.html">in-flight inventory</a>
+              — loop delay / event loop lag là metric proxy “nợ” trên 1 thread.
+            </li>
+          </ul>
+
+          <h2>Checklist debug “async mà chậm / đơ”</h2>
+          <ol>
+            <li>CPU một core 100%, event loop delay tăng? → sync CPU trên loop.</li>
+            <li>Có <code>*Sync</code>, parse lớn, crypto sync trong request path?</li>
+            <li>
+              Promise/microtask loop vô hạn? (hiếm hơn block CPU nhưng đói
+              timer)
+            </li>
+            <li>
+              Dependency chậm nhưng loop rảnh? → không phải kẹt loop; là I/O /
+              pool —
+              <a href="/articles/connection-pool-exhaustion.html"
+                >connection pool</a
+              >,
+              <a href="/articles/timeout-budget.html">timeout budget</a>.
+            </li>
+            <li>
+              Cần hủy khi client cút? Signal xuống I/O —
+              <a href="/articles/cancellation.html">cancellation</a> — loop
+              resume path lỗi abort, đừng để query mồ côi.
+            </li>
+          </ol>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/coroutine.html">Coroutine</a> — unit
+              suspend/resume; loop là người schedule resume.
+            </li>
+            <li>
+              <a href="/articles/blocking-vs-nonblocking.html"
+                >Blocking vs non-blocking</a
+              >
+              — chờ có nhả unit không.
+            </li>
+            <li>
+              <a href="/articles/concurrency-vs-parallel.html"
+                >Concurrency vs parallel</a
+              >
+              — deal trên 1 loop ≠ doing nhiều core.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Event loop = điều phối viên resume trên một thread.<br />
+              await xếp “làm tiếp sau”; sync ôm loop = không ai được resume.</strong
+            >
+          </p>
+          <p>
+            Async/await không tạo parallel. Nó chỉ cho phép
+            <em>nhiều việc dang dở</em> trong lúc
+            <em>một</em> đoạn sync chạy. Giữ đoạn đó ngắn — hoặc offload — là
+            giữ concurrency sống.
+          </p>
+        </div>
+      </article>

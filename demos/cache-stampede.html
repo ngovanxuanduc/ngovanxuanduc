@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Cache stampede</title>
+    <meta
+      name="description"
+      content="TTL hết: N miss → N query vs single-flight 1 query."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --danger: #ff8f8f;
+        --ok: #5eea93;
+        --run: #60a5fa;
+        --wait: #fbbf24;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 38rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        margin: 1.1rem 0;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .card h2 {
+        font-size: 1.02rem;
+      }
+      .sub {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.75rem;
+      }
+      .cache {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        margin-bottom: 0.65rem;
+        color: var(--dim);
+      }
+      .cache.hot {
+        border-color: rgba(94, 234, 147, 0.4);
+        color: var(--ok);
+      }
+      .cache.miss {
+        border-color: rgba(255, 143, 143, 0.45);
+        color: var(--danger);
+      }
+      .stat {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        color: var(--dim);
+        margin-bottom: 0.35rem;
+      }
+      .stat strong {
+        color: var(--text);
+      }
+      .stat strong.bad {
+        color: var(--danger);
+      }
+      .stat strong.good {
+        color: var(--ok);
+      }
+      .reqs {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        max-height: 220px;
+        overflow: auto;
+        margin: 0.5rem 0;
+      }
+      .req {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0.3rem 0.4rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .req.db {
+        border-color: rgba(255, 143, 143, 0.5);
+        color: var(--danger);
+        background: rgba(255, 143, 143, 0.08);
+      }
+      .req.wait {
+        border-color: rgba(251, 191, 36, 0.4);
+        color: var(--wait);
+      }
+      .req.ok {
+        border-color: rgba(94, 234, 147, 0.35);
+        color: var(--ok);
+      }
+      .say {
+        font-size: 0.86rem;
+        color: var(--muted);
+        min-height: 2.6em;
+        border-top: 1px solid var(--border);
+        padding-top: 0.55rem;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Cache stampede</h1>
+        <p>
+          Key hot hết TTL. 12 request miss cùng lúc. Trái: mỗi request một query
+          DB. Phải: single-flight — 1 query, còn lại chờ chung rồi hit.
+          <a href="/articles/cache-stampede.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Stampede</b> = miss đồng loạt × N compute<br />
+          <b>Coalesce</b> = 1 compute / key, share kết quả
+        </div>
+      </header>
+      <div class="toolbar">
+        <button type="button" id="btn">▶ TTL hết → 12 miss</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint">Chậm · đọc từng request</span>
+      </div>
+      <div class="grid">
+        <section class="card">
+          <h2>Stampede</h2>
+          <p class="sub">Không lock / không coalesce</p>
+          <div class="cache miss" id="c1">cache[user:1] = MISS (TTL=0)</div>
+          <p class="stat">
+            DB queries: <strong class="bad" id="db1">0</strong>
+          </p>
+          <div class="reqs" id="r1"></div>
+          <p class="say" id="s1">Bấm chạy.</p>
+        </section>
+        <section class="card">
+          <h2>Single-flight</h2>
+          <p class="sub">1 in-flight compute / key</p>
+          <div class="cache miss" id="c2">cache[user:1] = MISS (TTL=0)</div>
+          <p class="stat">
+            DB queries: <strong class="good" id="db2">0</strong>
+          </p>
+          <div class="reqs" id="r2"></div>
+          <p class="say" id="s2">Bấm chạy.</p>
+        </section>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var N = 12;
+        var TICK = 280;
+        var timer = null;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function addReq(root, text, cls) {
+          var d = document.createElement("div");
+          d.className = "req " + (cls || "");
+          d.textContent = text;
+          root.appendChild(d);
+          root.scrollTop = root.scrollHeight;
+        }
+
+        function run() {
+          var i = 0;
+          var db1 = 0;
+          var db2 = 0;
+          $("r1").innerHTML = "";
+          $("r2").innerHTML = "";
+          $("db1").textContent = "0";
+          $("db2").textContent = "0";
+          $("c1").className = "cache miss";
+          $("c2").className = "cache miss";
+          $("c1").textContent = "cache[user:1] = MISS (TTL=0)";
+          $("c2").textContent = "cache[user:1] = MISS (TTL=0)";
+          $("s1").textContent = "Miss đồng loạt…";
+          $("s2").textContent = "Coalesce…";
+
+          timer = setInterval(function () {
+            if (i >= N) {
+              clearInterval(timer);
+              timer = null;
+              $("btn").disabled = false;
+              $("c1").className = "cache hot";
+              $("c1").textContent = "cache[user:1] = HIT (sau " + db1 + " query)";
+              $("c2").className = "cache hot";
+              $("c2").textContent = "cache[user:1] = HIT (sau 1 query)";
+              $("s1").innerHTML =
+                "<em>" +
+                db1 +
+                " query DB</em> cho cùng key — stampede. DB gồng, latency chung tăng.";
+              $("s2").innerHTML =
+                "<em>1 query DB</em>, " +
+                (N - 1) +
+                " request chờ single-flight rồi nhận cùng value.";
+              return;
+            }
+            // stampede: every request hits DB
+            db1++;
+            $("db1").textContent = String(db1);
+            addReq(
+              $("r1"),
+              "R" + (i + 1) + " miss → DB query #" + db1,
+              "db"
+            );
+
+            // single-flight
+            if (i === 0) {
+              db2 = 1;
+              $("db2").textContent = "1";
+              addReq($("r2"), "R1 miss → DB query #1 (holder)", "db");
+            } else if (i < N - 1) {
+              addReq(
+                $("r2"),
+                "R" + (i + 1) + " miss → await in-flight",
+                "wait"
+              );
+            } else {
+              addReq(
+                $("r2"),
+                "R" + (i + 1) + " … resolve all from holder",
+                "ok"
+              );
+              // mark previous waits as ok visually - add summary line
+              addReq($("r2"), "set cache; " + N + " callers done", "ok");
+            }
+            i++;
+          }, TICK);
+        }
+
+        $("btn").addEventListener("click", function () {
+          if (timer) clearInterval(timer);
+          $("btn").disabled = true;
+          run();
+        });
+        $("reset").addEventListener("click", function () {
+          if (timer) clearInterval(timer);
+          timer = null;
+          $("btn").disabled = false;
+          $("r1").innerHTML = "";
+          $("r2").innerHTML = "";
+          $("db1").textContent = "0";
+          $("db2").textContent = "0";
+          $("c1").className = "cache hot";
+          $("c2").className = "cache hot";
+          $("c1").textContent = "cache[user:1] = HIT (trước TTL)";
+          $("c2").textContent = "cache[user:1] = HIT (trước TTL)";
+          $("s1").textContent = "Bấm chạy.";
+          $("s2").textContent = "Bấm chạy.";
+        });
+        $("reset").click();
+      })();
+    </script>
+  </body>
+</html>

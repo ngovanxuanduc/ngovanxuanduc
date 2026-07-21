@@ -1,0 +1,105 @@
+---
+{
+  "title": "Saga / compensation — bù trừ side-effect · Articles",
+  "description": "[Preview] Multi-step không 2PC. Orchestration vs choreography. Fail giữa chừng + compensate. Idempotent, outbox.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Saga / compensation — dài hạn side-effect và bù trừ</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Book trip: (1) giữ phòng (2) charge thẻ (3) gửi voucher. Bước 2
+            fail sau khi (1) ok — không có transaction phân tán magic rollback
+            cả hotel lẫn bank.
+          </p>
+          <p>
+            <strong>Saga</strong>: chuỗi bước local; nếu fail → chạy
+            <strong>compensation</strong> cho bước đã thành công (hủy phòng,
+            refund) — reverse
+            <em>nghiệp vụ</em>, không phải DELETE hàng DB toàn cục.
+          </p>
+
+          <h2>Ví dụ fail ở bước 2</h2>
+          <pre><code>1 reserve_room(order)     OK
+2 charge_card(order)      FAIL (insufficient / timeout uncertain)
+3 issue_voucher           — không chạy
+
+Compensate:
+  1' cancel_reservation(order)   // idempotent
+  2' nếu charge uncertain → tra cứu / không charge lại mù
+     (stale-missing-wrong · uncertain, retry-what-when)</code></pre>
+
+          <h2>Orchestration vs choreography</h2>
+          <ul>
+            <li>
+              <strong>Orchestration:</strong> một coordinator (state machine)
+              gọi từng bước, quyết compensate. Dễ audit, single point logic.
+            </li>
+            <li>
+              <strong>Choreography:</strong> event “RoomReserved” → service
+              charge tự nghe. Lỏng coupling, khó theo dõi “saga đang đâu”, dễ
+              mất event nếu dual-write.
+            </li>
+          </ul>
+
+          <h2>Quy tắc sống còn</h2>
+          <ul>
+            <li>
+              Mỗi bước + mỗi compensate
+              <a href="/articles/idempotency.html">idempotent</a>
+              (redelivery, retry).
+            </li>
+            <li>
+              State saga (bước hiện tại) bền — crash giữa chừng resume được.
+            </li>
+            <li>
+              Publish chuyển bước:
+              <a href="/articles/outbox-inbox.html">outbox</a>, không
+              <a href="/articles/dual-write-vs-outbox.html">dual-write</a>.
+            </li>
+            <li>
+              Compensate cũng fail →
+              <a href="/articles/dlq-triage.html">DLQ / manual</a>, không pretend
+              atomic.
+            </li>
+            <li>
+              Timeout bước:
+              <a href="/articles/exactly-once-pragmatic.html">uncertain</a> —
+              đừng compensate + retry create cùng lúc mù.
+            </li>
+          </ul>
+
+          <h2>Khi không cần saga đầy đủ</h2>
+          <p>
+            Một DB + một transaction local đủ; hoặc bước sau best-effort
+            (email) với
+            <a href="/articles/ignore-when-ok.html">ignore</a> có SLA — đừng
+            over-engineer.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Saga chấp nhận tạm sai để tiến — bù trừ có chủ đích, không ảo
+              2PC.<br />
+              Idempotent từng bước; outbox; uncertain xử lý trước khi
+              compensate.</strong
+            >
+          </p>
+        </div>
+      </article>

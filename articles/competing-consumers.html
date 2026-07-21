@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] N worker tranh message: scale, mất order global. Prefetch=inventory, lease, idempotent, vs partition stream." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Competing consumers — N worker một hàng · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/competing-consumers.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Competing consumers — N worker một hàng · Articles" />
+    <meta property="og:description" content="[Preview] N worker tranh message: scale, mất order global. Prefetch=inventory, lease, idempotent, vs partition stream." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/competing-consumers.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Competing consumers — N worker một hàng · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Competing consumers — N worker một hàng · Articles" />
+    <meta name="twitter:description" content="[Preview] N worker tranh message: scale, mất order global. Prefetch=inventory, lease, idempotent, vs partition stream." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Competing consumers — N worker một hàng · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Competing consumers — N worker một queue</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Hàng đợi việc: mail, resize, webhook. Một worker chậm → backlog.
+            Thêm worker: mỗi message được
+            <strong>một</strong> consumer lấy (cạnh tranh) — throughput tăng.
+            Pattern:
+            <strong>competing consumers</strong>.
+          </p>
+          <p>
+            BullMQ concurrency, Rabbit competing, SQS multi-worker, Kafka
+            <em>trong một partition</em> thì không “nhiều consumer cùng message”
+            theo nghĩa queue — partition gán 1 consumer group member. Đừng nhầm
+            topology.
+          </p>
+
+          <h2>Được gì / mất gì</h2>
+          <pre><code>Được  — scale ngang xử lý; tận dụng nhiều core/pod
+Mất   — order global giữa các message
+      — “message A trước B” không đảm bảo nếu A,B khác worker
+      — race nếu hai message cùng aggregate (trừ lock/idempotent design)</code></pre>
+          <p>
+            Cần order per entity →
+            <a href="/articles/partition-key-ordering.html">partition key</a> /
+            stream, hoặc queue per key, không chỉ “thêm concurrency”.
+            <a href="/articles/order-budget.html">Order budget</a>.
+          </p>
+
+          <h2>Prefetch / concurrency = inventory</h2>
+          <p>
+            Worker <code>concurrency: 20</code> hoặc prefetch 20 = tối đa 20
+            message
+            <a href="/articles/inflight-inventory.html">in-flight</a> / process.
+            Quá lớn: RAM, DB pool, redelivery storm khi crash.
+            Quá nhỏ: under-utilize.
+          </p>
+          <ul>
+            <li>
+              Align với
+              <a href="/articles/connection-pool-exhaustion.html">DB pool</a>.
+            </li>
+            <li>
+              Job dài: giảm concurrency; đừng bù bằng prefetch khổng lồ.
+            </li>
+          </ul>
+
+          <h2>Lease &amp; redelivery</h2>
+          <p>
+            Worker chết giữa chừng → message hiện lại (
+            <a href="/articles/visibility-timeout.html">visibility / lease</a>).
+            Competing + redelivery ⇒
+            <strong>bắt buộc</strong>
+            <a href="/articles/idempotency.html">idempotent handler</a>
+            /
+            <a href="/articles/exactly-once-pragmatic.html">EOS thực dụng</a>.
+          </p>
+          <p>
+            Lease &lt; thời gian job chậm nhất → duplicate trong lúc job còn
+            chạy (hai worker cùng việc).
+          </p>
+
+          <h2>Poison</h2>
+          <p>
+            Một message fail mãi trên một worker không chặn worker khác
+            <em>nếu</em> queue đưa message khác — khác partition stream bị
+            head-of-line. Vẫn cần max retry +
+            <a href="/articles/poison-dlq.html">DLQ</a> /
+            <a href="/articles/unblock.html">unblock</a> để không đốt forever.
+          </p>
+
+          <h2>Checklist scale worker</h2>
+          <ol>
+            <li>Order global có cần không? (thường không)</li>
+            <li>Concurrency × pods × pool DB có vỡ không?</li>
+            <li>Lease ≥ p99 job duration?</li>
+            <li>Handler idempotent khi redelivery?</li>
+            <li>Metric: active jobs, lag/depth, fail rate, DLQ</li>
+          </ol>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Competing consumers = thêm tay làm — đổi lấy order toàn cục.<br />
+              Prefetch là inventory; lease và idempotency là lưới an toàn.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

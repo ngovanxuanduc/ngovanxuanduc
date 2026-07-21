@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Stale · thiếu · sai · uncertain</title>
+    <meta
+      name="description"
+      content="Cùng một chuỗi event — bốn kiểu view hỏng và cách nhận mặt."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --ok: #5eea93;
+        --stale: #fbbf24;
+        --miss: #ff8f8f;
+        --wrong: #f472b6;
+        --unc: #60a5fa;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 38rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.55rem 0.95rem;
+        cursor: pointer;
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      button.is-on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #0a0a0b;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 700px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem;
+      }
+      .card h2 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--dim);
+        margin-bottom: 0.65rem;
+      }
+      .truth {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        margin-bottom: 0.75rem;
+        color: var(--ok);
+      }
+      .events {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        margin-bottom: 0.85rem;
+      }
+      .ev {
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        padding: 0.4rem 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--muted);
+      }
+      .ev.on {
+        border-color: rgba(94, 234, 147, 0.4);
+        color: var(--ok);
+      }
+      .ev.skip {
+        opacity: 0.45;
+        text-decoration: line-through;
+      }
+      .ev.dup {
+        border-color: rgba(244, 114, 182, 0.45);
+        color: var(--wrong);
+      }
+      .ev.pend {
+        border-color: rgba(96, 165, 250, 0.4);
+        color: var(--unc);
+      }
+      .view-box {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 0.85rem 0.9rem;
+        background: var(--bg);
+        min-height: 5.5rem;
+      }
+      .view-box .label {
+        font-size: 0.72rem;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.35rem;
+      }
+      .view-box .val {
+        font-family: var(--mono);
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      .view-box .tag {
+        display: inline-block;
+        margin-top: 0.45rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        font-family: var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 0.2rem 0.45rem;
+        border-radius: 999px;
+      }
+      .mode-healthy .val {
+        color: var(--ok);
+      }
+      .mode-healthy .tag {
+        color: #0a0a0b;
+        background: var(--ok);
+      }
+      .mode-stale .val {
+        color: var(--stale);
+      }
+      .mode-stale .tag {
+        color: #0a0a0b;
+        background: var(--stale);
+      }
+      .mode-missing .val {
+        color: var(--miss);
+      }
+      .mode-missing .tag {
+        color: #0a0a0b;
+        background: var(--miss);
+      }
+      .mode-wrong .val {
+        color: var(--wrong);
+      }
+      .mode-wrong .tag {
+        color: #0a0a0b;
+        background: var(--wrong);
+      }
+      .mode-uncertain .val {
+        color: var(--unc);
+      }
+      .mode-uncertain .tag {
+        color: #0a0a0b;
+        background: var(--unc);
+      }
+      .explain {
+        margin-top: 1rem;
+        padding: 0.9rem 1rem;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .explain strong {
+        color: var(--text);
+      }
+      .explain em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Stale · thiếu · sai · uncertain</h1>
+        <p>
+          Cùng chuỗi event “tạo đơn → cộng tiền”. Đổi chế độ xem
+          <strong>view</strong> hỏng thế nào — không phải cùng một “data sai”.
+          <a href="/articles/stale-missing-wrong.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Stale</b> = cũ &nbsp;·&nbsp; <b>Missing</b> = thiếu &nbsp;·&nbsp;
+          <b>Wrong</b> = sai nghĩa &nbsp;·&nbsp; <b>Uncertain</b> = chưa chắc
+        </div>
+      </header>
+
+      <div class="toolbar" id="modes">
+        <button type="button" data-mode="healthy" class="is-on">Khỏe</button>
+        <button type="button" data-mode="stale">Stale</button>
+        <button type="button" data-mode="missing">Missing</button>
+        <button type="button" data-mode="wrong">Wrong</button>
+        <button type="button" data-mode="uncertain">Uncertain</button>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Sự thật (write / log)</h2>
+          <p class="truth" id="truth">Order #42 · balance = 100</p>
+          <div class="events" id="events"></div>
+        </section>
+        <section class="card">
+          <h2>Read model (user thấy)</h2>
+          <div class="view-box mode-healthy" id="view">
+            <div class="label">Số dư hiển thị</div>
+            <div class="val" id="view-val">100</div>
+            <span class="tag" id="view-tag">OK</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="explain" id="explain"></div>
+    </div>
+
+    <script>
+      (function () {
+        var modes = {
+          healthy: {
+            truth: "Order #42 · balance = 100 (đã commit)",
+            events: [
+              { t: "E1 create order #42", c: "on" },
+              { t: "E2 credit +100", c: "on" },
+            ],
+            bal: "100",
+            tag: "OK",
+            mode: "healthy",
+            text:
+              "<strong>Khỏe:</strong> view khớp sự thật. User và support nhìn cùng một thế giới.",
+          },
+          stale: {
+            truth: "Order #42 · balance = 100 (đã commit)",
+            events: [
+              { t: "E1 create order #42", c: "on" },
+              { t: "E2 credit +100  ← consumer chưa kịp", c: "pend" },
+            ],
+            bal: "0",
+            tag: "STALE",
+            mode: "stale",
+            text:
+              "<strong>Stale:</strong> event đã có trên log, projection/cache còn bản cũ (balance 0). Đợi lag giảm hoặc refresh — <em>thường tự lành</em>. Đừng reindex như wrong.",
+          },
+          missing: {
+            truth: "Order #42 · balance = 100 (đã commit)",
+            events: [
+              { t: "E1 create order #42", c: "on" },
+              { t: "E2 credit +100  ← bị skip / ignore / mất publish", c: "skip" },
+            ],
+            bal: "— (không có #42)",
+            tag: "MISSING",
+            mode: "missing",
+            text:
+              "<strong>Missing:</strong> view không có bản ghi/event lẽ ra phải có. Lag = 0 cũng không ra. Cần <em>gap + backfill</em>, không phải “chờ thêm vài phút”.",
+          },
+          wrong: {
+            truth: "Order #42 · balance = 100 (đã commit một lần)",
+            events: [
+              { t: "E1 create order #42", c: "on" },
+              { t: "E2 credit +100", c: "on" },
+              { t: "E2 lại (redelivery, không idempotent)", c: "dup" },
+            ],
+            bal: "200",
+            tag: "WRONG",
+            mode: "wrong",
+            text:
+              "<strong>Wrong:</strong> view có số nhưng <em>sai nghĩa</em> (double apply → 200). Lag sạch. Cần fix handler + rebuild/dedup — không scale consumer.",
+          },
+          uncertain: {
+            truth: "Write: timeout — ? có commit +100 hay chưa",
+            events: [
+              { t: "E1 create order #42", c: "on" },
+              { t: "E2 credit +100  ← client 504, server ?", c: "pend" },
+            ],
+            bal: "? (0 hoặc 100)",
+            tag: "UNCERTAIN",
+            mode: "uncertain",
+            text:
+              "<strong>Uncertain:</strong> chưa quan sát đủ. Retry mù có thể double; “tạo lại” có thể missing hoặc wrong. <em>Tra cứu / idempotent key</em> trước khi đoán.",
+          },
+        };
+
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+
+        function paint(name) {
+          var m = modes[name];
+          $("truth").textContent = m.truth;
+          var root = $("events");
+          root.innerHTML = "";
+          m.events.forEach(function (e) {
+            var d = document.createElement("div");
+            d.className = "ev " + e.c;
+            d.textContent = e.t;
+            root.appendChild(d);
+          });
+          var view = $("view");
+          view.className = "view-box mode-" + m.mode;
+          $("view-val").textContent = m.bal;
+          $("view-tag").textContent = m.tag;
+          $("explain").innerHTML = m.text;
+
+          Array.prototype.forEach.call(
+            document.querySelectorAll("#modes button"),
+            function (b) {
+              b.classList.toggle("is-on", b.getAttribute("data-mode") === name);
+            }
+          );
+        }
+
+        document.getElementById("modes").addEventListener("click", function (ev) {
+          var b = ev.target.closest("button");
+          if (!b) return;
+          paint(b.getAttribute("data-mode"));
+        });
+
+        paint("healthy");
+      })();
+    </script>
+  </body>
+</html>

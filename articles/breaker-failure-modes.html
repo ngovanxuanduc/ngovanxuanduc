@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Dual circuit breaker: flapping, half-open storm, fail-open vs fail-closed." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Breaker failure modes — flap, half-open, fail-open · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/breaker-failure-modes.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Breaker failure modes — flap, half-open, fail-open · Articles" />
+    <meta property="og:description" content="[Preview] Dual circuit breaker: flapping, half-open storm, fail-open vs fail-closed." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/breaker-failure-modes.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Breaker failure modes — flap, half-open, fail-open · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Breaker failure modes — flap, half-open, fail-open · Articles" />
+    <meta name="twitter:description" content="[Preview] Dual circuit breaker: flapping, half-open storm, fail-open vs fail-closed." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Breaker failure modes — flap, half-open, fail-open · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Breaker failure modes — flap, half-open herd, fail-open vs closed
+          </h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/circuit-breaker.html">Circuit breaker</a> bảo vệ
+            dependency. Bản thân nó cũng hỏng theo kiểu có tên.
+          </p>
+
+          <h2>Flapping</h2>
+          <p>
+            Mở/đóng liên tục vì threshold nhạy + traffic burst. Metric nhiễu;
+            client thấy 503 lác đác. Chữa: hysteresis, cửa sổ trượt đủ mẫu, cool
+            down tối thiểu.
+          </p>
+
+          <h2>Half-open storm</h2>
+          <pre><code>CLOSED --fail%--> OPEN --timer--> HALF_OPEN
+                                      │
+                    50 request cùng lúc “thử”  →  dependency gục lại
+                    đúng: 1 probe; còn lại fail-fast / xếp hàng ngắn</code></pre>
+          <p>
+            Chữa: một (vài) probe; request khác fail-fast hoặc queue ngắn; chỉ
+            CLOSED lại khi probe OK.
+          </p>
+
+          <h2>Fail-closed vs fail-open</h2>
+          <pre><code>Fail-closed  — khi breaker/lỗi: từ chối (an toàn, mất availability)
+Fail-open    — khi không chắc: cho qua (availability, rủi ro)
+
+Auth / money path     → nghiêng closed
+Feature phụ / banner  → có thể open + degrade
+Breaker chính hỏng    → quyết định explicit, đừng mặc định im</code></pre>
+
+          <h2>Ghép</h2>
+          <ul>
+            <li>
+              <a href="/articles/bulkhead.html">Bulkhead</a> — giới hạn concurrent
+              trước khi breaker mở.
+            </li>
+            <li>
+              <a href="/articles/retry-what-when.html">Retry</a> — không retry
+              khi breaker mở.
+            </li>
+            <li>
+              <a href="/articles/load-shedding.html">Shed</a> — khi quá tải toàn
+              cục.
+            </li>
+          </ul>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Breaker cũng cần thiết kế failure — không chỉ threshold
+              lỗi.<br />
+              Probe nhẹ; đừng flap; chọn open/closed theo rủi ro.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

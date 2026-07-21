@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Cancellation — orphan vs abort</title>
+    <meta
+      name="description"
+      content="Budget hết: chỉ throw vs abort work — pool và query mồ côi."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --run: #60a5fa;
+        --warn: #fbbf24;
+        --danger: #ff8f8f;
+        --ok: #5eea93;
+        --idle: #1a1a1e;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 38rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 1.1rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.65rem 1.15rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .card h2 {
+        font-size: 1.02rem;
+        font-weight: 600;
+      }
+      .sub {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.85rem;
+        min-height: 2.6em;
+      }
+      .budget {
+        height: 8px;
+        border-radius: 99px;
+        background: #1a1a1e;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+      }
+      .budget > i {
+        display: block;
+        height: 100%;
+        width: 100%;
+        background: var(--ok);
+        transform-origin: left center;
+        transition: transform 0.08s linear, background 0.15s;
+      }
+      .budget.out > i {
+        background: var(--danger);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+        margin-bottom: 0.55rem;
+      }
+      .pool {
+        display: flex;
+        gap: 0.35rem;
+        margin-bottom: 0.75rem;
+      }
+      .slot {
+        flex: 1;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--idle);
+        font-size: 0.65rem;
+        font-family: var(--mono);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dim);
+      }
+      .slot.busy {
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(96, 165, 250, 0.15);
+        color: var(--run);
+      }
+      .slot.orphan {
+        border-color: rgba(255, 143, 143, 0.55);
+        background: rgba(255, 143, 143, 0.12);
+        color: var(--danger);
+      }
+      .slot.free {
+        color: var(--ok);
+        border-color: rgba(94, 234, 147, 0.35);
+      }
+      .work {
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 0.88rem;
+        margin-bottom: 0.5rem;
+        min-height: 3.2em;
+      }
+      .work.run {
+        border-color: rgba(96, 165, 250, 0.45);
+        color: var(--run);
+      }
+      .work.orphan {
+        border-color: rgba(255, 143, 143, 0.5);
+        color: var(--danger);
+      }
+      .work.abort {
+        border-color: rgba(251, 191, 36, 0.45);
+        color: var(--warn);
+      }
+      .work.done {
+        border-color: rgba(94, 234, 147, 0.35);
+        color: var(--ok);
+      }
+      .say {
+        font-size: 0.86rem;
+        color: var(--muted);
+        min-height: 2.8em;
+        margin-top: 0.5rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid var(--border);
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .legend {
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Cancellation — orphan vs abort</h1>
+        <p>
+          Budget client = 8 tick. Query “nặng” = 16 tick. Trái: hết giờ chỉ
+          <strong>throw cho caller</strong>, query vẫn ôm pool. Phải:
+          <strong>abort</strong> → nhả slot.
+          <a href="/articles/cancellation.html">← bài viết</a>
+          ·
+          <a href="/articles/timeout-budget.html">timeout budget</a>
+        </p>
+        <div class="quote">
+          <b>Timeout</b> = caller hết hạn &nbsp;·&nbsp;
+          <b>Cancel</b> = việc dưới cũng dừng
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint">Chậm · quan sát pool khi budget = 0</span>
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Chỉ timeout (orphan)</h2>
+          <p class="sub">
+            Promise.race thua — caller lỗi. Query không nhận signal, vẫn chạy
+            hết.
+          </p>
+          <div class="row">
+            <span>budget</span><span id="b1">8</span>
+          </div>
+          <div class="budget" id="bar1"><i id="bi1"></i></div>
+          <div class="row">
+            <span>DB pool (2 slot)</span><span id="p1">0 busy</span>
+          </div>
+          <div class="pool" id="pool1">
+            <div class="slot" id="s1a">free</div>
+            <div class="slot" id="s1b">free</div>
+          </div>
+          <div class="work" id="w1">Chưa chạy.</div>
+          <p class="say" id="say1">Bấm Chạy.</p>
+        </section>
+
+        <section class="card">
+          <h2>Timeout + abort</h2>
+          <p class="sub">
+            Cùng budget. Hết giờ → abort signal → query dừng, trả connection.
+          </p>
+          <div class="row">
+            <span>budget</span><span id="b2">8</span>
+          </div>
+          <div class="budget" id="bar2"><i id="bi2"></i></div>
+          <div class="row">
+            <span>DB pool (2 slot)</span><span id="p2">0 busy</span>
+          </div>
+          <div class="pool" id="pool2">
+            <div class="slot" id="s2a">free</div>
+            <div class="slot" id="s2b">free</div>
+          </div>
+          <div class="work" id="w2">Chưa chạy.</div>
+          <p class="say" id="say2">Bấm Chạy.</p>
+        </section>
+      </div>
+      <p class="legend">
+        Query cần 16 tick · budget 8 · tick ~280ms. Orphan giữ slot đỏ sau khi
+        caller đã fail.
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        var BUDGET = 8;
+        var WORK = 16;
+        var TICK = 280;
+        var timer = null;
+        var t = 0;
+
+        var left = {
+          budget: BUDGET,
+          work: WORK,
+          phase: "idle", // idle | run | caller_fail | orphan | done
+          slot: 0,
+        };
+        var right = {
+          budget: BUDGET,
+          work: WORK,
+          phase: "idle",
+          slot: 0,
+          aborted: false,
+        };
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function paintPool(prefix, state) {
+          var a = $(prefix + "a");
+          var b = $(prefix + "b");
+          [a, b].forEach(function (el) {
+            el.className = "slot free";
+            el.textContent = "free";
+          });
+          if (state.phase === "run" || state.phase === "orphan") {
+            var el = state.slot === 0 ? a : b;
+            el.className =
+              "slot " + (state.phase === "orphan" ? "orphan" : "busy");
+            el.textContent = state.phase === "orphan" ? "orphan" : "query";
+          }
+          var busy =
+            state.phase === "run" || state.phase === "orphan" ? 1 : 0;
+          $("p" + (prefix === "s1" ? "1" : "2")).textContent =
+            busy + " busy";
+        }
+
+        function paint() {
+          // left
+          $("b1").textContent = String(Math.max(0, left.budget));
+          var pct1 = Math.max(0, left.budget / BUDGET);
+          $("bi1").style.transform = "scaleX(" + pct1 + ")";
+          $("bar1").className =
+            "budget" + (left.budget <= 0 ? " out" : "");
+          paintPool("s1", left);
+          var w1 = $("w1");
+          if (left.phase === "idle") {
+            w1.className = "work";
+            w1.textContent = "Chưa chạy.";
+          } else if (left.phase === "run") {
+            w1.className = "work run";
+            w1.textContent =
+              "Query chạy… còn " + left.work + " (caller còn budget " + left.budget + ")";
+          } else if (left.phase === "orphan") {
+            w1.className = "work orphan";
+            w1.textContent =
+              "Caller đã FAIL — query mồ côi còn " + left.work + " tick";
+          } else if (left.phase === "done") {
+            w1.className = "work done";
+            w1.textContent = "Query xong (muộn, không ai await).";
+          }
+          $("say1").innerHTML =
+            left.phase === "orphan"
+              ? "Budget = 0: caller lỗi. <em>Slot pool vẫn bị ôm</em>."
+              : left.phase === "done"
+                ? "Orphan chạy hết — phí pool/CPU sau khi user đã thấy lỗi."
+                : left.phase === "run"
+                  ? "Cả hai cùng chạy query nặng."
+                  : "Bấm Chạy.";
+
+          // right
+          $("b2").textContent = String(Math.max(0, right.budget));
+          var pct2 = Math.max(0, right.budget / BUDGET);
+          $("bi2").style.transform = "scaleX(" + pct2 + ")";
+          $("bar2").className =
+            "budget" + (right.budget <= 0 ? " out" : "");
+          paintPool("s2", right);
+          var w2 = $("w2");
+          if (right.phase === "idle") {
+            w2.className = "work";
+            w2.textContent = "Chưa chạy.";
+          } else if (right.phase === "run") {
+            w2.className = "work run";
+            w2.textContent =
+              "Query + signal… còn " +
+              right.work +
+              " (budget " +
+              right.budget +
+              ")";
+          } else if (right.phase === "abort") {
+            w2.className = "work abort";
+            w2.textContent = "ABORTED — nhả pool ngay.";
+          } else if (right.phase === "done") {
+            w2.className = "work done";
+            w2.textContent = "Xong trong budget (không xảy ra ở kịch bản này).";
+          }
+          $("say2").innerHTML =
+            right.phase === "abort"
+              ? "Budget = 0: <em>abort</em> → slot free. Caller và tài nguyên cùng dừng."
+              : right.phase === "run"
+                ? "Cùng budget; sắp abort khi hết giờ."
+                : "Bấm Chạy.";
+        }
+
+        function step() {
+          t++;
+          // left
+          if (left.phase === "run" || left.phase === "orphan") {
+            if (left.phase === "run") {
+              left.budget--;
+              if (left.budget <= 0) {
+                left.budget = 0;
+                left.phase = "orphan";
+              }
+            }
+            left.work--;
+            if (left.work <= 0) {
+              left.phase = "done";
+              left.work = 0;
+            }
+          }
+          // right
+          if (right.phase === "run") {
+            right.budget--;
+            right.work--;
+            if (right.budget <= 0) {
+              right.budget = 0;
+              right.phase = "abort";
+              right.work = 0;
+              right.aborted = true;
+            } else if (right.work <= 0) {
+              right.phase = "done";
+            }
+          }
+
+          paint();
+
+          var leftDone =
+            left.phase === "done" ||
+            (left.phase === "orphan" && left.work <= 0);
+          if (left.phase === "done" && (right.phase === "abort" || right.phase === "done")) {
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+          }
+          // also stop when left finished orphan work and right aborted
+          if (
+            (left.phase === "done" || (left.phase === "orphan" && left.work <= 0)) &&
+            right.phase === "abort"
+          ) {
+            if (left.phase === "orphan" && left.work <= 0) left.phase = "done";
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+            paint();
+          }
+        }
+
+        function init() {
+          if (timer) clearInterval(timer);
+          timer = null;
+          t = 0;
+          left = {
+            budget: BUDGET,
+            work: WORK,
+            phase: "idle",
+            slot: 0,
+          };
+          right = {
+            budget: BUDGET,
+            work: WORK,
+            phase: "idle",
+            slot: 0,
+            aborted: false,
+          };
+          $("btn").disabled = false;
+          paint();
+        }
+
+        $("btn").addEventListener("click", function () {
+          init();
+          $("btn").disabled = true;
+          left.phase = "run";
+          left.slot = 0;
+          right.phase = "run";
+          right.slot = 0;
+          paint();
+          timer = setInterval(step, TICK);
+        });
+        $("reset").addEventListener("click", init);
+        init();
+      })();
+    </script>
+  </body>
+</html>

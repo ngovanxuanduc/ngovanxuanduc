@@ -1,0 +1,111 @@
+---
+{
+  "title": "SLO / error budget — retry có đốt reliability · Articles",
+  "description": "[Preview] SLO vs SLI. Error budget. Retry, shed, breaker trade error rate vs latency. Quyết định ship.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>SLO / error budget — retry và shed có đốt reliability không</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            “99.9% uptime” trên slide marketing không giúp on-call. Cần
+            <strong>SLI</strong> đo được,
+            <strong>SLO</strong> mục tiêu, và
+            <strong>error budget</strong> — phần được fail trong cửa sổ (tuần /
+            tháng).
+          </p>
+          <p>
+            Series reliability (retry, shed, breaker) đều
+            <em>tiêu hoặc bảo vệ</em> budget. Bài này nối chúng với quyết định
+            ship/feature.
+          </p>
+
+          <h2>SLI / SLO / budget (gọn)</h2>
+          <pre><code>SLI  — chỉ số: % request HTTP &lt; 300 trong 30 ngày
+                 (hoặc availability, freshness lag…)
+SLO  — mục tiêu: 99.9% → được fail 0.1%
+Budget — “còn bao nhiêu % fail” trước khi cháy SLO
+
+Hết budget → ưu tiên reliability, chậm feature risk</code></pre>
+          <p>
+            Chọn SLI sát user (checkout success), không chỉ “ping 200”.
+          </p>
+
+          <h2>Retry đốt budget thế nào</h2>
+          <ul>
+            <li>
+              Retry thành công: user OK, SLI có thể vẫn xanh — nhưng dependency
+              chịu N× load → rủi ro cascade (budget
+              <em>họ</em> và sau đó cả bạn).
+            </li>
+            <li>
+              Retry fail hết: user fail + thời gian dài + inventory —
+              <a href="/articles/retry-what-when.html">tự hại</a>.
+            </li>
+            <li>
+              Multi-hop retry: amplification — 1 user click → nhiều fail
+              nội bộ trước 1 fail ngoài.
+            </li>
+          </ul>
+          <p>
+            Policy: retry ở
+            <em>một</em> tầng; jitter; max gắn
+            <a href="/articles/timeout-budget.html">timeout budget</a>.
+          </p>
+
+          <h2>Shed: “mua” sống bằng error</h2>
+          <p>
+            <a href="/articles/load-shedding.html">Load shedding</a> tăng error
+            rate có chủ đích để tránh latency collapse (mọi request 30s =
+            trải nghiệm zero).
+          </p>
+          <ul>
+            <li>
+              SLI “success rate” xấu tạm; SLI “good experience under load” có
+              thể tốt hơn nếu định nghĩa kèm latency.
+            </li>
+            <li>
+              Nên có multi-window: availability + latency SLO riêng.
+            </li>
+          </ul>
+
+          <h2>Breaker fail-closed</h2>
+          <p>
+            Mở breaker → fail nhanh → error tăng, dependency được thở. Đúng
+            hướng budget dài hạn; sai nếu threshold flap (
+            <a href="/articles/breaker-failure-modes.html">fail modes</a>).
+          </p>
+
+          <h2>Quyết định thực dụng</h2>
+          <pre><code>Còn budget nhiều  → ship feature, chấp nhận risk vừa
+Budget mỏng      → freeze risky deploy, fokus toil/retry storm
+Budget âm         → incident reliability mode
+
+Hỏi: thay đổi này (retry×3, hedge, prefetch↑)
+     tăng fail user hay tăng load dependency bao nhiêu?</code></pre>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Mỗi retry / mỗi nhận thêm load là đánh cược error budget.<br />
+              Shed và breaker đổi error ngắn hạn lấy hệ còn sống — nói to với
+              product.</strong
+            >
+          </p>
+        </div>
+      </article>

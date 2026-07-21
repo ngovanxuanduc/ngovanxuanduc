@@ -1,0 +1,113 @@
+---
+{
+  "title": "Load shedding — đôi khi đúng là từ chối request · Articles",
+  "description": "[Preview] Dual backpressure: shed có chủ đích (503) khi inventory đầy. Giữ phần request sống sót.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Load shedding — đôi khi đúng là từ chối request</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/backpressure.html">Backpressure</a>: làm chậm
+            producer khi consumer không kịp — đẹp khi bạn control cả hai đầu.
+          </p>
+          <p>
+            Internet user / mobile app: bạn
+            <em>không</em> bảo họ “chậm lại”. Khi
+            <a href="/articles/inflight-inventory.html">inventory</a> đầy,
+            latency đã vỡ —
+            <strong>load shedding</strong> = từ chối có chủ đích để
+            <em>phần còn lại</em> còn dùng được.
+          </p>
+
+          <h2>Vì sao nhận thêm là hại</h2>
+          <ul>
+            <li>Queue vô hạn: mọi request chậm — “công bằng” cùng khổ.</li>
+            <li>
+              Retry client đập thêm —
+              <a href="/articles/retry-what-when.html">storm</a>.
+            </li>
+            <li>
+              Hết
+              <a href="/articles/timeout-budget.html">budget</a> hàng loạt:
+              work mồ côi nếu không
+              <a href="/articles/cancellation.html">cancel</a>.
+            </li>
+          </ul>
+          <p>
+            Shed sớm: một phần 503 nhanh; phần còn lại p99 chấp nhận được.
+          </p>
+
+          <h2>Khi nào shed</h2>
+          <ul>
+            <li>In-flight / queue depth / heap / CPU / event loop lag quá ngưỡng.</li>
+            <li>Dependency breaker đỏ + không có fallback hữu ích.</li>
+            <li>Bulkhead khoang đầy — đừng tràn sang khoang khác.</li>
+          </ul>
+
+          <h2>Cách shed</h2>
+          <pre><code>503 Service Unavailable + Retry-After
+429 khi đúng là quota user (rate limit)
+Từ chối low-priority / batch trước (priority queue)
+Shed ở edge (gateway) — đừng để vào app rồi mới chết
+Fail-fast: đừng giữ connection “cho lịch sự”</code></pre>
+          <pre><code>// Ý edge/app
+if (inflight &gt;= MAX || eventLoopLag &gt; THRESH) {
+  res.setHeader('Retry-After', '2')
+  return res.status(503).json({ error: 'overloaded' })
+}</code></pre>
+
+          <h2>Khi <em>không</em> shed</h2>
+          <ul>
+            <li>Còn headroom — đừng 503 “phòng hờ” giết conversion.</li>
+            <li>
+              Path critical đã
+              <a href="/articles/bulkhead.html">bulkhead</a> riêng: shed
+              nice-to-have trước, không cắt auth/pay sớm hơn policy.
+            </li>
+            <li>
+              Client không retry được và không có UX rõ — ưu tiên degrade
+              (cached/stale) hơn hard fail nếu product cho phép.
+            </li>
+          </ul>
+
+          <h2>Shed vs rate limit vs pool</h2>
+          <ul>
+            <li>
+              <a href="/articles/rate-limit-vs-pool.html">Rate / pool</a>: trần
+              bình thường.
+            </li>
+            <li>
+              Shed: phản ứng quá tải — có thể aggressive hơn quota ngày thường.
+            </li>
+          </ul>
+
+          <h2>Product / SLO</h2>
+          <p>
+            Shed làm tăng error rate có kiểm soát. Nói với product: “từ chối 5%
+            còn hơn 100% request 30s”. Liên quan
+            <a href="/articles/slo-error-budget.html">error budget</a>.
+          </p>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Giữ 80% request tốt còn hơn 100% request cùng chậm chết.<br />
+              Shed là van an toàn — không phải bất lịch sự.</strong
+            >
+          </p>
+        </div>
+      </article>

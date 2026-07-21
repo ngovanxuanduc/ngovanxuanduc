@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Rate limit vs pool</title>
+    <meta
+      name="description"
+      content="So sánh chỉ pool, chỉ rate, cả hai — in-flight và starts."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --run: #60a5fa;
+        --ok: #5eea93;
+        --warn: #fbbf24;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 1.1rem 0;
+        align-items: center;
+      }
+      button {
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.55rem 0.9rem;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text);
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #0a0a0b;
+      }
+      button.is-on {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(184, 164, 255, 0.12);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 0.85rem;
+      }
+      .stat {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.5rem 0.55rem;
+        text-align: center;
+      }
+      .stat span {
+        display: block;
+        font-size: 0.68rem;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .stat strong {
+        font-family: var(--mono);
+        font-size: 1.2rem;
+        color: var(--text);
+      }
+      .stat strong.warn {
+        color: var(--warn);
+      }
+      .bars {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        min-height: 48px;
+        margin-bottom: 0.75rem;
+      }
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        background: var(--run);
+      }
+      .say {
+        font-size: 0.9rem;
+        color: var(--muted);
+        min-height: 3em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .note {
+        margin-top: 0.85rem;
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Rate limit vs pool</h1>
+        <p>
+          Producer cố bắn nhanh. Job kéo ~1.2s. Đổi policy: chỉ pool · chỉ rate
+          · cả hai.
+          <a href="/articles/rate-limit-vs-pool.html">← bài viết</a>
+        </p>
+        <div class="quote">
+          <b>Pool</b> = max đang bay &nbsp;·&nbsp; <b>Rate</b> = max start / giây
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" data-mode="pool" class="is-on">Chỉ pool 4</button>
+        <button type="button" data-mode="rate">Chỉ rate ~3/s</button>
+        <button type="button" data-mode="both">Pool 4 + rate ~3/s</button>
+        <button type="button" class="primary" id="btn">▶ Chạy 5s</button>
+      </div>
+
+      <div class="card">
+        <div class="stats">
+          <div class="stat">
+            <span>In-flight</span>
+            <strong id="inf">0</strong>
+          </div>
+          <div class="stat">
+            <span>Peak in-flight</span>
+            <strong id="peak">0</strong>
+          </div>
+          <div class="stat">
+            <span>Starts (5s)</span>
+            <strong id="starts">0</strong>
+          </div>
+        </div>
+        <div class="bars" id="bars"></div>
+        <p class="say" id="say">Chọn mode rồi Chạy.</p>
+      </div>
+      <p class="note">
+        Mô phỏng: mỗi tick 100ms producer thử start. Job duration ~12 tick.
+        Quan sát peak in-flight khi chỉ rate.
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        var mode = "pool";
+        var timer = null;
+        var jobId = 0;
+        var inflight = 0;
+        var peak = 0;
+        var starts = 0;
+        var tokens = 3;
+        var tick = 0;
+        var MAX_TICK = 50;
+        var jobs = [];
+
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+
+        function paint() {
+          $("inf").textContent = String(inflight);
+          $("peak").textContent = String(peak);
+          $("peak").className = peak > 8 ? "warn" : "";
+          $("starts").textContent = String(starts);
+          var bars = $("bars");
+          bars.innerHTML = "";
+          for (var i = 0; i < inflight; i++) {
+            var d = document.createElement("div");
+            d.className = "dot";
+            bars.appendChild(d);
+          }
+        }
+
+        function canStart() {
+          if (mode === "pool" || mode === "both") {
+            if (inflight >= 4) return false;
+          }
+          if (mode === "rate" || mode === "both") {
+            if (tokens < 1) return false;
+          }
+          return true;
+        }
+
+        function tryStart() {
+          if (!canStart()) return;
+          if (mode === "rate" || mode === "both") tokens -= 1;
+          inflight++;
+          starts++;
+          if (inflight > peak) peak = inflight;
+          var id = ++jobId;
+          jobs.push({ id: id, left: 12 });
+          paint();
+        }
+
+        function step() {
+          tick++;
+          // refill ~3 tokens per second → 0.3 per 100ms tick
+          if (mode === "rate" || mode === "both") {
+            tokens = Math.min(3, tokens + 0.3);
+          }
+          // complete jobs
+          jobs = jobs.filter(function (j) {
+            j.left--;
+            if (j.left <= 0) {
+              inflight--;
+              return false;
+            }
+            return true;
+          });
+          // producer always tries
+          tryStart();
+          // try again if capacity (burst within tick for pool-only short jobs - once enough)
+          if (mode === "pool") {
+            while (canStart() && inflight < 4) tryStart();
+          }
+          paint();
+
+          if (tick >= MAX_TICK) {
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+            var msg =
+              mode === "pool"
+                ? "Chỉ pool: peak in-flight ≤ 4; starts có thể cao nếu job ngắn."
+                : mode === "rate"
+                  ? "Chỉ rate: starts bị kìm — nhưng peak in-flight có thể <em>lớn</em> nếu job dài."
+                  : "Cả hai: peak ≤ 4 và tốc độ start bị rate kìm.";
+            $("say").innerHTML = msg + " Peak=<em>" + peak + "</em>, starts=<em>" + starts + "</em>.";
+          }
+        }
+
+        document.querySelector(".toolbar").addEventListener("click", function (ev) {
+          var b = ev.target.closest("button[data-mode]");
+          if (!b) return;
+          mode = b.getAttribute("data-mode");
+          Array.prototype.forEach.call(
+            document.querySelectorAll("button[data-mode]"),
+            function (x) {
+              x.classList.toggle("is-on", x === b);
+            }
+          );
+        });
+
+        $("btn").addEventListener("click", function () {
+          if (timer) clearInterval(timer);
+          jobId = 0;
+          inflight = 0;
+          peak = 0;
+          starts = 0;
+          tokens = 3;
+          tick = 0;
+          jobs = [];
+          $("btn").disabled = true;
+          $("say").textContent = "Đang chạy 5s…";
+          paint();
+          timer = setInterval(step, 100);
+        });
+
+        paint();
+      })();
+    </script>
+  </body>
+</html>

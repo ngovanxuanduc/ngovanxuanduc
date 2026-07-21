@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Connection pool exhaustion</title>
+    <meta
+      name="description"
+      content="Handler nhiều, pool nhỏ: chờ acquire, CPU proxy rảnh."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --run: #60a5fa;
+        --wait: #fbbf24;
+        --ok: #5eea93;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      header h1 {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .toolbar {
+        margin: 1rem 0;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 0.8rem;
+        color: var(--dim);
+        margin-bottom: 0.4rem;
+      }
+      .pool {
+        display: flex;
+        gap: 0.35rem;
+        margin: 0.75rem 0;
+      }
+      .slot {
+        flex: 1;
+        height: 40px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-family: var(--mono);
+        color: var(--dim);
+      }
+      .slot.busy {
+        background: rgba(96, 165, 250, 0.15);
+        border-color: rgba(96, 165, 250, 0.5);
+        color: var(--run);
+      }
+      .waiters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        min-height: 28px;
+        margin-bottom: 0.75rem;
+      }
+      .w {
+        font-size: 0.65rem;
+        font-family: var(--mono);
+        padding: 0.2rem 0.35rem;
+        border-radius: 4px;
+        border: 1px solid rgba(251, 191, 36, 0.4);
+        color: var(--wait);
+      }
+      .cpu {
+        height: 10px;
+        border-radius: 99px;
+        background: #1a1a1e;
+        overflow: hidden;
+        margin-bottom: 0.75rem;
+      }
+      .cpu i {
+        display: block;
+        height: 100%;
+        width: 12%;
+        background: var(--ok);
+      }
+      .say {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Connection pool exhaustion</h1>
+        <p>
+          8 request đến gần như cùng lúc. Pool = 3 slot. Query giữ connection
+          vài tick. CPU proxy thấp — chờ nằm ở acquire.
+          <a href="/articles/connection-pool-exhaustion.html">← bài viết</a>
+        </p>
+      </header>
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+      </div>
+      <div class="card">
+        <div class="row">
+          <span>Pool 3</span><span id="act">0 active</span>
+        </div>
+        <div class="pool" id="pool"></div>
+        <div class="row">
+          <span>Chờ acquire</span><span id="wq">0</span>
+        </div>
+        <div class="waiters" id="waiters"></div>
+        <div class="row"><span>CPU proxy (//)</span><span>~thấp</span></div>
+        <div class="cpu"><i></i></div>
+        <p class="say" id="say">Bấm Chạy — quan sát hàng chờ vàng.</p>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var POOL = 3;
+        var N = 8;
+        var HOLD = 10;
+        var TICK = 220;
+        var timer = null;
+        var slots = [];
+        var queue = [];
+        var done = 0;
+        var nextId = 1;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function paint() {
+          var p = $("pool");
+          p.innerHTML = "";
+          for (var i = 0; i < POOL; i++) {
+            var d = document.createElement("div");
+            var s = slots[i];
+            d.className = "slot" + (s ? " busy" : "");
+            d.textContent = s ? "R" + s.id : "free";
+            p.appendChild(d);
+          }
+          $("act").textContent =
+            slots.filter(Boolean).length + " active";
+          $("wq").textContent = String(queue.length);
+          var w = $("waiters");
+          w.innerHTML = "";
+          queue.forEach(function (id) {
+            var e = document.createElement("span");
+            e.className = "w";
+            e.textContent = "R" + id;
+            w.appendChild(e);
+          });
+        }
+
+        function tryAssign() {
+          for (var i = 0; i < POOL; i++) {
+            if (!slots[i] && queue.length) {
+              var id = queue.shift();
+              slots[i] = { id: id, left: HOLD };
+            }
+          }
+        }
+
+        function step() {
+          for (var i = 0; i < POOL; i++) {
+            if (!slots[i]) continue;
+            slots[i].left--;
+            if (slots[i].left <= 0) {
+              slots[i] = null;
+              done++;
+            }
+          }
+          tryAssign();
+          paint();
+          if (done >= N && queue.length === 0 && slots.every(function (s) {
+            return !s;
+          })) {
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+            $("say").innerHTML =
+              "Xong: nhiều request <em>chờ slot</em> dù CPU proxy thấp — classic pool exhaustion.";
+          } else {
+            $("say").innerHTML =
+              "Active=" +
+              slots.filter(Boolean).length +
+              ", chờ=<em>" +
+              queue.length +
+              "</em>. Handler đã vào nhưng chưa có connection.";
+          }
+        }
+
+        function init() {
+          if (timer) clearInterval(timer);
+          timer = null;
+          slots = [null, null, null];
+          queue = [];
+          done = 0;
+          nextId = 1;
+          $("btn").disabled = false;
+          $("say").textContent = "Bấm Chạy.";
+          paint();
+        }
+
+        $("btn").addEventListener("click", function () {
+          init();
+          $("btn").disabled = true;
+          for (var i = 0; i < N; i++) queue.push(nextId++);
+          tryAssign();
+          paint();
+          timer = setInterval(step, TICK);
+        });
+        $("reset").addEventListener("click", init);
+        init();
+      })();
+    </script>
+  </body>
+</html>

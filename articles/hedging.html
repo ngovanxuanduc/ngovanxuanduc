@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Speculative hedge vs retry. Tail latency, fan-out, idempotent, cancel nhánh thua, khi nào không hedge." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Hedging — bắn thêm request lấy cái về trước · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/hedging.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Hedging — bắn thêm request lấy cái về trước · Articles" />
+    <meta property="og:description" content="[Preview] Speculative hedge vs retry. Tail latency, fan-out, idempotent, cancel nhánh thua, khi nào không hedge." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/hedging.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Hedging — bắn thêm request lấy cái về trước · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hedging — bắn thêm request lấy cái về trước · Articles" />
+    <meta name="twitter:description" content="[Preview] Speculative hedge vs retry. Tail latency, fan-out, idempotent, cancel nhánh thua, khi nào không hedge." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Hedging — bắn thêm request lấy cái về trước · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Hedging — bắn thêm một request để lấy cái về trước</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            p50 ổn, p99 xấu vì vài replica/node chậm. User không care “median” —
+            họ dính tail.
+          </p>
+          <p>
+            <strong>Hedging</strong> (speculative retry): gửi request 1; nếu
+            sau threshold X ms chưa về, gửi request 2 (thường replica khác);
+            lấy response đầu;
+            <a href="/articles/cancellation.html">cancel</a> nhánh thua. Mua
+            latency bằng
+            <strong>thêm load</strong>.
+          </p>
+
+          <h2>Hedge ≠ retry</h2>
+          <pre><code>Retry   — sau khi đã fail (5xx, timeout hard)
+Hedge   — trước fail, vì chậm (vẫn có thể thành công muộn)
+
+Cả hai: amplification (xem retry-what-when)
+Hedge nguy hiểm hơn nếu side-effect: hai request có thể cùng commit</code></pre>
+
+          <h2>Timeline ý</h2>
+          <pre><code>t=0    gửi A ──────────────────────────►
+t=X    vẫn chưa về → gửi B ──────► B về trước
+       cancel A
+t&lt;X    A về → không gửi B (hedge tiết kiệm)</code></pre>
+          <p>
+            Chọn X quanh p95–p99 dependency: quá thấp → hedge gần như mọi
+            request (gần ×2 QPS); quá cao → ít khi kích hoạt, p99 không giảm.
+          </p>
+
+          <h2>Điều kiện bắt buộc</h2>
+          <ul>
+            <li>
+              <strong>Idempotent / an toàn dual</strong> — GET, cache fill;
+              không hedge “charge thẻ” trừ khi có
+              <a href="/articles/idempotency-key-scope.html">cùng key</a>.
+            </li>
+            <li>
+              <strong>Cancel nhánh thua</strong> — không cancel = 2× inventory
+              + 2× work (đôi khi 2× effect).
+            </li>
+            <li>
+              <strong>Còn budget</strong> —
+              <a href="/articles/timeout-budget.html">timeout budget</a>; đừng
+              hedge khi còn 50ms.
+            </li>
+            <li>
+              <strong>Dependency khỏe</strong> — breaker đỏ / quá tải thì hedge
+              = dầu vào lửa (
+              <a href="/articles/circuit-breaker.html">breaker</a>,
+              <a href="/articles/load-shedding.html">shed</a>).
+            </li>
+          </ul>
+
+          <h2>Chi phí</h2>
+          <ul>
+            <li>QPS dependency tăng (partial hedge rate × 2).</li>
+            <li>
+              <a href="/articles/inflight-inventory.html">In-flight</a> tạm
+              thời ×2 trên path đó.
+            </li>
+            <li>Phức tạp client: race, cancel, metric hedge_hit.</li>
+          </ul>
+          <p>
+            Đo: p99 trước/sau, hedge_fire_rate, dependency CPU. Không hedge “vì
+            hay”.
+          </p>
+
+          <h2>Khi không hedge</h2>
+          <ul>
+            <li>Write money / SMS / non-idempotent.</li>
+            <li>Single replica / không có “chậm lệch” — hedge chỉ nhân load.</li>
+            <li>Đã gần saturation — cần scale/shed, không speculative.</li>
+          </ul>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Hedge mua tail latency bằng capacity — chỉ khi effect an toàn,
+              nhánh thua bị hủy, và dependency còn headroom.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

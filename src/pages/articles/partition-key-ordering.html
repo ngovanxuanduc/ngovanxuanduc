@@ -1,0 +1,94 @@
+---
+{
+  "title": "Partition key & ordering — thứ tự trong một key · Articles",
+  "description": "[Preview] Order trong partition. Chọn key business, hot key, reshard, map order budget.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Partition key &amp; ordering — thứ tự trong một key</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Kafka (và họ stream): producer chọn
+            <strong>key</strong> → hash → partition. Broker đảm bảo order
+            <em>trong partition</em>, không global topic.
+          </p>
+          <p>
+            Đó là cách mua
+            <a href="/articles/order-budget.html">order budget</a> “đủ dùng”
+            (per aggregate) mà vẫn scale nhiều partition.
+          </p>
+
+          <h2>Key = đơn vị cần thứ tự</h2>
+          <pre><code>Cần: create order trước pay order (cùng orderId)
+→ key = orderId
+
+Cần: mọi mutation số dư account tuần tự
+→ key = accountId
+
+Không cần order giữa hai user lạ
+→ không nhét chung một key</code></pre>
+
+          <h2>Thô vs mịn</h2>
+          <ul>
+            <li>
+              <strong>Quá thô</strong> (<code>tenantId</code> lớn): ít
+              partition hiệu dụng, hot tenant, khó scale.
+            </li>
+            <li>
+              <strong>Quá mịn</strong> (random / UUID mỗi event): scale max,
+              mất invariant create→update →
+              <a href="/articles/stale-missing-wrong.html">wrong</a> projection.
+            </li>
+          </ul>
+
+          <h2>Hot key</h2>
+          <p>
+            Một account “nổi tiếng” / flash sale một SKU → một partition quá
+            tải trong khi partition khác rảnh. Hướng: sub-shard
+            (<code>accountId + bucket</code>) + merge lúc đọc; hoặc tách path
+            nóng.
+          </p>
+
+          <h2>Đổi key / số partition</h2>
+          <ul>
+            <li>
+              Tăng partition không tự rebalance message cũ — plan migration.
+            </li>
+            <li>
+              Đổi schema key giữa chừng → order “gãy” với lịch sử; document.
+            </li>
+          </ul>
+
+          <h2>Consumer</h2>
+          <p>
+            Trong consumer group, một partition ~ một member (tại một thời
+            điểm). Parallel = nhiều partition / nhiều key. Poison một partition
+            chặn key đó —
+            <a href="/articles/unblock.html">unblock</a> quan trọng.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Key là chỗ bạn mua order — chọn theo đơn vị business, không theo
+              thói quen.<br />
+              Thô thì nóng; mịn thì sai thứ tự.</strong
+            >
+          </p>
+        </div>
+      </article>

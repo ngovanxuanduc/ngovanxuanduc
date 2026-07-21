@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Read model / dashboard “sai” không một bệnh: stale (cũ), missing (thiếu), wrong (sai nghĩa), uncertain (chưa chắc). Chọn recovery theo ô. Demo." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Stale · thiếu · sai — ba kiểu data hỏng · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/stale-missing-wrong.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Stale · thiếu · sai — ba kiểu data hỏng · Articles" />
+    <meta property="og:description" content="[Preview] Read model / dashboard “sai” không một bệnh: stale (cũ), missing (thiếu), wrong (sai nghĩa), uncertain (chưa chắc). Chọn recovery theo ô. Demo." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/stale-missing-wrong.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Stale · thiếu · sai — ba kiểu data hỏng · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Stale · thiếu · sai — ba kiểu data hỏng · Articles" />
+    <meta name="twitter:description" content="[Preview] Read model / dashboard “sai” không một bệnh: stale (cũ), missing (thiếu), wrong (sai nghĩa), uncertain (chưa chắc). Chọn recovery theo ô. Demo." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Stale · thiếu · sai — ba kiểu data hỏng · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Stale · thiếu · sai — ba kiểu data hỏng (và “chưa chắc”)</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~8 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Support: “User bảo số dư / đơn / dashboard
+            <em>sai</em>.” API ghi vẫn 200. On-call mở Kafka lag, bấm replay,
+            restart consumer — đôi khi đúng, đôi khi
+            <strong>chữa nhầm bệnh</strong>.
+          </p>
+          <p>
+            Trên
+            <a href="/articles/write-vs-read-channel.html">read side</a>
+            (projection, search, cache, replica đọc), “data sai” không phải một
+            lỗi. Ít nhất
+            <strong>ba kiểu hỏng + một trạng thái chưa chắc</strong>. Phân loại
+            xong mới chọn recovery
+            (<a href="/articles/async-recovery-playbook.html">playbook</a>).
+          </p>
+          <p>
+            Demo (cùng event, bốn hậu quả view):
+            <a href="/demos/stale-missing-wrong.html"
+              >stale · missing · wrong · uncertain</a
+            >.
+          </p>
+
+          <h2>Bốn ô — học thuộc trước khi mở tool</h2>
+          <pre><code>Stale      — view từng đúng theo event đã apply; giờ lạc hậu (chưa bắt kịp)
+Missing    — event/record lẽ ra phải có trong view — không có (gap)
+Wrong      — view có dữ liệu nhưng sai nghĩa (order, double, map bug)
+Uncertain  — chưa biết effect đã commit hay chưa (timeout, in-flight)</code></pre>
+          <p>
+            User đều có thể nói “sai”. Bốn hướng sửa
+            <em>khác nhau</em>.
+          </p>
+
+          <h2>Stale — cũ nhưng từng đúng</h2>
+          <p>
+            Consumer lag, cache TTL, read replica delay, batch index chậm.
+            Pipeline write đã xong; read model chưa (hoặc cache còn bản cũ).
+          </p>
+          <ul>
+            <li>
+              <strong>Triệu chứng:</strong> “Vừa bấm xong, F5 vẫn số cũ”; lag
+              metric tăng; sau vài giây/phút tự đúng.
+            </li>
+            <li>
+              <strong>Không phải:</strong> số vĩnh viễn sai, hay mất hẳn bản ghi.
+            </li>
+            <li>
+              <strong>Thường làm:</strong> scale/optimize consumer; SLA stale
+              (“trong 30s”); soft refresh — <em>không</em> ignore message, không
+              resend shared lung tung.
+            </li>
+            <li>
+              <strong>Trade-off:</strong> stale trên read thường
+              <em>chấp nhận hơn wrong</em> — business write vẫn chạy; user thấy
+              trễ.
+            </li>
+          </ul>
+          <p>
+            Viết tắt: stale =
+            <em>đúng trong quá khứ gần, chưa phải hiện tại</em>.
+          </p>
+
+          <h2>Missing — thiếu</h2>
+          <p>
+            Event bị skip/ignore, filter bug, publish mất (dual-write), DLQ rồi
+            không backfill, consumer commit offset dù chưa apply…
+          </p>
+          <ul>
+            <li>
+              <strong>Triệu chứng:</strong> “Đơn có trong DB ghi, list search
+              không có”; gap offset; mãi không tự lành.
+            </li>
+            <li>
+              <strong>Nguy hiểm:</strong> user tin “chưa tồn tại” → tạo trùng,
+              support “mất dữ liệu”.
+            </li>
+            <li>
+              <strong>Thường làm:</strong> tìm gap (id/sequence), backfill/replay
+              có quy trình; sửa publisher/outbox; cấm
+              <em>ignore mặc định</em> trên projection bắt buộc đủ.
+            </li>
+            <li>
+              DLQ trên read: unblock lane được nhưng
+              <strong>tạo missing</strong> nếu không replay — phải gắn runbook.
+            </li>
+          </ul>
+          <p>
+            Viết tắt: missing =
+            <em>lỗ hổng trong lịch sử view</em>.
+          </p>
+
+          <h2>Wrong — có mà sai nghĩa</h2>
+          <p>
+            Apply hai lần không idempotent, out-of-order (update trước create),
+            map field sai, timezone, “last write wins” nhầm key…
+          </p>
+          <ul>
+            <li>
+              <strong>Triệu chứng:</strong> số lệch, trạng thái không thể
+              (cancelled nhưng vẫn active), không tự hết khi lag = 0.
+            </li>
+            <li>
+              <strong>Nguy hiểm nhất với trust:</strong> user
+              <em>thấy có data</em> và tin — decision dựa trên sai.
+            </li>
+            <li>
+              <strong>Thường làm:</strong> dừng hoặc giảm ghi projection; fix
+              handler +
+              <a href="/articles/idempotency.html">idempotency</a>; rebuild từ
+              log/source; kiểm
+              <a href="/articles/order-budget.html">order budget</a> per-key.
+            </li>
+          </ul>
+          <p>
+            Viết tắt: wrong =
+            <em>view không khớp sự thật đã xảy ra</em>, kể cả khi “đủ event”.
+          </p>
+
+          <h2>Uncertain — chưa chắc</h2>
+          <p>
+            Timeout sau khi server có thể đã commit; message at-least-once đang
+            bay; UI optimistic chưa confirm; “click hai lần, không biết trừ mấy
+            lần”.
+          </p>
+          <ul>
+            <li>
+              <strong>Triệu chứng:</strong> client 504, DB có/không tùy lần; user
+              hỏi “tiền đã trừ chưa?”.
+            </li>
+            <li>
+              <strong>Sai lầm phổ biến:</strong> retry mù không key → biến
+              uncertain thành
+              <em>double effect</em> (wrong phía write).
+            </li>
+            <li>
+              <strong>Thường làm:</strong> idempotent write/read theo key; tra
+              cứu trạng thái; đừng spam; xem
+              <a href="/articles/exactly-once-pragmatic.html"
+                >exactly-once thực dụng</a
+              >
+              và
+              <a href="/articles/retry-what-when.html">retry cái gì</a>.
+            </li>
+          </ul>
+          <p>
+            Uncertain không phải “view hỏng” thuần — là
+            <em>bạn chưa có quan sát đủ</em>. Xử lý như wrong (đập tay retry)
+            hay missing (tạo lại) đều có thể phá.
+          </p>
+
+          <h2>Cùng một màn hình đỏ — bốn hướng</h2>
+          <pre><code>Hỏi nhanh:
+  1) Tự lành sau vài phút khi lag giảm?     → nghi stale
+  2) Bản ghi/event không bao giờ xuất hiện? → nghi missing
+  3) Có data nhưng logic không thể / lệch? → nghi wrong
+  4) Vừa timeout / double-click / “không biết đã”? → uncertain
+
+Đừng: “reindex tất cả” làm bước 0 cho mọi ticket.</code></pre>
+
+          <h2>Gắn recovery (read vs write)</h2>
+          <pre><code>Stale     → throughput, SLA, cache policy (hiếm DLQ)
+Missing   → gap detect + backfill; cấm ignore mặc định
+Wrong     → fix + rebuild; idempotent; order per-key
+Uncertain → quan sát / idempotent API; không đoán bằng retry mù
+
+Write side “sai”:
+  hay là double / mất side-effect → idempotency, outbox, lease
+  (taxonomy trên vẫn giúp nói chuyện với read team)</code></pre>
+          <p>
+            Matrix strategy theo purpose:
+            <a href="/articles/async-recovery-playbook.html"
+              >async recovery playbook</a
+            >.
+            Unblock lane
+            (<a href="/articles/unblock.html">unblock</a>) trên read mà skip
+            message = đánh đổi missing — nói to trade-off đó.
+          </p>
+
+          <h2>Checklist 1 phút khi user kêu “sai”</h2>
+          <ol>
+            <li>Write path 200 và row nguồn đúng chưa? (tách write vs read)</li>
+            <li>Lag / cache age / replica delay? → stale</li>
+            <li>So nguồn vs view theo id: thiếu hẳn hay lệch field?</li>
+            <li>Handler có idempotent / dedup key không?</li>
+            <li>Có timeout/retry gần đó không? → uncertain trước khi replay</li>
+          </ol>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/write-vs-read-channel.html"
+                >Write vs read vs shared</a
+              >
+              — purpose quyết recovery.
+            </li>
+            <li>
+              <a href="/articles/consumer-lag.html">Consumer lag</a> — stale đo
+              được.
+            </li>
+            <li>
+              <a href="/articles/idempotency.html">Idempotency</a> ·
+              <a href="/articles/outbox-inbox.html">Outbox</a> — missing/wrong
+              phía publish.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Đừng nói “data sai” — nói stale, thiếu, wrong, hay chưa chắc.<br />
+              Cùng một ticket đỏ, bốn hướng chữa.</strong
+            >
+          </p>
+          <p>
+            Phân loại là kỹ năng rẻ hơn reindex mù. Làm xong một lần, cả team
+            nói chung được với support và với recovery playbook.
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

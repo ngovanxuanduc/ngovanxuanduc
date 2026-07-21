@@ -1,0 +1,200 @@
+---
+{
+  "title": "Cancellation — hết giờ phải dừng việc · Articles",
+  "description": "[Preview] Timeout budget báo hết giờ; cancellation abort work đang chạy. AbortSignal/context, việc mồ côi, cooperative cancel. Demo.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Cancellation — hết giờ thì phải dừng việc, không chỉ báo lỗi</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~8 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            User đóng tab. Gateway trả 504. Dashboard đỏ. Bên trong: handler
+            vẫn <code>await db.query</code> 15s, connection pool đầy việc
+            <strong>không ai chờ kết quả</strong>.
+          </p>
+          <p>
+            <a href="/articles/timeout-budget.html">Timeout budget</a>
+            trả lời: <em>còn bao lâu cho cả chuỗi?</em>
+            <strong>Cancellation</strong> trả lời:
+            <em>ai bảo việc dang dở phải dừng — và nó có nghe không?</em>
+          </p>
+          <p>
+            Demo (budget hết: chỉ báo lỗi vs abort thật):
+            <a href="/demos/cancellation.html">cancellation · orphan vs abort</a>.
+          </p>
+
+          <h2>Timeout ≠ cancel</h2>
+          <pre><code>// “Hết giờ” ở tầng ngoài — bên trong có thể vẫn chạy
+const result = await Promise.race([
+  doWork(),                          // không nhận signal
+  sleep(2000).then(() =&gt; { throw new Error('timeout') }),
+])
+// doWork() không bị dừng — việc mồ côi</code></pre>
+          <p>
+            Race chỉ chọn
+            <em>promise nào win cho caller</em>. Nó không tự abort I/O, không
+            trả connection, không bảo query ngừng scan.
+          </p>
+          <p>
+            Cancel đúng nghĩa:
+          </p>
+          <ol>
+            <li>Có <strong>tín hiệu</strong> (AbortSignal, context cancel…).</li>
+            <li>Tín hiệu <strong>truyền xuống</strong> mọi I/O / sub-call.</li>
+            <li>
+              Code / driver <strong>tôn trọng</strong> — cooperative: check giữa
+              các await hoặc API native abort.
+            </li>
+          </ol>
+
+          <h2>AbortSignal / context — một cha cho cả request</h2>
+          <pre><code>// JS — một controller cho handler
+const ac = new AbortController()
+const timer = setTimeout(() =&gt; ac.abort('budget'), budgetMs)
+
+try {
+  await fetch(url, { signal: ac.signal })
+  await db.query(sql, { signal: ac.signal }) // driver phải support
+} finally {
+  clearTimeout(timer)
+}
+
+// Gộp với client disconnect (nếu runtime cho signal):
+// AbortSignal.any([ac.signal, req.signal])</code></pre>
+          <pre><code>// Go
+ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+defer cancel()
+rows, err := db.QueryContext(ctx, sql)</code></pre>
+          <p>
+            Ý: <strong>một deadline/cancel gốc</strong>, không mỗi hop tự
+            <code>setTimeout</code> riêng rồi quên abort con.
+            Khớp
+            <a href="/articles/timeout-budget.html">budget xuyên tầng</a>.
+          </p>
+
+          <h2>Việc mồ côi — vì sao đắt</h2>
+          <ul>
+            <li>Ôm DB pool / HTTP client / file descriptor.</li>
+            <li>CPU vẫn parse/result dù user đã đi.</li>
+            <li>
+              Retry phía trên chồng thêm request trong khi bản cũ chưa chết →
+              storm im lặng.
+            </li>
+            <li>
+              Metric 5xx tăng nhưng root là “không cancel”, không phải dependency
+              chậm đơn thuần.
+            </li>
+          </ul>
+          <p>
+            Nối
+            <a href="/articles/inflight-inventory.html">in-flight inventory</a>:
+            orphan = SKU không ai nhận hàng mà vẫn giữ vốn.
+          </p>
+
+          <h2>Cooperative — cancel không phải preemption</h2>
+          <p>
+            Hầu hết cancel là
+            <strong>cooperative</strong> (xem
+            <a href="/articles/cooperative-vs-preemptive.html"
+              >cooperative vs preemptive</a
+            >):
+          </p>
+          <ul>
+            <li>
+              Tight loop CPU không <code>await</code> / không check signal →
+              không dừng giữa chừng.
+            </li>
+            <li>
+              <code>fs.readFileSync</code> / crypto sync → không abort được cho
+              đến khi xong (kẹt cả
+              <a href="/articles/event-loop.html">event loop</a>).
+            </li>
+            <li>
+              Library không nhận <code>signal</code> → bạn chỉ “hết giờ với
+              caller”, không với tài nguyên dưới.
+            </li>
+          </ul>
+
+          <h2>Retry + cancel</h2>
+          <pre><code>// Sai: timeout lần 1, fire lần 2, lần 1 vẫn chạy
+await attempt() // treo
+// ... 2s ... throw
+await attempt() // thêm 1 query
+
+// Đúng: cùng budget; lần trước abort xong (hoặc chắc chắn) mới lần sau
+// + idempotency nếu side-effect</code></pre>
+          <p>
+            Hết budget →
+            <strong>đừng retry</strong>
+            (<a href="/articles/retry-what-when.html">retry cái gì</a>).
+            Còn budget → abort attempt cũ (nếu có) rồi mới attempt mới.
+          </p>
+
+          <h2>Worker / queue</h2>
+          <ul>
+            <li>
+              Shutdown / deploy: cancel in-flight job, đừng để process kill nửa
+              chừng không idempotent.
+            </li>
+            <li>
+              Lease/visibility hết: job có thể redelivery — handler phải chịu
+              lần hai
+              (<a href="/articles/visibility-timeout.html">lease</a>,
+              <a href="/articles/idempotency.html">idempotency</a>).
+            </li>
+            <li>
+              Cancel giữa job: state “partial” cần an toàn (compensate hoặc
+              checkpoint).
+            </li>
+          </ul>
+
+          <h2>Checklist</h2>
+          <ol>
+            <li>Timeout chỉ ở ngoài hay có signal xuống I/O?</li>
+            <li>Driver/HTTP client có abort API không?</li>
+            <li>Client disconnect có nối vào cùng signal không?</li>
+            <li>Metric <code>aborted</code> / <code>canceled</code> tách 5xx?</li>
+            <li>Pool active có giảm khi client cút hàng loạt không?</li>
+          </ol>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/timeout-budget.html">Timeout budget</a> — hạn
+              tổng.
+            </li>
+            <li>
+              <a href="/articles/event-loop.html">Event loop</a> — sync không
+              cancel được giữa chừng.
+            </li>
+            <li>
+              <a href="/articles/retry-backoff-jitter.html">Retry + jitter</a> —
+              nhịp; bài này + retry-what-when — khi nào bấm.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Hết giờ mà không cancel = vẫn trả CPU/pool cho việc không ai
+              chờ.<br />
+              Budget nói “khi nào”; cancel là “dừng đi”.</strong
+            >
+          </p>
+        </div>
+      </article>

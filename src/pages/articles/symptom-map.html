@@ -1,0 +1,223 @@
+---
+{
+  "title": "Bạn đang gặp gì? — chậm, RAM, double, view sai, consumer kẹt · Articles",
+  "description": "[Preview] Hub triệu chứng → bài. Cửa vào khi production cháy, không cần biết tên pattern trước.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Bạn đang gặp gì? — chậm, RAM, double, view sai, consumer kẹt</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Index xếp theo
+            <em>chủ đề học</em> (concurrency → queue → memory). Lúc 2h sáng bạn
+            nghĩ theo
+            <strong>triệu chứng</strong>: chậm, OOM, double charge, dashboard
+            sai, consumer kẹt.
+          </p>
+          <p>
+            Trang này là
+            <strong>cửa vào</strong>: chọn nỗi → vài bài đủ để hỏi đúng câu và
+            làm bước đầu. Không thay postmortem; thay “không biết bấm link
+            nào”.
+          </p>
+          <p>
+            Checklist dài hơn cho latency:
+            <a href="/articles/slow-service-playbook.html"
+              >playbook service chậm</a
+            >
+            (preview).
+          </p>
+
+          <h2>0. Mười giây — tách lớp</h2>
+          <pre><code>Chậm / đơ     → chờ I/O, kẹt loop, pool, dependency, retry?
+RAM / OOM     → in-flight inventory, leak, cgroup?
+Sai tiền / 2× → idempotency, redelivery, outbox?
+Data “sai”    → stale / missing / wrong / uncertain?
+Queue kẹt     → poison, unblock, lag, purpose channel?
+Dependency    → breaker, bulkhead, shed?</code></pre>
+
+          <h2>Service / API chậm, p99 nổ</h2>
+          <ol>
+            <li>
+              <strong>Chờ hay tính?</strong>
+              <a href="/articles/concurrency-vs-parallel.html">Deal vs do</a>,
+              <a href="/articles/blocking-vs-nonblocking.html">block/non-block</a>,
+              <a href="/articles/event-loop.html">event loop</a> (sync ôm
+              loop?).
+            </li>
+            <li>
+              <strong>Deadline?</strong>
+              <a href="/articles/timeout-budget.html">Timeout budget</a>,
+              <a href="/articles/cancellation.html">cancellation</a> (việc mồ
+              côi?).
+            </li>
+            <li>
+              <strong>Dependency?</strong>
+              <a href="/articles/circuit-breaker.html">Breaker</a>,
+              <a href="/articles/retry-backoff-jitter.html">retry + jitter</a>,
+              <a href="/articles/retry-what-when.html">retry cái gì</a>.
+            </li>
+            <li>
+              <strong>Pool DB?</strong>
+              <a href="/articles/connection-pool-exhaustion.html"
+                >Connection pool hết chỗ</a
+              >
+              — chậm mà CPU rảnh.
+            </li>
+            <li>
+              <strong>Inventory?</strong>
+              <a href="/articles/inflight-inventory.html">In-flight inventory</a>,
+              <a href="/articles/promise-all-batch-vs-pool.html">pool</a>.
+            </li>
+          </ol>
+
+          <h2>RAM tăng, OOM, process bị kill</h2>
+          <ul>
+            <li>
+              Bao nhiêu việc đang bay?
+              <a href="/articles/unbounded-inflight.html">Unbounded in-flight</a>,
+              <a href="/articles/inflight-inventory.html">inventory</a>,
+              <a href="/articles/coroutine.html">coroutine</a> (rẻ ≠ vô hạn).
+            </li>
+            <li>
+              Số RAM nào?
+              <a href="/articles/linux-vss-rss-uss.html">VSS/RSS/USS</a>,
+              <a href="/articles/heap-rss-cgroup.html">heap vs RSS vs cgroup</a>,
+              <a href="/articles/garbage-collector.html">GC</a>.
+            </li>
+            <li>
+              Backpressure / shed:
+              <a href="/articles/backpressure.html">backpressure</a>,
+              <a href="/articles/load-shedding.html">load shedding</a>.
+            </li>
+          </ul>
+
+          <h2>Double charge / side-effect lặp</h2>
+          <ul>
+            <li>
+              <a href="/articles/idempotency.html">Idempotency</a>,
+              <a href="/articles/idempotency-key-scope.html">key scope</a>.
+            </li>
+            <li>
+              Queue redelivery:
+              <a href="/articles/visibility-timeout.html">lease / visibility</a>,
+              <a href="/articles/exactly-once-pragmatic.html"
+                >exactly-once thực dụng</a
+              >.
+            </li>
+            <li>
+              DB + publish:
+              <a href="/articles/outbox-inbox.html">outbox</a>,
+              <a href="/articles/dual-write-vs-outbox.html">dual-write</a>.
+            </li>
+            <li>
+              Timeout rồi bắn lại:
+              <a href="/articles/retry-what-when.html">unknown / uncertain</a>,
+              <a href="/articles/stale-missing-wrong.html">uncertain</a>.
+            </li>
+          </ul>
+
+          <h2>View / dashboard sai — ghi vẫn 200</h2>
+          <ul>
+            <li>
+              Phân loại:
+              <a href="/articles/stale-missing-wrong.html"
+                >stale · thiếu · sai · chưa chắc</a
+              >
+              (+ demo).
+            </li>
+            <li>
+              Purpose channel:
+              <a href="/articles/write-vs-read-channel.html"
+                >write / read / shared</a
+              >.
+            </li>
+            <li>
+              Lag / order:
+              <a href="/articles/consumer-lag.html">consumer lag</a>,
+              <a href="/articles/order-budget.html">order budget</a>.
+            </li>
+          </ul>
+
+          <h2>Consumer kẹt, lag tăng, một message chặn cả hàng</h2>
+          <ul>
+            <li>
+              <a href="/articles/unblock.html">Unblock</a> (+ demo) — nhả lane.
+            </li>
+            <li>
+              <a href="/articles/poison-dlq.html">Poison / DLQ</a>,
+              <a href="/articles/dlq-triage.html">DLQ triage</a>.
+            </li>
+            <li>
+              Chọn strategy:
+              <a href="/articles/async-recovery-playbook.html"
+                >recovery playbook</a
+              >,
+              <a href="/articles/ignore-when-ok.html">ignore khi nào đúng</a>.
+            </li>
+            <li>
+              Resend cẩn:
+              <a href="/articles/resend-shared-channel.html">resend shared</a>,
+              <a href="/articles/shared-channel-multitenant.html"
+                >shared multi-tenant</a
+              >.
+            </li>
+          </ul>
+
+          <h2>Dependency chết / chậm kéo sập mình</h2>
+          <ul>
+            <li>
+              <a href="/articles/circuit-breaker.html">Breaker</a>,
+              <a href="/articles/breaker-failure-modes.html">fail modes</a>.
+            </li>
+            <li>
+              <a href="/articles/bulkhead.html">Bulkhead</a>,
+              <a href="/articles/load-shedding.html">load shedding</a>.
+            </li>
+            <li>
+              <a href="/articles/backpressure.html">Backpressure</a>,
+              <a href="/articles/rate-limit-vs-pool.html">rate limit vs pool</a>.
+            </li>
+          </ul>
+
+          <h2>Race / stampede</h2>
+          <ul>
+            <li><a href="/articles/toctou-async.html">TOCTOU async</a>.</li>
+            <li>
+              <a href="/articles/cache-stampede.html">Cache stampede</a>,
+              <a href="/articles/reuse-promise.html">single-flight</a>.
+            </li>
+          </ul>
+
+          <h2>Cách dùng hub</h2>
+          <ol>
+            <li>Chọn 1–2 triệu chứng gần nhất (đừng 5 cùng lúc).</li>
+            <li>Đọc 1 bài “phân loại” + 1 bài “làm ngay”.</li>
+            <li>
+              Chỉ sau đó mới deep-dive pattern (breaker internals, saga…).
+            </li>
+          </ol>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Triệu chứng trước, tên pattern sau.<br />
+              Hỏi: chờ hay tính? bay bao nhiêu? còn bao lâu? fail được phép gì?
+              view lệch kiểu nào?</strong
+            >
+          </p>
+        </div>
+      </article>

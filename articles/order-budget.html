@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Anh em timeout budget: order global vs per-key vs đủ business. Trả giá gì khi order chặt. Partition key, unblock." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Order budget — order tuyệt đối đắt · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/order-budget.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Order budget — order tuyệt đối đắt · Articles" />
+    <meta property="og:description" content="[Preview] Anh em timeout budget: order global vs per-key vs đủ business. Trả giá gì khi order chặt. Partition key, unblock." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/order-budget.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Order budget — order tuyệt đối đắt · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Order budget — order tuyệt đối đắt · Articles" />
+    <meta name="twitter:description" content="[Preview] Anh em timeout budget: order global vs per-key vs đủ business. Trả giá gì khi order chặt. Partition key, unblock." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Order budget — order tuyệt đối đắt · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Order budget — order tuyệt đối đắt, order “đủ dùng” rẻ hơn</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~7 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Product: “Event phải đúng thứ tự.” Engineering bật một partition, một
+            consumer, mọi thứ serialize — p99 chết, hot key, một poison chặn cả
+            thế giới.
+          </p>
+          <p>
+            <a href="/articles/timeout-budget.html">Timeout budget</a> giới hạn
+            <em>thời gian</em> bạn chịu trả.
+            <strong>Order budget</strong> giới hạn
+            <em>yêu cầu thứ tự</em> bạn chịu trả (latency, dual complexity,
+            head-of-line blocking).
+          </p>
+
+          <h2>Các mức order (từ đắt → rẻ)</h2>
+          <pre><code>Global total order     — mọi event A trước B trên toàn hệ (rất đắt, hiếm)
+Per-key / per-aggregate— order trong accountId / orderId (đủ hầu hết)
+Causal / “happens-after” có chọn lọc
+Best-effort            — chấp nhận xáo nhẹ, reconcile sau
+No order               — competing workers thoải mái</code></pre>
+          <p>
+            Hỏi product bằng tiếng business, không bằng Kafka:
+            <em>“Hai event của hai user khác nhau đảo thứ tự có vỡ money
+            path không?”</em>
+            Thường là không → đừng mua global order.
+          </p>
+
+          <h2>Bạn trả giá gì khi order chặt</h2>
+          <ul>
+            <li>
+              <strong>Head-of-line blocking:</strong> một message chậm/hỏng chặn
+              cả key/partition —
+              <a href="/articles/unblock.html">unblock</a> trở thành bắt buộc
+              có chủ đích.
+            </li>
+            <li>
+              <strong>Khó scale:</strong> một key “nóng” (celebrity account) =
+              một lane quá tải.
+            </li>
+            <li>
+              <strong>Resend / multi-writer:</strong> dễ phá order →
+              <a href="/articles/stale-missing-wrong.html">wrong</a> trên
+              projection.
+            </li>
+            <li>
+              <strong>Latency:</strong> phải chờ event trước xong mới apply sau,
+              dù business không cần.
+            </li>
+          </ul>
+
+          <h2>Per-key — mức hay “đủ dùng”</h2>
+          <p>
+            Stream/Kafka: order mạnh trong partition. Chọn
+            <strong>partition key = đơn vị business</strong> (orderId,
+            accountId, tenant+resource) — xem
+            <a href="/articles/partition-key-ordering.html">partition key</a>.
+          </p>
+          <pre><code>Cùng accountId → create trước update (đúng)
+Khác accountId → song song OK
+Global “mọi account” → thường không cần</code></pre>
+
+          <h2>Order vs purpose channel</h2>
+          <ul>
+            <li>
+              <strong>Write:</strong> thường per-aggregate; hiếm global.
+              Unblock quan trọng hơn “giữ order tuyệt đối trên cả topic”.
+            </li>
+            <li>
+              <strong>Read / projection:</strong> per-key order hay bắt buộc để
+              tránh wrong; skip bừa = missing.
+            </li>
+            <li>
+              <strong>Shared:</strong> resend phá order cho group khác —
+              <a href="/articles/resend-shared-channel.html">resend shared</a>.
+            </li>
+          </ul>
+          <p>
+            Matrix:
+            <a href="/articles/async-recovery-playbook.html">recovery playbook</a>.
+          </p>
+
+          <h2>Checklist với product / design</h2>
+          <ol>
+            <li>Đơn vị nào cần order? (user, order, tenant…)</li>
+            <li>Đảo thứ tự ngoài đơn vị đó có vỡ invariant không?</li>
+            <li>Chấp nhận stale ngắn thay vì serialize toàn cục?</li>
+            <li>Poison trên lane: DLQ hay block? Ai quyết?</li>
+            <li>Hot key plan? (shard key, merge…)</li>
+          </ol>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/timeout-budget.html">Timeout budget</a> — anh
+              em “ngân sách”.
+            </li>
+            <li>
+              <a href="/articles/queue-vs-stream.html">Queue vs stream</a> —
+              offset vs destructive.
+            </li>
+            <li>
+              <a href="/articles/stale-missing-wrong.html">Stale · thiếu · sai</a>
+              — wrong vì out-of-order.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Order là ngân sách — chi đúng chỗ business vỡ, đừng mặc định tuyệt
+              đối.<br />
+              Per-key thường đủ; global order là hàng xa xỉ.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="Simon — xem chuỗi màu, lặp lại. Mỗi vòng thêm 1 bước, lưu best local." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Simon · Games</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/games/simon.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Simon · Games" />
+    <meta property="og:description" content="Simon — xem chuỗi màu, lặp lại. Mỗi vòng thêm 1 bước, lưu best local." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/games/simon.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Simon · Games" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Simon · Games" />
+    <meta name="twitter:description" content="Simon — xem chuỗi màu, lặp lại. Mỗi vòng thêm 1 bước, lưu best local." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Simon · Games" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/games.css" />
+    
+  </head>
+  <body data-page="games">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games" class="is-active">Games</a></li>
+          <li><a href="/articles/" data-nav="articles">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<div class="container">
+        <div class="game-header animate-in">
+          <a class="game-header__back" href="/games/">← Games</a>
+          <h1>Simon</h1>
+          <p>
+            Xem chuỗi sáng → lặp lại đúng thứ tự. Mỗi vòng thêm 1 màu. Sai =
+            hết ván.
+          </p>
+        </div>
+
+        <div class="game-shell animate-in animate-in-delay-1">
+          <div class="simon-stats memory-stats">
+            <span>Vòng: <strong id="simon-level">0</strong></span>
+            <span>Best: <strong id="simon-best">—</strong></span>
+          </div>
+          <p id="simon-status" class="game-status">Bấm Bắt đầu.</p>
+          <div
+            id="simon-board"
+            class="simon-board"
+            role="group"
+            aria-label="Bàn Simon 4 màu"
+          >
+            <button
+              type="button"
+              class="simon-pad simon-pad--0"
+              data-i="0"
+              aria-label="Xanh lá"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--1"
+              data-i="1"
+              aria-label="Đỏ"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--2"
+              data-i="2"
+              aria-label="Vàng"
+              disabled
+            ></button>
+            <button
+              type="button"
+              class="simon-pad simon-pad--3"
+              data-i="3"
+              aria-label="Xanh dương"
+              disabled
+            ></button>
+          </div>
+          <div class="game-toolbar">
+            <button type="button" class="btn btn--sm" id="simon-start">
+              Bắt đầu
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" id="simon-reset-best">
+              Xóa best
+            </button>
+          </div>
+          <p class="simon-hint">
+            Phím <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> hoặc click /
+            chạm.
+          </p>
+        </div>
+      </div>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+        <script src="/js/simon.js" defer></script>
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

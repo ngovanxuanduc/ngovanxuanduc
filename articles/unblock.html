@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Poison/retry mãi chặn lane. Unblock first-class: DLQ, error channel, resend, ignore — theo write/read/shared." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Unblock — đừng đóng băng cả hàng vì một message · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/unblock.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Unblock — đừng đóng băng cả hàng vì một message · Articles" />
+    <meta property="og:description" content="[Preview] Poison/retry mãi chặn lane. Unblock first-class: DLQ, error channel, resend, ignore — theo write/read/shared." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/unblock.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Unblock — đừng đóng băng cả hàng vì một message · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Unblock — đừng đóng băng cả hàng vì một message · Articles" />
+    <meta name="twitter:description" content="[Preview] Poison/retry mãi chặn lane. Unblock first-class: DLQ, error channel, resend, ignore — theo write/read/shared." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Unblock — đừng đóng băng cả hàng vì một message · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Unblock — đừng đóng băng cả hàng vì một message hỏng</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Một message schema sai. Consumer retry 50 lần. Lag tăng. Mọi
+            payment/mail/projection
+            <em>đứng sau</em> trên cùng partition — không vì Kafka chết, vì
+            <strong>lane bị một xác chặn</strong>.
+          </p>
+          <p>
+            <a href="/articles/async-recovery-playbook.html"
+              >Recovery playbook</a
+            >
+            liệt kê strategy. Bài này đặt tên mục tiêu hay bị quên khi team
+            “cố xử lý bằng được”:
+            <strong>unblock</strong> — nhả hàng, để phần còn lại của business
+            sống.
+          </p>
+          <p>
+            Demo (lane block vs DLQ nhả hàng):
+            <a href="/demos/unblock.html">unblock · poison chặn vs nhả</a>.
+          </p>
+
+          <h2>Block lane ≠ “đang xử lý cẩn thận”</h2>
+          <p>
+            Release/retry mãi một poison:
+          </p>
+          <ul>
+            <li>Head-of-line blocking trên partition/queue.</li>
+            <li>
+              <a href="/articles/consumer-lag.html">Lag</a> tăng → read side
+              <a href="/articles/stale-missing-wrong.html">stale</a> hàng loạt.
+            </li>
+            <li>Write side: action phía sau không chạy (mất continuity).</li>
+            <li>On-call chỉ thấy “consumer chậm”, không thấy “1 message độc”.</li>
+          </ul>
+
+          <h2>Unblock theo purpose</h2>
+          <p>
+            Cùng
+            <a href="/articles/write-vs-read-channel.html"
+              >write / read / shared</a
+            >:
+          </p>
+          <pre><code>Write   — block consumer ≈ block một phần business
+          → unblock thường gấp (delayed resend, error queue, DLQ)
+
+Read    — block có thể giữ order, tránh wrong
+          → skip/DLQ = rủi ro missing; stale đôi khi chấp nhận hơn corrupt
+          → park + alert, backfill có quy trình
+
+Shared  — resend shared log có thể double group khác
+          → error channel / DLQ private; không “nhét lại topic” mù</code></pre>
+
+          <h2>Công cụ nhả hàng (nhanh)</h2>
+          <pre><code>Instant retry     — chỉ transient; không đủ với permanent
+Delayed resend    — nhả chỗ, thử sau (write hay OK; stream cần lane phụ)
+Error channel     — chuyển riêng, main đi tiếp
+DLQ               — cất + alert; main đi tiếp (bắt buộc triage sau)
+Ignore            — ack bỏ; unblock mạnh — correctness tùy purpose
+Release/rewind    — giữ order; dễ kẹt nếu mãi fail</code></pre>
+          <p>
+            <a href="/articles/poison-dlq.html">Poison / DLQ</a> là unblock
+            có địa chỉ. Không triage =
+            <a href="/articles/dlq-triage.html">thùng rác có thêm bước</a>.
+          </p>
+
+          <h2>Khi correctness được ưu tiên hơn unblock</h2>
+          <ul>
+            <li>Ledger / số dư: wrong đắt hơn trễ vài phút.</li>
+            <li>
+              Projection bắt buộc per-key order: release có chủ đích, không skip
+              bừa.
+            </li>
+            <li>
+              Còn lại nhiều hệ nghiệp vụ: kẹt mãi đắt hơn một message vào DLQ +
+              alert.
+            </li>
+          </ul>
+          <p>
+            Nói to trade-off trong runbook — tránh tranh cãi lúc 2h sáng giữa
+            “đừng mất event” và “cả hàng chết”.
+          </p>
+
+          <h2>Metric cho unblock</h2>
+          <ul>
+            <li>Lag / age of oldest message (không chỉ success rate).</li>
+            <li>Retry count per message; % hit max retry.</li>
+            <li>DLQ rate + age trong DLQ (cất rồi quên cũng là fail).</li>
+            <li>Time-to-unblock sau poison (SLO ops).</li>
+          </ul>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/async-recovery-playbook.html"
+                >Recovery playbook</a
+              >
+              — matrix strategy.
+            </li>
+            <li>
+              <a href="/articles/retry-what-when.html">Retry cái gì</a> — poison
+              không phải transient.
+            </li>
+            <li>
+              <a href="/articles/resend-shared-channel.html">Resend shared</a> —
+              cẩn multi-tenant.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Đôi khi mục tiêu đúng là nhả hàng, không phải “xử lý bằng được”
+              message hỏng trên lane chính.<br />
+              Unblock có tên — để trade-off được nói to.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

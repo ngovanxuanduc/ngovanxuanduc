@@ -1,0 +1,92 @@
+---
+{
+  "title": "Thread pool / offload — CPU và sync I/O · Articles",
+  "description": "[Preview] Khi nào đưa việc ra worker pool. Pool size = max blocking in-flight. Fake async.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Thread pool / offload — khi nào đưa CPU và sync I/O ra ngoài loop
+          </h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~6 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/event-loop.html">Event loop</a> giỏi I/O
+            non-block. CPU hash lớn, image resize, driver chỉ có API sync →
+            ôm loop = chết concurrency.
+          </p>
+          <p>
+            <strong>Offload</strong>: chạy việc đó trên thread/process pool;
+            loop chỉ await “khi xong”.
+          </p>
+
+          <h2>Offload cái gì</h2>
+          <ul>
+            <li>CPU-bound: nén, crypto nặng, parse khổng lồ, ML infer nhỏ.</li>
+            <li>Sync I/O bắt buộc: legacy SDK block.</li>
+            <li>
+              Không offload: I/O đã async gọn — chỉ thêm hop và contention pool.
+            </li>
+          </ul>
+
+          <h2>Pool size = ngân sách</h2>
+          <pre><code>Pool N threads
+= tối đa N blocking in-flight
+= inventory (xem inflight-inventory)
+
+N quá lớn → thrash, contest DB
+N quá nhỏ → queue offload dài, p99 nổ</code></pre>
+          <p>
+            Align với
+            <a href="/articles/connection-pool-exhaustion.html">DB pool</a> và
+            CPU cores (CPU-bound ~ cores; I/O-block pool có thể &gt; cores).
+          </p>
+
+          <h2>Fake async</h2>
+          <pre><code>// Vẫn kẹt loop — heavy chạy TRƯỚC khi await nhường
+await Promise.resolve(heavySync())
+
+// Node worker_threads (ý)
+const { Worker } = require('worker_threads')
+function offload(workerFile, data) {
+  return new Promise((resolve, reject) =&gt; {
+    const w = new Worker(workerFile, { workerData: data })
+    w.on('message', resolve)
+    w.on('error', reject)
+  })
+}
+await offload('./heavy.js', payload)
+// hoặc pool worker tái sử dụng — đừng new Worker mỗi request không bound</code></pre>
+
+          <h2>Offload ≠ parallel magic</h2>
+          <p>
+            Đưa sang 1 worker = khỏi kẹt loop, chưa chắc nhanh hơn wall-clock
+            nếu một việc. Nhiều core:
+            <a href="/articles/data-vs-task-parallelism.html"
+              >data/task parallel</a
+            >.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Offload cứu loop; pool size vẫn là ngân sách blocking
+              in-flight.<br />
+              await không biến sync thành non-block nếu heavy chạy trên
+              loop.</strong
+            >
+          </p>
+        </div>
+      </article>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Scope key: request vs operation vs user+day. TTL, store, multi-instance. Cùng key khác body → 409." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Idempotency key — sai scope là retry vẫn nhân đôi · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/idempotency-key-scope.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Idempotency key — sai scope là retry vẫn nhân đôi · Articles" />
+    <meta property="og:description" content="[Preview] Scope key: request vs operation vs user+day. TTL, store, multi-instance. Cùng key khác body → 409." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/idempotency-key-scope.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Idempotency key — sai scope là retry vẫn nhân đôi · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Idempotency key — sai scope là retry vẫn nhân đôi · Articles" />
+    <meta name="twitter:description" content="[Preview] Scope key: request vs operation vs user+day. TTL, store, multi-instance. Cùng key khác body → 409." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Idempotency key — sai scope là retry vẫn nhân đôi · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Idempotency key — sai scope là retry vẫn nhân đôi</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~7 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/idempotency.html">Idempotency</a> giải thích vì
+            sao retry không được nhân side-effect. Bài này: phần hay fail thầm —
+            <strong>key phạm vi nào, sống bao lâu, lưu ở đâu</strong>.
+          </p>
+          <p>
+            Flag “idempotent = true” không đủ. Sai scope ≈ không có lưới.
+          </p>
+
+          <h2>Scope hay dùng</h2>
+          <pre><code>request_id / Idempotency-Key
+  — một lần bấm “Thanh toán” (client UUID)
+  — retry cùng key → cùng effect + response cũ
+
+operation_id
+  — “refund order 123” (server sinh / derive)
+  — mọi path (UI, admin, job) cùng một operation
+
+user_id + action + day
+  — “check-in mỗi ngày một lần”
+
+row version / etag
+  — optimistic concurrency (CAS), khác dedup request</code></pre>
+
+          <h2>Sai scope — triệu chứng</h2>
+          <ul>
+            <li>
+              <strong>Key = user_id only:</strong> thao tác sau bị chặn nhầm
+              hoặc trả response lần đầu.
+            </li>
+            <li>
+              <strong>Client gen key mới mỗi retry:</strong> double charge —
+              đúng lúc cần dedup.
+            </li>
+            <li>
+              <strong>Key quá rộng theo ngày:</strong> user không refund được
+              hai lần hợp lệ trong ngày.
+            </li>
+            <li>
+              <strong>Key chỉ trong body không bắt buộc header:</strong> proxy
+              retry khác path thủng.
+            </li>
+          </ul>
+
+          <h2>TTL</h2>
+          <p>
+            Cửa sổ dedup ≥ cửa sổ retry hợp lệ + clock skew + redelivery queue
+            (lease tối đa × attempts).
+          </p>
+          <ul>
+            <li>TTL quá ngắn: hết key giữa các lần retry → double.</li>
+            <li>TTL quá dài + scope hẹp: “không làm lại được” operation hợp lệ.</li>
+          </ul>
+
+          <h2>Store</h2>
+          <pre><code>In-memory Map một process  — multi-instance / restart thủng
+Redis / DB unique          — production mặc định
+Cùng DB transaction        — ideal khi effect cũng ở DB đó</code></pre>
+          <p>
+            Lưu
+            <em>kết quả</em> (status + body tóm tắt), không chỉ “đã thấy key” —
+            retry trả đúng response cũ (Stripe-style).
+          </p>
+
+          <h2>Cùng key, khác payload</h2>
+          <pre><code>Key K + body A → 200 + effect
+Key K + body B → 409 Conflict (không apply B im lặng)</code></pre>
+          <p>
+            Tránh client bug “tái sử dụng key cho operation khác”.
+          </p>
+
+          <h2>Message / queue</h2>
+          <ul>
+            <li>
+              <code>messageId</code> / business id làm dedup key khi
+              at-least-once —
+              <a href="/articles/exactly-once-pragmatic.html"
+                >exactly-once thực dụng</a
+              >.
+            </li>
+            <li>
+              Inbox pattern:
+              <a href="/articles/outbox-inbox.html">outbox &amp; inbox</a>.
+            </li>
+          </ul>
+
+          <h2>Checklist design</h2>
+          <ol>
+            <li>Ai gen key — client hay server? Ai giữ khi retry?</li>
+            <li>Hai path khác nhau (app + job) có cùng operation key không?</li>
+            <li>TTL ≥ max retry window?</li>
+            <li>Store chịu multi-instance?</li>
+            <li>Conflict body khác → 409 có test không?</li>
+          </ol>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Idempotency không phải flag — là key + scope + store + TTL.<br />
+              Sai scope = retry vẫn nhân đôi (hoặc chặn nhầm).</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

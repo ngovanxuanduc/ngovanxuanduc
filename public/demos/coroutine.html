@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Coroutine — suspend / resume</title>
+    <meta
+      name="description"
+      content="Demo: 1 runner, nhiều coroutine — suspend khi chờ, resume khi data về."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --run: #60a5fa;
+        --susp: #fbbf24;
+        --done: #5eea93;
+        --idle: #1a1a1e;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1.1rem;
+      }
+      header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 36rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 1.15rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.65rem 1.2rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      .hint {
+        font-size: 0.82rem;
+        color: var(--dim);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem 1.15rem;
+      }
+      .runner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.7rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--idle);
+        margin-bottom: 1rem;
+        transition: 0.15s;
+      }
+      .runner.busy {
+        border-color: rgba(96, 165, 250, 0.55);
+        background: rgba(96, 165, 250, 0.12);
+        box-shadow: 0 0 14px rgba(96, 165, 250, 0.18);
+      }
+      .runner .label {
+        font-size: 0.78rem;
+        color: var(--dim);
+        min-width: 4.5rem;
+      }
+      .runner .label b {
+        display: block;
+        font-size: 0.95rem;
+        color: var(--text);
+      }
+      .runner .who {
+        font-family: var(--mono);
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--run);
+        flex: 1;
+      }
+      .runner.idle .who {
+        color: var(--dim);
+        font-weight: 500;
+      }
+      .cors {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+      .cor {
+        display: grid;
+        grid-template-columns: 2.4rem 1fr 6.5rem;
+        gap: 0.45rem;
+        align-items: center;
+        padding: 0.5rem 0.6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 0.88rem;
+        transition: 0.12s;
+      }
+      .cor .id {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .cor .phase {
+        font-size: 0.84rem;
+        color: var(--muted);
+      }
+      .cor .st {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        text-align: right;
+        color: var(--dim);
+      }
+      .cor.queued .st {
+        color: var(--dim);
+      }
+      .cor.running {
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(96, 165, 250, 0.1);
+      }
+      .cor.running .id,
+      .cor.running .st,
+      .cor.running .phase {
+        color: var(--run);
+      }
+      .cor.suspended {
+        border-color: rgba(251, 191, 36, 0.45);
+        background: rgba(251, 191, 36, 0.08);
+      }
+      .cor.suspended .id,
+      .cor.suspended .st,
+      .cor.suspended .phase {
+        color: var(--susp);
+      }
+      .cor.done {
+        border-color: rgba(94, 234, 147, 0.35);
+      }
+      .cor.done .id,
+      .cor.done .st,
+      .cor.done .phase {
+        color: var(--done);
+      }
+      .say {
+        margin-top: 0.9rem;
+        padding-top: 0.7rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.9rem;
+        color: var(--muted);
+        min-height: 2.8em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .time {
+        margin-top: 0.35rem;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--dim);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem 1.1rem;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 2px;
+        margin-right: 0.35rem;
+        vertical-align: 0.05em;
+      }
+      .legend .r::before {
+        background: var(--run);
+      }
+      .legend .s::before {
+        background: var(--susp);
+      }
+      .legend .d::before {
+        background: var(--done);
+      }
+      .note {
+        margin-top: 1rem;
+        font-size: 0.84rem;
+        color: var(--dim);
+        max-width: 36rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Coroutine — suspend / resume</h1>
+        <p>
+          3 request, <strong>1 runner</strong> (event loop / thread JS). Mỗi
+          coroutine: làm → <em>await</em> (suspend) → resume → xong.
+          <a href="/articles/coroutine.html">← bài viết</a>
+          ·
+          <a href="/articles/blocking-vs-nonblocking.html">block vs non-block</a>
+        </p>
+        <div class="quote">
+          <b>Suspend</b> = cất state, nhả runner<br />
+          <b>Resume</b> = gắn lại, chạy tiếp đúng chỗ
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint">Chỉ 1 coroutine “running” tại một thời điểm</span>
+      </div>
+
+      <section class="card">
+        <div class="runner idle" id="runner">
+          <div class="label"><b>Runner</b><span>1 slot</span></div>
+          <div class="who" id="who">rảnh</div>
+        </div>
+        <div class="cors" id="cors"></div>
+        <p class="say" id="say">Bấm Chạy — xem await = suspend, data về = resume.</p>
+        <p class="time">tick ~ <span id="t">0</span></p>
+      </section>
+
+      <div class="legend">
+        <span class="r">running (ôm runner)</span>
+        <span class="s">suspended (chờ I/O — không ôm runner)</span>
+        <span class="d">done</span>
+      </div>
+      <p class="note">
+        Nếu mỗi request ôm 1 thread suốt lúc chờ mạng, bạn cần 3 thread song
+        song. Ở đây 3 coroutine suspend — runner vẫn deal lần lượt đoạn CPU.
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        const N = 3;
+        const WORK1 = 5;
+        const WAIT = 12;
+        const WORK2 = 4;
+        const TICK = 110;
+
+        const $ = (id) => document.getElementById(id);
+        let timer = null;
+        let tick = 0;
+
+        // each cor: state 'queued'|'running'|'suspended'|'done'
+        // phase label; workLeft for current segment; waitLeft when suspended
+        let cors = [];
+        let runIdx = -1; // who holds runner, or -1
+        let queue = []; // ready to run (indices)
+        let finished = 0;
+
+        function init() {
+          cors = [];
+          queue = [];
+          runIdx = -1;
+          finished = 0;
+          tick = 0;
+          for (let i = 0; i < N; i++) {
+            cors.push({
+              state: "queued",
+              phase: "chờ runner",
+              seg: 0, // 0 work1, 1 wait, 2 work2
+              left: WORK1,
+            });
+            queue.push(i);
+          }
+          paint();
+          $("say").innerHTML =
+            "Bấm Chạy — xem <em>await = suspend</em>, data về = <em>resume</em>.";
+          $("t").textContent = "0";
+        }
+
+        function paint() {
+          const root = $("cors");
+          root.innerHTML = "";
+          cors.forEach((c, i) => {
+            const el = document.createElement("div");
+            el.className = "cor " + c.state;
+            let st = c.state;
+            if (c.state === "running") st = "running";
+            if (c.state === "suspended") st = "suspended";
+            if (c.state === "queued") st = "ready";
+            if (c.state === "done") st = "done";
+            el.innerHTML =
+              '<span class="id">C' +
+              (i + 1) +
+              '</span><span class="phase">' +
+              c.phase +
+              '</span><span class="st">' +
+              st +
+              "</span>";
+            root.appendChild(el);
+          });
+
+          const runner = $("runner");
+          const who = $("who");
+          if (runIdx >= 0) {
+            runner.className = "runner busy";
+            who.textContent = "đang chạy C" + (runIdx + 1);
+          } else {
+            runner.className = "runner idle";
+            who.textContent =
+              finished >= N ? "xong hết" : "rảnh (ai suspended không chiếm)";
+          }
+          $("t").textContent = String(tick);
+        }
+
+        function say(html) {
+          $("say").innerHTML = html;
+        }
+
+        function pickRunner() {
+          if (runIdx >= 0) return;
+          while (queue.length) {
+            const i = queue.shift();
+            if (cors[i].state === "queued" || cors[i].state === "ready") {
+              // normalize
+            }
+            if (cors[i].state === "done") continue;
+            if (cors[i].state === "suspended") continue;
+            // only ready/queued that were enqueued
+            cors[i].state = "running";
+            if (cors[i].seg === 0) {
+              cors[i].phase = "CPU trước await";
+              cors[i].left = cors[i].left || WORK1;
+            } else if (cors[i].seg === 2) {
+              cors[i].phase = "CPU sau resume";
+            }
+            runIdx = i;
+            say(
+              "Runner ôm <em>C" +
+                (i + 1) +
+                "</em> — chỉ 1 coroutine running."
+            );
+            return;
+          }
+        }
+
+        function step() {
+          tick++;
+
+          // progress suspended waits
+          cors.forEach((c, i) => {
+            if (c.state !== "suspended") return;
+            c.left--;
+            c.phase = "await I/O… còn " + Math.max(0, c.left);
+            if (c.left <= 0) {
+              c.state = "queued";
+              c.seg = 2;
+              c.left = WORK2;
+              c.phase = "data về — ready resume";
+              queue.push(i);
+              say(
+                "<em>C" +
+                  (i + 1) +
+                  "</em> I/O xong → resume vào hàng đợi (không tự cướp runner)."
+              );
+            }
+          });
+
+          // progress running
+          if (runIdx >= 0) {
+            const c = cors[runIdx];
+            const i = runIdx;
+            c.left--;
+            if (c.seg === 0) {
+              c.phase = "CPU trước await (" + Math.max(0, c.left) + ")";
+              if (c.left <= 0) {
+                // hit await → suspend
+                c.state = "suspended";
+                c.seg = 1;
+                c.left = WAIT;
+                c.phase = "await — suspended";
+                say(
+                  "<em>C" +
+                    (i + 1) +
+                    "</em> gặp <em>await</em> → suspend, nhả runner."
+                );
+                runIdx = -1;
+              }
+            } else if (c.seg === 2) {
+              c.phase = "CPU sau resume (" + Math.max(0, c.left) + ")";
+              if (c.left <= 0) {
+                c.state = "done";
+                c.phase = "return — xong";
+                finished++;
+                say("<em>C" + (i + 1) + "</em> chạy nốt sau resume → done.");
+                runIdx = -1;
+              }
+            }
+          }
+
+          pickRunner();
+          paint();
+
+          if (finished >= N && runIdx < 0) {
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+            say(
+              "Xong: 3 coroutine, <em>1 runner</em>. Lúc chờ I/O không ai ôm thread — đó là deal bằng suspend/resume."
+            );
+            paint();
+          }
+        }
+
+        $("btn").addEventListener("click", function () {
+          if (timer) return;
+          init();
+          $("btn").disabled = true;
+          timer = setInterval(step, TICK);
+        });
+
+        $("reset").addEventListener("click", function () {
+          if (timer) clearInterval(timer);
+          timer = null;
+          $("btn").disabled = false;
+          init();
+        });
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

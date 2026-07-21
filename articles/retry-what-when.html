@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Transient vs permanent vs unknown. Khi retry tạo storm, amplification, poison loop, đốt budget. Checklist 15 giây." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Retry cái gì, bỏ cái gì — khi retry tự đấm mình · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/retry-what-when.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Retry cái gì, bỏ cái gì — khi retry tự đấm mình · Articles" />
+    <meta property="og:description" content="[Preview] Transient vs permanent vs unknown. Khi retry tạo storm, amplification, poison loop, đốt budget. Checklist 15 giây." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/retry-what-when.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Retry cái gì, bỏ cái gì — khi retry tự đấm mình · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Retry cái gì, bỏ cái gì — khi retry tự đấm mình · Articles" />
+    <meta name="twitter:description" content="[Preview] Transient vs permanent vs unknown. Khi retry tạo storm, amplification, poison loop, đốt budget. Checklist 15 giây." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Retry cái gì, bỏ cái gì — khi retry tự đấm mình · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Retry cái gì, bỏ cái gì — và khi retry tự đấm mình</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~8 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Dependency vừa sống lại sau 2s. 400 pod cùng
+            <code>retry()</code> ngay → 400 × N request đập một lúc. Dependency
+            gục lại. Bạn không “chữa blip” — bạn
+            <strong>tự tổ chức một cuộc tấn công</strong>.
+          </p>
+          <p>
+            Bài
+            <a href="/articles/retry-backoff-jitter.html"
+              >retry + backoff + jitter</a
+            >
+            nói <em>cách</em> (nhịp, jitter, max). Bài này nói
+            <strong>có nên bấm</strong> — phân loại lỗi, và khi bấm là tự hại.
+          </p>
+          <p>
+            Demo nhịp storm (đã có):
+            <a href="/demos/retry-backoff.html">retry storm vs backoff + jitter</a>.
+          </p>
+
+          <h2>Ba loại lỗi (trước khi nghĩ backoff)</h2>
+          <pre><code>Transient  — thử lại có hy vọng: blip mạng, 429/503, leader election ngắn
+Permanent  — thử lại vô ích / có hại: 400 validation, 401 sai secret, 404 “không có”
+Unknown    — không biết effect đã xảy ra chưa: timeout giữa chừng, connection reset sau write</code></pre>
+          <p>
+            Backoff chỉ có ích với
+            <strong>transient</strong> (và unknown khi đã idempotent). Permanent
+            + retry = đốt
+            <a href="/articles/timeout-budget.html">budget</a> và che bug.
+          </p>
+
+          <h2>Thường được retry</h2>
+          <ul>
+            <li>Connect reset, DNS tạm, TLS handshake fail (tùy lần).</li>
+            <li>
+              HTTP 408, 429 (tôn <code>Retry-After</code>), 502/503/504 — nếu
+              doc/service nói safe.
+            </li>
+            <li>
+              GET và thao tác đọc; POST/PUT có
+              <a href="/articles/idempotency.html">idempotency key</a> hoặc
+              semantics idempotent (PUT cùng body).
+            </li>
+            <li>
+              Còn budget thời gian và
+              <a href="/articles/circuit-breaker.html">breaker</a> không đỏ.
+            </li>
+          </ul>
+
+          <h2>Thường không retry</h2>
+          <ul>
+            <li>400 schema/validation — sửa request, không spam.</li>
+            <li>401/403 (trừ flow refresh token có chủ đích).</li>
+            <li>404 “resource không tồn tại” (khác 404 “routing tạm”).</li>
+            <li>409 business conflict — cần logic, không phải thử lại mù.</li>
+            <li>
+              Side-effect không idempotent: charge thẻ, gửi SMS OTP, “tạo đơn”
+              không key.
+            </li>
+            <li>Budget = 0; client đã
+              <a href="/articles/cancellation.html">cancel</a>.</li>
+          </ul>
+
+          <h2>Unknown / timeout — bẫy double</h2>
+          <p>
+            Server có thể đã commit trước khi network cắt. Retry không key =
+            hai lần effect. Đây là
+            <a href="/articles/stale-missing-wrong.html">uncertain</a>, không
+            phải transient thuần.
+          </p>
+          <ul>
+            <li>Idempotency key / tra cứu trạng thái trước khi “thử lại cho chắc”.</li>
+            <li>
+              At-least-once + idempotent =
+              <a href="/articles/exactly-once-pragmatic.html"
+                >exactly-once thực dụng</a
+              >.
+            </li>
+          </ul>
+
+          <h2>Năm cách retry tự đấm mình</h2>
+          <pre><code>1) Thundering herd / storm
+   Hết blip → mọi client đập cùng lúc (thiếu jitter, thiếu breaker)
+
+2) Amplification đa tầng
+   Client ×3, API ×3, service ×3 → 27 lần gọi dependency cho 1 ý định
+
+3) Poison loop (queue)
+   Message permanent fail, retry mãi → chặn partition / consumer
+   → cần DLQ / unblock, không phải backoff vô hạn
+
+4) Budget burn + orphan
+   Retry khi user cút; attempt cũ không cancel → pool đầy xác
+
+5) Deploy / scale herd
+   Mọi instance ready cùng lúc, warm cache/DB cùng một pattern retry</code></pre>
+          <p>
+            Chữa storm: jitter + cap + breaker +
+            <a href="/articles/load-shedding.html">load shedding</a> phía
+            dependency. Chữa poison:
+            <a href="/articles/unblock.html">unblock</a> +
+            <a href="/articles/poison-dlq.html">DLQ</a>.
+          </p>
+
+          <h2>Amplification — tính trên giấy 30 giây</h2>
+          <pre><code>User 1 click
+  → API retry 3
+    → Service retry 3
+      → DB timeout chậm
+
+Worst: 1 × 3 × 3 = 9 (hoặc hơn nếu mỗi hop full budget)
+Cộng 500 user simultaneous → dependency nhận hàng nghìn</code></pre>
+          <p>
+            Policy hay dùng: retry
+            <strong>ở một tầng</strong> (edge hoặc client), tầng trong fail-fast
+            + breaker; hoặc budget chung không cho hop trong retry khi gần hết
+            giờ.
+          </p>
+
+          <h2>Checklist 15 giây trước khi bọc retry</h2>
+          <ol>
+            <li>Lỗi transient / permanent / unknown?</li>
+            <li>Thao tác idempotent (tự nhiên hoặc nhờ key)?</li>
+            <li>Còn timeout budget? Attempt trước đã cancel chưa?</li>
+            <li>Breaker / 503 Retry-After?</li>
+            <li>Fan-out × max attempts có nổ dependency không?</li>
+            <li>Queue: max retry + DLQ chưa, hay loop mãi?</li>
+          </ol>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/retry-backoff-jitter.html"
+                >Backoff + jitter</a
+              >
+              — nhịp đúng khi đã quyết định retry.
+            </li>
+            <li>
+              <a href="/articles/circuit-breaker.html">Circuit breaker</a> —
+              ngừng gọi khi đỏ.
+            </li>
+            <li>
+              <a href="/articles/idempotency-key-scope.html">Idempotency key scope</a>
+              — key sai scope thì retry vẫn double.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Retry là vũ khí — có hướng nổ ngược.<br />
+              Backoff chỉ là nhịp cò; chọn mục tiêu sai vẫn bắn vào chân.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

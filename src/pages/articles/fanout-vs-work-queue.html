@@ -1,0 +1,103 @@
+---
+{
+  "title": "Fan-out vs work queue · Articles",
+  "description": "[Preview] Work queue vs pub/sub fan-out. Topology quyết recovery: requeue vs resend shared. Map purpose channel.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Fan-out vs work queue — mọi service đều nghe hay chỉ một worker làm
+          </h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            “Đưa vào Kafka” chưa nói hệ làm gì. Cùng broker, hai hình học khác
+            hẳn:
+          </p>
+          <pre><code>Work queue (compete)
+  1 message → đúng 1 worker xử lý việc
+  (mail job, resize, “hãy charge order X”)
+
+Fan-out (pub/sub, multi consumer group)
+  1 event → nhiều app độc lập cùng “nghe”
+  (billing + analytics + search index)</code></pre>
+          <p>
+            Nhầm topology → recovery sai: resend “cho group mình” thành double
+            cho hàng xóm.
+          </p>
+
+          <h2>Work queue</h2>
+          <ul>
+            <li>
+              <a href="/articles/competing-consumers.html"
+                >Competing consumers</a
+              >, lease, DLQ cổ điển.
+            </li>
+            <li>
+              Mục tiêu thường
+              <a href="/articles/write-vs-read-channel.html">write side</a>:
+              hoàn thành action,
+              <a href="/articles/unblock.html">unblock</a> khi poison.
+            </li>
+            <li>Requeue/resend trong cùng “việc” thường an toàn hơn shared log.</li>
+          </ul>
+
+          <h2>Fan-out</h2>
+          <ul>
+            <li>
+              Mỗi subscriber progress riêng (offset group / subscription).
+            </li>
+            <li>
+              A fail ≠ B fail. Resend vào bus chung =
+              <a href="/articles/shared-channel-multitenant.html"
+                >multi-tenant failure</a
+              >.
+            </li>
+            <li>
+              Read/projection hay nằm fan-out: order per-key, cẩn
+              <a href="/articles/stale-missing-wrong.html">missing/wrong</a>.
+            </li>
+          </ul>
+
+          <h2>Bảng recovery (nhanh)</h2>
+          <pre><code>                 Work queue           Fan-out / shared
+Requeue/retry    OK thường           OK trong group; cẩn resend bus
+Resend bus       ít dùng             NO mặc định (double hàng xóm)
+DLQ private      OK                  OK từng group
+Ignore           theo product        read đủ: NO</code></pre>
+          <p>
+            Chi tiết:
+            <a href="/articles/async-recovery-playbook.html">playbook</a>,
+            <a href="/articles/resend-shared-channel.html">resend shared</a>.
+          </p>
+
+          <h2>Lai trong thực tế</h2>
+          <p>
+            Event “OrderPaid” fan-out → service mail
+            <em>đẩy job</em> vào work queue nội bộ. Hai tầng: bus shared + queue
+            private. Recover mail ở queue private, không republish OrderPaid mù.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Một việc vs một tin broadcast — đừng dùng chung một recovery.<br />
+              Hỏi “mấy app nghe?” trước khi resend.</strong
+            >
+          </p>
+        </div>
+      </article>

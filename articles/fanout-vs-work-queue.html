@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Work queue vs pub/sub fan-out. Topology quyết recovery: requeue vs resend shared. Map purpose channel." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>Fan-out vs work queue · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/fanout-vs-work-queue.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="Fan-out vs work queue · Articles" />
+    <meta property="og:description" content="[Preview] Work queue vs pub/sub fan-out. Topology quyết recovery: requeue vs resend shared. Map purpose channel." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/fanout-vs-work-queue.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Fan-out vs work queue · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Fan-out vs work queue · Articles" />
+    <meta name="twitter:description" content="[Preview] Work queue vs pub/sub fan-out. Topology quyết recovery: requeue vs resend shared. Map purpose channel." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Fan-out vs work queue · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Fan-out vs work queue — mọi service đều nghe hay chỉ một worker làm
+          </h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            “Đưa vào Kafka” chưa nói hệ làm gì. Cùng broker, hai hình học khác
+            hẳn:
+          </p>
+          <pre><code>Work queue (compete)
+  1 message → đúng 1 worker xử lý việc
+  (mail job, resize, “hãy charge order X”)
+
+Fan-out (pub/sub, multi consumer group)
+  1 event → nhiều app độc lập cùng “nghe”
+  (billing + analytics + search index)</code></pre>
+          <p>
+            Nhầm topology → recovery sai: resend “cho group mình” thành double
+            cho hàng xóm.
+          </p>
+
+          <h2>Work queue</h2>
+          <ul>
+            <li>
+              <a href="/articles/competing-consumers.html"
+                >Competing consumers</a
+              >, lease, DLQ cổ điển.
+            </li>
+            <li>
+              Mục tiêu thường
+              <a href="/articles/write-vs-read-channel.html">write side</a>:
+              hoàn thành action,
+              <a href="/articles/unblock.html">unblock</a> khi poison.
+            </li>
+            <li>Requeue/resend trong cùng “việc” thường an toàn hơn shared log.</li>
+          </ul>
+
+          <h2>Fan-out</h2>
+          <ul>
+            <li>
+              Mỗi subscriber progress riêng (offset group / subscription).
+            </li>
+            <li>
+              A fail ≠ B fail. Resend vào bus chung =
+              <a href="/articles/shared-channel-multitenant.html"
+                >multi-tenant failure</a
+              >.
+            </li>
+            <li>
+              Read/projection hay nằm fan-out: order per-key, cẩn
+              <a href="/articles/stale-missing-wrong.html">missing/wrong</a>.
+            </li>
+          </ul>
+
+          <h2>Bảng recovery (nhanh)</h2>
+          <pre><code>                 Work queue           Fan-out / shared
+Requeue/retry    OK thường           OK trong group; cẩn resend bus
+Resend bus       ít dùng             NO mặc định (double hàng xóm)
+DLQ private      OK                  OK từng group
+Ignore           theo product        read đủ: NO</code></pre>
+          <p>
+            Chi tiết:
+            <a href="/articles/async-recovery-playbook.html">playbook</a>,
+            <a href="/articles/resend-shared-channel.html">resend shared</a>.
+          </p>
+
+          <h2>Lai trong thực tế</h2>
+          <p>
+            Event “OrderPaid” fan-out → service mail
+            <em>đẩy job</em> vào work queue nội bộ. Hai tầng: bus shared + queue
+            private. Recover mail ở queue private, không republish OrderPaid mù.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Một việc vs một tin broadcast — đừng dùng chung một recovery.<br />
+              Hỏi “mấy app nghe?” trước khi resend.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

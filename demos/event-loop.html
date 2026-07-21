@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo · Event loop — resume vs sync block</title>
+    <meta
+      name="description"
+      content="1 event loop, 3 handler: await nhả loop vs sync ôm loop — ai resume được."
+    />
+    <style>
+      :root {
+        --bg: #0a0a0b;
+        --panel: #121214;
+        --border: #2a2a32;
+        --text: #f0f0f4;
+        --muted: #a0a0ac;
+        --dim: #7a7a88;
+        --accent: #b8a4ff;
+        --run: #60a5fa;
+        --susp: #fbbf24;
+        --micro: #c4b5fd;
+        --block: #ff8f8f;
+        --done: #5eea93;
+        --idle: #1a1a1e;
+        --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --mono: ui-monospace, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 920px;
+        margin: 0 auto;
+      }
+      header {
+        margin-bottom: 1rem;
+      }
+      header h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 0.95rem;
+        max-width: 40rem;
+      }
+      header a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quote {
+        margin-top: 0.85rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      .quote b {
+        color: var(--text);
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 1.1rem 0 1rem;
+      }
+      button {
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 0.65rem 1.15rem;
+        cursor: pointer;
+        background: var(--accent);
+        color: #0a0a0b;
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      button.ghost {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-weight: 500;
+      }
+      button.ghost.is-on {
+        border-color: rgba(184, 164, 255, 0.55);
+        color: var(--accent);
+        background: rgba(184, 164, 255, 0.1);
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--dim);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.05rem 1.1rem;
+      }
+      .card h2 {
+        font-size: 1.02rem;
+        font-weight: 600;
+      }
+      .card .sub {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin: 0.3rem 0 0.85rem;
+        min-height: 2.8em;
+      }
+      .loop {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 0.7rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--idle);
+        margin-bottom: 0.75rem;
+        transition: 0.12s;
+      }
+      .loop.busy {
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(96, 165, 250, 0.1);
+      }
+      .loop.blocked {
+        border-color: rgba(255, 143, 143, 0.55);
+        background: rgba(255, 143, 143, 0.1);
+      }
+      .loop .lab {
+        font-size: 0.72rem;
+        color: var(--dim);
+        min-width: 4.2rem;
+      }
+      .loop .lab b {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--text);
+      }
+      .loop .who {
+        font-family: var(--mono);
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--run);
+        flex: 1;
+      }
+      .loop.blocked .who {
+        color: var(--block);
+      }
+      .loop.idle .who {
+        color: var(--dim);
+        font-weight: 500;
+      }
+      .queues {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.72rem;
+        font-family: var(--mono);
+      }
+      .q {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.35rem 0.45rem;
+        background: var(--bg);
+        min-height: 2.6rem;
+        color: var(--dim);
+      }
+      .q strong {
+        display: block;
+        color: var(--muted);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.2rem;
+        font-weight: 600;
+      }
+      .q.micro strong {
+        color: var(--micro);
+      }
+      .handlers {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .h {
+        display: grid;
+        grid-template-columns: 2.2rem 1fr 5.2rem;
+        gap: 0.4rem;
+        align-items: center;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        font-size: 0.86rem;
+      }
+      .h .id {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--dim);
+      }
+      .h .ph {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+      .h .st {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        text-align: right;
+        color: var(--dim);
+      }
+      .h.run {
+        border-color: rgba(96, 165, 250, 0.5);
+        background: rgba(96, 165, 250, 0.1);
+      }
+      .h.run .id,
+      .h.run .ph,
+      .h.run .st {
+        color: var(--run);
+      }
+      .h.block {
+        border-color: rgba(255, 143, 143, 0.5);
+        background: rgba(255, 143, 143, 0.1);
+      }
+      .h.block .id,
+      .h.block .ph,
+      .h.block .st {
+        color: var(--block);
+      }
+      .h.wait {
+        border-color: rgba(251, 191, 36, 0.4);
+        background: rgba(251, 191, 36, 0.07);
+      }
+      .h.wait .id,
+      .h.wait .ph,
+      .h.wait .st {
+        color: var(--susp);
+      }
+      .h.ready {
+        border-color: rgba(196, 181, 253, 0.45);
+        background: rgba(196, 181, 253, 0.08);
+      }
+      .h.ready .id,
+      .h.ready .ph,
+      .h.ready .st {
+        color: var(--micro);
+      }
+      .h.done {
+        border-color: rgba(94, 234, 147, 0.35);
+      }
+      .h.done .id,
+      .h.done .ph,
+      .h.done .st {
+        color: var(--done);
+      }
+      .say {
+        margin-top: 0.75rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.86rem;
+        color: var(--muted);
+        min-height: 3em;
+      }
+      .say em {
+        color: var(--text);
+        font-style: normal;
+        font-weight: 600;
+      }
+      .tick {
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        color: var(--dim);
+        margin-top: 0.3rem;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 1rem;
+        margin-top: 1rem;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+      .legend span::before {
+        content: "";
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 2px;
+        margin-right: 0.3rem;
+        vertical-align: 0.05em;
+      }
+      .legend .r::before {
+        background: var(--run);
+      }
+      .legend .b::before {
+        background: var(--block);
+      }
+      .legend .w::before {
+        background: var(--susp);
+      }
+      .legend .m::before {
+        background: var(--micro);
+      }
+      .legend .d::before {
+        background: var(--done);
+      }
+      .note {
+        margin-top: 0.9rem;
+        font-size: 0.82rem;
+        color: var(--dim);
+        max-width: 40rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Event loop — resume vs sync block</h1>
+        <p>
+          Cùng 3 handler, <strong>1 loop</strong> (1 thread JS). Trái: mỗi
+          handler <code>await</code> I/O → nhả loop. Phải: handler #2
+          <em>sync ôm loop</em> vài tick → resume khác phải chờ.
+          <a href="/articles/event-loop.html">← bài viết</a>
+          ·
+          <a href="/articles/coroutine.html">coroutine</a>
+        </p>
+        <div class="quote">
+          <b>await</b> = suspend + xếp resume khi I/O xong<br />
+          <b>sync block</b> = ôm loop → không ai được resume, kể cả I/O đã về
+        </div>
+      </header>
+
+      <div class="toolbar">
+        <button type="button" id="btn">▶ Chạy</button>
+        <button type="button" class="ghost" id="reset">Reset</button>
+        <span class="hint" id="speed-hint"
+          >Chậm · chỉ 1 handler ôm loop mỗi lúc</span
+        >
+        <button type="button" class="ghost" id="speed" title="Đổi tốc độ">
+          Tốc độ: chậm
+        </button>
+      </div>
+
+      <div class="grid">
+        <section class="card" id="card-ok">
+          <h2>Await — loop rảnh khi chờ</h2>
+          <p class="sub">
+            I/O xong → continuation vào <b>microtask / ready</b>. Loop lần lượt
+            resume. Ba handler đều tiến.
+          </p>
+          <div class="loop idle" id="loop-ok">
+            <div class="lab"><b>Event loop</b><span>1 thread</span></div>
+            <div class="who" id="who-ok">rảnh</div>
+          </div>
+          <div class="queues">
+            <div class="q micro">
+              <strong>Ready / micro</strong>
+              <span id="q-ok">—</span>
+            </div>
+            <div class="q">
+              <strong>Đang await I/O</strong>
+              <span id="io-ok">—</span>
+            </div>
+          </div>
+          <div class="handlers" id="h-ok"></div>
+          <p class="say" id="say-ok">Bấm Chạy.</p>
+          <p class="tick">tick <span id="t-ok">0</span></p>
+        </section>
+
+        <section class="card" id="card-bad">
+          <h2>Sync block — ôm loop</h2>
+          <p class="sub">
+            H2 chạy CPU sync dài. H1/H3 I/O có thể đã xong nhưng
+            <b>chưa resume</b> đến khi H2 nhả.
+          </p>
+          <div class="loop idle" id="loop-bad">
+            <div class="lab"><b>Event loop</b><span>1 thread</span></div>
+            <div class="who" id="who-bad">rảnh</div>
+          </div>
+          <div class="queues">
+            <div class="q micro">
+              <strong>Ready / micro</strong>
+              <span id="q-bad">—</span>
+            </div>
+            <div class="q">
+              <strong>Đang await I/O</strong>
+              <span id="io-bad">—</span>
+            </div>
+          </div>
+          <div class="handlers" id="h-bad"></div>
+          <p class="say" id="say-bad">Bấm Chạy.</p>
+          <p class="tick">tick <span id="t-bad">0</span></p>
+        </section>
+      </div>
+
+      <div class="legend">
+        <span class="r">ôm loop (sync / CPU)</span>
+        <span class="b">sync block dài</span>
+        <span class="w">await I/O (đã nhả loop)</span>
+        <span class="m">ready — chờ loop resume</span>
+        <span class="d">done</span>
+      </div>
+      <p class="note">
+        Đơn giản hóa: gộp macrotask I/O completion → “ready”. Ý chính: settle
+        Promise chỉ <em>xếp hàng</em> resume; loop đang bận sync thì hàng đứng.
+      </p>
+    </div>
+
+    <script>
+      (function () {
+        var N = 3;
+        // Phases dài hơn + tick chậm hơn — dễ đọc từng bước
+        var CPU1 = 5;
+        var IO = 12;
+        var CPU2 = 5;
+        var BLOCK = 22; // sync hold for H2 in bad mode
+
+        var timer = null;
+        var t = 0;
+        // 0 = chậm (mặc định), 1 = vừa, 2 = nhanh
+        var speedIdx = 0;
+        var SPEEDS = [
+          { label: "chậm", tick: 320 },
+          { label: "vừa", tick: 180 },
+          { label: "nhanh", tick: 90 },
+        ];
+
+        function currentTick() {
+          return SPEEDS[speedIdx].tick;
+        }
+
+        function updateSpeedUi() {
+          var s = SPEEDS[speedIdx];
+          var btn = $("speed");
+          if (btn) btn.textContent = "Tốc độ: " + s.label;
+          var hint = $("speed-hint");
+          if (hint)
+            hint.textContent =
+              s.label.charAt(0).toUpperCase() +
+              s.label.slice(1) +
+              " · chỉ 1 handler ôm loop mỗi lúc";
+        }
+
+        function mkHandlers() {
+          var a = [];
+          for (var i = 0; i < N; i++) {
+            a.push({
+              id: i,
+              // phase: boot | cpu1 | io | ready | cpu2 | block | done
+              phase: "boot",
+              left: 0,
+              ioLeft: 0,
+            });
+          }
+          return a;
+        }
+
+        var ok = {
+          handlers: mkHandlers(),
+          run: -1,
+          ready: [],
+          say: "Bấm Chạy.",
+        };
+        var bad = {
+          handlers: mkHandlers(),
+          run: -1,
+          ready: [],
+          say: "Bấm Chạy.",
+          blockLeft: 0,
+        };
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        function phaseLabel(h, mode) {
+          if (h.phase === "boot") return "chờ vào loop";
+          if (h.phase === "cpu1") return "CPU trước await";
+          if (h.phase === "io") return "await I/O… " + h.ioLeft;
+          if (h.phase === "ready") return "I/O xong — ready resume";
+          if (h.phase === "cpu2") return "CPU sau resume";
+          if (h.phase === "block") return "SYNC ôm loop " + h.left;
+          if (h.phase === "done") return "return — xong";
+          return h.phase;
+        }
+
+        function cls(h) {
+          if (h.phase === "done") return "done";
+          if (h.phase === "block") return "block";
+          if (h.phase === "cpu1" || h.phase === "cpu2") return "run";
+          if (h.phase === "io") return "wait";
+          if (h.phase === "ready") return "ready";
+          return "";
+        }
+
+        function st(h) {
+          if (h.phase === "done") return "done";
+          if (h.phase === "block") return "blocking";
+          if (h.phase === "cpu1" || h.phase === "cpu2") return "on-stack";
+          if (h.phase === "io") return "await";
+          if (h.phase === "ready") return "micro/ready";
+          return "queued";
+        }
+
+        function paintSide(prefix, state, blocked) {
+          var root = $("h-" + prefix);
+          root.innerHTML = "";
+          state.handlers.forEach(function (h) {
+            var el = document.createElement("div");
+            el.className = "h " + cls(h);
+            el.innerHTML =
+              '<span class="id">H' +
+              (h.id + 1) +
+              '</span><span class="ph">' +
+              phaseLabel(h) +
+              '</span><span class="st">' +
+              st(h) +
+              "</span>";
+            root.appendChild(el);
+          });
+
+          var loop = $("loop-" + prefix);
+          var who = $("who-" + prefix);
+          if (state.run >= 0) {
+            var rh = state.handlers[state.run];
+            if (rh.phase === "block") {
+              loop.className = "loop blocked";
+              who.textContent = "BLOCK H" + (state.run + 1) + " (sync)";
+            } else {
+              loop.className = "loop busy";
+              who.textContent = "stack: H" + (state.run + 1);
+            }
+          } else {
+            loop.className = "loop idle";
+            who.textContent = "rảnh (có thể lấy ready)";
+          }
+
+          var readyIds = state.handlers
+            .filter(function (h) {
+              return h.phase === "ready";
+            })
+            .map(function (h) {
+              return "H" + (h.id + 1);
+            });
+          var ioIds = state.handlers
+            .filter(function (h) {
+              return h.phase === "io";
+            })
+            .map(function (h) {
+              return "H" + (h.id + 1);
+            });
+          $("q-" + prefix).textContent = readyIds.length
+            ? readyIds.join(", ")
+            : "—";
+          $("io-" + prefix).textContent = ioIds.length ? ioIds.join(", ") : "—";
+          $("say-" + prefix).innerHTML = state.say;
+          $("t-" + prefix).textContent = String(t);
+        }
+
+        function paint() {
+          paintSide("ok", ok, false);
+          paintSide("bad", bad, true);
+        }
+
+        function startHandler(state, i, mode) {
+          var h = state.handlers[i];
+          h.phase = "cpu1";
+          h.left = CPU1;
+          state.run = i;
+          state.say =
+            "Loop ôm <em>H" +
+            (i + 1) +
+            "</em> — CPU trước await (sync trên stack).";
+        }
+
+        function pickReady(state) {
+          if (state.run >= 0) return;
+          // boot order first
+          for (var i = 0; i < N; i++) {
+            if (state.handlers[i].phase === "boot") {
+              startHandler(state, i);
+              return;
+            }
+          }
+          // then ready (microtask-style)
+          for (var j = 0; j < N; j++) {
+            if (state.handlers[j].phase === "ready") {
+              var h = state.handlers[j];
+              h.phase = "cpu2";
+              h.left = CPU2;
+              state.run = j;
+              state.say =
+                "Resume <em>H" +
+                (j + 1) +
+                "</em> từ hàng ready (continuation sau await).";
+              return;
+            }
+          }
+        }
+
+        function stepSide(state, mode) {
+          // progress I/O for suspended
+          state.handlers.forEach(function (h) {
+            if (h.phase !== "io") return;
+            h.ioLeft--;
+            if (h.ioLeft <= 0) {
+              h.phase = "ready";
+              h.ioLeft = 0;
+              state.say =
+                "I/O <em>H" +
+                (h.id + 1) +
+                "</em> xong → xếp <em>ready</em> (chưa chạy nếu loop bận).";
+            }
+          });
+
+          if (state.run >= 0) {
+            var h = state.handlers[state.run];
+            var idx = state.run;
+
+            if (h.phase === "cpu1") {
+              h.left--;
+              if (h.left <= 0) {
+                // hit await
+                if (mode === "bad" && idx === 1) {
+                  // special path: after short cpu1, instead of await, BLOCK
+                  // Actually for bad mode: H1 and H3 await normally; H2 blocks
+                  // Let H2 go to block phase instead of io
+                  h.phase = "block";
+                  h.left = BLOCK;
+                  state.say =
+                    "<em>H2</em> chạy <em>sync CPU dài</em> — ôm loop, không await.";
+                } else {
+                  h.phase = "io";
+                  h.ioLeft = IO + idx; // slight stagger
+                  state.run = -1;
+                  state.say =
+                    "<em>H" +
+                    (idx + 1) +
+                    "</em> <em>await</em> → suspend, nhả loop.";
+                }
+              }
+            } else if (h.phase === "block") {
+              h.left--;
+              if (h.left <= 0) {
+                // after block, finish as if work done (no second await for simplicity)
+                h.phase = "done";
+                state.run = -1;
+                state.say =
+                  "<em>H2</em> nhả loop — các ready mới được resume.";
+              }
+            } else if (h.phase === "cpu2") {
+              h.left--;
+              if (h.left <= 0) {
+                h.phase = "done";
+                state.run = -1;
+                state.say =
+                  "<em>H" + (idx + 1) + "</em> xong sau resume.";
+              }
+            }
+          }
+
+          pickReady(state);
+        }
+
+        function allDone(state) {
+          return state.handlers.every(function (h) {
+            return h.phase === "done";
+          });
+        }
+
+        function step() {
+          t++;
+          stepSide(ok, "ok");
+          stepSide(bad, "bad");
+          paint();
+
+          if (allDone(ok) && allDone(bad)) {
+            clearInterval(timer);
+            timer = null;
+            $("btn").disabled = false;
+            ok.say =
+              "Xong: 3 handler xen kẽ await — loop luôn resume được khi rảnh.";
+            bad.say =
+              "Xong: lúc H2 block, H1/H3 có thể đã <em>ready</em> mà chưa chạy — đó là kẹt loop.";
+            paint();
+          }
+        }
+
+        function init() {
+          if (timer) clearInterval(timer);
+          timer = null;
+          t = 0;
+          ok = {
+            handlers: mkHandlers(),
+            run: -1,
+            ready: [],
+            say: "Bấm Chạy — await nhả loop.",
+          };
+          bad = {
+            handlers: mkHandlers(),
+            run: -1,
+            ready: [],
+            say: "Bấm Chạy — H2 sẽ sync block.",
+            blockLeft: 0,
+          };
+          $("btn").disabled = false;
+          paint();
+        }
+
+        $("btn").addEventListener("click", function () {
+          init();
+          $("btn").disabled = true;
+          // OK: 3 handler vào loop lần lượt (await xen kẽ)
+          pickReady(ok);
+          // BAD: giả lập 3 request đã start — H1/H3 đang await, H2 sắp/đang sync block
+          // (đúng cảnh “I/O xong vẫn chưa resume vì loop bận”)
+          bad.handlers[0].phase = "io";
+          bad.handlers[0].ioLeft = 10;
+          bad.handlers[1].phase = "block";
+          bad.handlers[1].left = BLOCK;
+          bad.handlers[2].phase = "io";
+          bad.handlers[2].ioLeft = 16;
+          bad.run = 1;
+          bad.say =
+            "<em>H2</em> sync ôm loop. <em>H1/H3</em> đang await — I/O có thể xong trước khi H2 nhả.";
+          paint();
+          timer = setInterval(step, currentTick());
+        });
+
+        $("reset").addEventListener("click", function () {
+          init();
+        });
+
+        $("speed").addEventListener("click", function () {
+          speedIdx = (speedIdx + 1) % SPEEDS.length;
+          updateSpeedUi();
+          if (timer) {
+            clearInterval(timer);
+            timer = setInterval(step, currentTick());
+          }
+        });
+
+        init();
+        updateSpeedUi();
+      })();
+    </script>
+  </body>
+</html>

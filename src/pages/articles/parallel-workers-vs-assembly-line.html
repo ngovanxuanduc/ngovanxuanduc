@@ -1,0 +1,86 @@
+---
+{
+  "title": "Parallel workers vs assembly line · Articles",
+  "description": "[Preview] Worker full job vs pipeline stage + non-block I/O. Shared state, order, map series.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>
+            Parallel workers vs assembly line — làm trọn job hay chia stage khi
+            chờ I/O
+          </h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~7 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Hai cách tổ chức (cùng tinh thần concurrency models / Jenkov-style):
+          </p>
+          <pre><code>Parallel workers — mỗi worker làm trọn một job (pool request/thread)
+Assembly line    — mỗi stage một phần; ranh giới hay là I/O non-block
+                   (reactive, event-driven, channel giữa stage)</code></pre>
+
+          <h2>Parallel workers</h2>
+          <ul>
+            <li>
+              Dễ hiểu; scale = thêm worker —
+              <a href="/articles/competing-consumers.html"
+                >competing consumers</a
+              >, thread pool.
+            </li>
+            <li>
+              Shared state (cache, pool, DB) → race, contention.
+            </li>
+            <li>
+              Order nondeterministic — khớp
+              <a href="/articles/order-budget.html">order budget</a> lỏng.
+            </li>
+          </ul>
+
+          <h2>Assembly line</h2>
+          <ul>
+            <li>
+              Stage + non-block: khớp
+              <a href="/articles/event-loop.html">event loop</a>,
+              <a href="/articles/coroutine.html">coroutine</a>, pipeline.
+            </li>
+            <li>Ít shared mutable; message/copy giữa stage.</li>
+            <li>
+              Có thể log/order; logic một job xé nhiều class (callback hell nếu
+              viết dở).
+            </li>
+          </ul>
+
+          <h2>Chọn nhanh</h2>
+          <pre><code>Nhiều I/O chờ, ít thread          → assembly / event loop / async
+Job độc lập + API sync/block      → parallel workers + pool
+Cần order per key                 → stream partition, không workers xáo
+Shared mutable lớn                → cẩn workers; message-passing line dễ reason
+Máy đã full multi-tenant load     → đừng “parallelize 1 task” đắt</code></pre>
+
+          <h2>Map series</h2>
+          <p>
+            Deal I/O trên ít thread → nghiêng assembly/async.
+            Job độc lập + block API → workers.
+            Hệ thật hay lai.
+          </p>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Làm trọn song song, hay chia đoạn khi chờ — khác topology, khác
+              chỗ kẹt.</strong
+            >
+          </p>
+        </div>
+      </article>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <!-- GTM loaded deferred at end of body (see gtm-deferred) — keeps head free of third-party JS -->
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <meta name="description" content="[Preview] Promise/job/handler dang dở giữ RAM, pool, socket. Đếm inventory, đặt trần, shed khi đầy. Nối unbounded &amp; backpressure. Demo." />
+    <meta name="theme-color" content="#0a0a0b" />
+    <meta name="author" content="Ngo Van Xuan Duc" />
+    <title>In-flight = inventory — mỗi việc bay là một khoản nợ · Articles</title>
+    <link rel="canonical" href="https://ngovanxuanduc.com/articles/inflight-inventory.html" />
+    <link rel="icon" href="/favicon.ico" />
+    <!-- small favicon only — do not use large og-image as apple-touch-icon (hurts mobile perf) -->
+
+    <!-- Open Graph (Facebook, Zalo, Discord, iMessage, Slack…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Ngo Van Xuan Duc" />
+    <meta property="og:title" content="In-flight = inventory — mỗi việc bay là một khoản nợ · Articles" />
+    <meta property="og:description" content="[Preview] Promise/job/handler dang dở giữ RAM, pool, socket. Đếm inventory, đặt trần, shed khi đầy. Nối unbounded &amp; backpressure. Demo." />
+    <meta property="og:url" content="https://ngovanxuanduc.com/articles/inflight-inventory.html" />
+    <meta property="og:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:secure_url" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="In-flight = inventory — mỗi việc bay là một khoản nợ · Articles" />
+    <meta property="og:locale" content="vi_VN" />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="In-flight = inventory — mỗi việc bay là một khoản nợ · Articles" />
+    <meta name="twitter:description" content="[Preview] Promise/job/handler dang dở giữ RAM, pool, socket. Đếm inventory, đặt trần, shed khi đầy. Nối unbounded &amp; backpressure. Demo." />
+    <meta name="twitter:image" content="https://ngovanxuanduc.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="In-flight = inventory — mỗi việc bay là một khoản nợ · Articles" />
+
+    <!-- fonts.css = desktop only; mobile dùng system font (perf) -->
+        <link rel="stylesheet" href="/css/fonts.css" media="(min-width: 721px)" />
+    <link rel="stylesheet" href="/css/style.css" />
+    
+  </head>
+  <body data-page="articles">
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-W4K2NDNC"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <header class="nav">
+      <div class="nav__inner">
+        <a class="nav__logo" href="/">ngovanxuanduc<span>.com</span></a>
+        <button
+          class="nav__toggle"
+          type="button"
+          aria-label="Menu"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+        <ul class="nav__links">
+          <li><a href="/" data-nav="home">Home</a></li>
+          <li><a href="/calendar.html" data-nav="calendar">Lịch</a></li>
+          <li><a href="/tools/" data-nav="tools">Tools</a></li>
+          <li><a href="/games/" data-nav="games">Games</a></li>
+          <li><a href="/articles/" data-nav="articles" class="is-active">Articles</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>In-flight = inventory — mỗi việc đang bay là một khoản nợ</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~7 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Kho đếm SKU trên kệ. Hệ async hay quên đếm thứ tương đương:
+            <strong>việc dang dở</strong> — mỗi Promise chưa settle, mỗi HTTP
+            handler chưa return, mỗi message chưa ack, mỗi connection đang mượn.
+          </p>
+          <p>
+            Mỗi cái giữ
+            <em>vốn</em>: heap, native buffer, file descriptor, slot DB pool,
+            timer, continuation trên
+            <a href="/articles/event-loop.html">event loop</a>.
+            Gọi là
+            <strong>in-flight inventory</strong>: hàng đã “xuất kho tài nguyên”
+            nhưng chưa thu hồi.
+          </p>
+          <p>
+            Demo (không trần vs trần inventory):
+            <a href="/demos/unbounded-inflight.html"
+              >unbounded vs pool — in-flight &amp; memory proxy</a
+            >
+            (bài
+            <a href="/articles/unbounded-inflight.html">unbounded</a>
+            đã có). Ý inventory = cách
+            <em>đọc</em> metric đó như nợ, không chỉ “bug leak”.
+          </p>
+
+          <h2>Vì sao metaphor inventory hữu ích</h2>
+          <ul>
+            <li>
+              Leak classic = quên release. Inventory = có thể
+              <em>không leak</em> mà vẫn chết vì
+              <strong>nhận việc nhanh hơn hoàn thành</strong>.
+            </li>
+            <li>
+              Scale CPU không giảm inventory nếu bottleneck là chờ I/O — chỉ
+              chất thêm SKU.
+            </li>
+            <li>
+              On-call hỏi “đang ôm bao nhiêu?” thay vì chỉ “CPU bao nhiêu?”.
+            </li>
+          </ul>
+
+          <h2>Map sang bài đã có</h2>
+          <pre><code>Không đếm / không trần  → unbounded in-flight (OOM im)
+Trần số đang bay        → pool concurrency
+Đầy thì tín hiệu ngược  → backpressure
+Đầy + không control client → load shedding
+Unit rẻ (coroutine)     → vẫn 1 SKU / task
+Orphan sau timeout      → inventory “ma” (cancellation)</code></pre>
+
+          <h2>Đếm gì (thực dụng)</h2>
+          <pre><code>in_flight_requests      HTTP server / client concurrent
+in_flight_jobs          worker concurrency / BullMQ active
+db_pool_active          connection đang checkout
+queue_unacked           delivered chưa ack
+event_loop_lag / delay  proxy “nợ” trên 1 thread JS
+goroutines / tasks      runtime-specific</code></pre>
+          <p>
+            Chọn
+            <strong>tài nguyên hẹp nhất</strong> làm ngân sách: thường DB pool
+            hoặc memory, không phải “CPU còn 40%”.
+          </p>
+
+          <h2>Ngân sách inventory</h2>
+          <ol>
+            <li>
+              Đặt trần K (pool) khớp downstream (vd. DB max_connections /
+              instances).
+            </li>
+            <li>
+              Khi full: queue có bound, hoặc
+              <a href="/articles/backpressure.html">backpressure</a>, hoặc
+              <a href="/articles/load-shedding.html">503 shed</a> — đừng accept
+              vô hạn.
+            </li>
+            <li>
+              Phân biệt
+              <a href="/articles/rate-limit-vs-pool.html">rate limit vs pool</a>:
+              N/sec start ≠ max đang bay.
+            </li>
+            <li>
+              Alert trên inventory và age (oldest in-flight), không chỉ error
+              rate.
+            </li>
+          </ol>
+
+          <h2>Ví dụ số</h2>
+          <pre><code>Handler concurrency 200
+DB pool 20
+→ 180 request “chạy” thực ra xếp chờ connection
+→ p99 nổ, CPU có thể rảnh
+→ inventory app cao + pool active = 20 (hẹp)
+
+Sửa: giảm handler concurrency / tăng pool có chủ đích /
+     fail-fast khi acquire timeout
+(xem connection-pool-exhaustion)</code></pre>
+
+          <h2>Không chỉ “bớt Promise.all”</h2>
+          <p>
+            Fire-and-forget <code>void job()</code>, consumer
+            <code>prefetch</code> lớn, upload stream không backpressure, webhook
+            fan-out… đều là cách
+            <em>nhận SKU</em> không kiểm soát. Coroutine/async làm SKU
+            <em>rẻ</em> hơn thread — dễ nhồi nhiều hơn trước khi đau.
+          </p>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/unbounded-inflight.html"
+                >Unbounded in-flight</a
+              >
+              — anti-pattern.
+            </li>
+            <li>
+              <a href="/articles/promise-all-batch-vs-pool.html"
+                >Batch vs pool</a
+              >
+              — cách bound.
+            </li>
+            <li>
+              <a href="/articles/cancellation.html">Cancellation</a> — đừng giữ
+              inventory ma.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >In-flight là hàng đang giữ vốn — không bound là phá sản im
+              lặng.<br />
+              Đếm, đặt trần, từ chối hoặc chậm lại khi đầy.</strong
+            >
+          </p>
+        </div>
+      </article>
+
+    </main>
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>© <span id="y"></span> Ngo Van Xuan Duc</p>
+        <ul class="footer__links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/tools/">Tools</a></li>
+          <li><a href="/games/">Games</a></li>
+        </ul>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        var y = document.getElementById("y");
+        if (y) y.textContent = new Date().getFullYear();
+      })();
+    </script>
+    <script src="/js/main.js" defer></script>
+    
+    <!-- Google Tag Manager — first interaction, else 12s after load (keeps mobile Lighthouse TBT clean) -->
+    <script>
+      (function (w, d, i) {
+        w.dataLayer = w.dataLayer || [];
+        w.dataLayer.push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var done = false;
+        var timer;
+        function inject() {
+          if (done) return;
+          done = true;
+          if (timer) clearTimeout(timer);
+          evts.forEach(function (e) {
+            w.removeEventListener(e, inject, true);
+          });
+          if (d.getElementById("gtm-js")) return;
+          var j = d.createElement("script");
+          j.id = "gtm-js";
+          j.async = true;
+          j.src = "https://www.googletagmanager.com/gtm.js?id=" + i;
+          d.head.appendChild(j);
+        }
+        var evts = ["pointerdown", "keydown", "scroll", "touchstart"];
+        evts.forEach(function (e) {
+          w.addEventListener(e, inject, { once: true, passive: true, capture: true });
+        });
+        function schedule() {
+          timer = setTimeout(inject, 12000);
+        }
+        if (d.readyState === "complete") schedule();
+        else w.addEventListener("load", schedule);
+      })(window, document, "GTM-W4K2NDNC");
+    </script>
+    <!-- End Google Tag Manager -->
+
+  </body>
+</html>

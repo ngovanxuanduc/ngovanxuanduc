@@ -1,0 +1,126 @@
+---
+{
+  "title": "Idempotency key — sai scope là retry vẫn nhân đôi · Articles",
+  "description": "[Preview] Scope key: request vs operation vs user+day. TTL, store, multi-instance. Cùng key khác body → 409.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Idempotency key — sai scope là retry vẫn nhân đôi</h1>
+          <p class="article-header__meta">PREVIEW · 2026-07-21 · ~7 phút đọc</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            <a href="/articles/idempotency.html">Idempotency</a> giải thích vì
+            sao retry không được nhân side-effect. Bài này: phần hay fail thầm —
+            <strong>key phạm vi nào, sống bao lâu, lưu ở đâu</strong>.
+          </p>
+          <p>
+            Flag “idempotent = true” không đủ. Sai scope ≈ không có lưới.
+          </p>
+
+          <h2>Scope hay dùng</h2>
+          <pre><code>request_id / Idempotency-Key
+  — một lần bấm “Thanh toán” (client UUID)
+  — retry cùng key → cùng effect + response cũ
+
+operation_id
+  — “refund order 123” (server sinh / derive)
+  — mọi path (UI, admin, job) cùng một operation
+
+user_id + action + day
+  — “check-in mỗi ngày một lần”
+
+row version / etag
+  — optimistic concurrency (CAS), khác dedup request</code></pre>
+
+          <h2>Sai scope — triệu chứng</h2>
+          <ul>
+            <li>
+              <strong>Key = user_id only:</strong> thao tác sau bị chặn nhầm
+              hoặc trả response lần đầu.
+            </li>
+            <li>
+              <strong>Client gen key mới mỗi retry:</strong> double charge —
+              đúng lúc cần dedup.
+            </li>
+            <li>
+              <strong>Key quá rộng theo ngày:</strong> user không refund được
+              hai lần hợp lệ trong ngày.
+            </li>
+            <li>
+              <strong>Key chỉ trong body không bắt buộc header:</strong> proxy
+              retry khác path thủng.
+            </li>
+          </ul>
+
+          <h2>TTL</h2>
+          <p>
+            Cửa sổ dedup ≥ cửa sổ retry hợp lệ + clock skew + redelivery queue
+            (lease tối đa × attempts).
+          </p>
+          <ul>
+            <li>TTL quá ngắn: hết key giữa các lần retry → double.</li>
+            <li>TTL quá dài + scope hẹp: “không làm lại được” operation hợp lệ.</li>
+          </ul>
+
+          <h2>Store</h2>
+          <pre><code>In-memory Map một process  — multi-instance / restart thủng
+Redis / DB unique          — production mặc định
+Cùng DB transaction        — ideal khi effect cũng ở DB đó</code></pre>
+          <p>
+            Lưu
+            <em>kết quả</em> (status + body tóm tắt), không chỉ “đã thấy key” —
+            retry trả đúng response cũ (Stripe-style).
+          </p>
+
+          <h2>Cùng key, khác payload</h2>
+          <pre><code>Key K + body A → 200 + effect
+Key K + body B → 409 Conflict (không apply B im lặng)</code></pre>
+          <p>
+            Tránh client bug “tái sử dụng key cho operation khác”.
+          </p>
+
+          <h2>Message / queue</h2>
+          <ul>
+            <li>
+              <code>messageId</code> / business id làm dedup key khi
+              at-least-once —
+              <a href="/articles/exactly-once-pragmatic.html"
+                >exactly-once thực dụng</a
+              >.
+            </li>
+            <li>
+              Inbox pattern:
+              <a href="/articles/outbox-inbox.html">outbox &amp; inbox</a>.
+            </li>
+          </ul>
+
+          <h2>Checklist design</h2>
+          <ol>
+            <li>Ai gen key — client hay server? Ai giữ khi retry?</li>
+            <li>Hai path khác nhau (app + job) có cùng operation key không?</li>
+            <li>TTL ≥ max retry window?</li>
+            <li>Store chịu multi-instance?</li>
+            <li>Conflict body khác → 409 có test không?</li>
+          </ol>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Idempotency không phải flag — là key + scope + store + TTL.<br />
+              Sai scope = retry vẫn nhân đôi (hoặc chặn nhầm).</strong
+            >
+          </p>
+        </div>
+      </article>

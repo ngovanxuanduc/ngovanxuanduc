@@ -1,0 +1,83 @@
+---
+{
+  "title": "Cache stampede — TTL về 0 mọi người bắn · Articles",
+  "description": "[Preview] Hot key hết hạn, N request regenerate. Single-flight, soft TTL, jitter expiry.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Cache stampede — TTL về 0, mọi người bắn cùng một lúc</h1>
+          <p class="article-header__meta">
+            PREVIEW · 2026-07-21 · ~6 phút đọc · demo
+          </p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p class="article-preview-banner">
+            <strong>Preview</strong>
+            Bản nháp chờ review — title, nội dung, link có thể sửa trước khi bỏ
+            nhãn.
+          </p>
+
+          <p>
+            Hot key hết hạn đúng giây. 2000 request miss → 2000 query DB giống
+            hệt. DB gục; cache không kịp set lại. Gần
+            <a href="/articles/retry-backoff-jitter.html">thundering herd</a>
+            đội lốt cache.
+          </p>
+          <p>
+            Demo ý tưởng (đồng loạt miss vs single-flight):
+            <a href="/demos/cache-stampede.html">stampede vs coalesce</a>.
+          </p>
+
+          <h2>Vì sao xảy ra</h2>
+          <ul>
+            <li>TTL cứng cùng một timestamp cho mọi key nóng.</li>
+            <li>Không lock/coalesce khi miss.</li>
+            <li>
+              Retry/stampede chồng
+              <a href="/articles/retry-what-when.html">retry</a>.
+            </li>
+          </ul>
+
+          <h2>Chữa</h2>
+          <ul>
+            <li>
+              <strong
+                ><a href="/articles/reuse-promise.html">Single-flight</a> /
+                request coalescing</strong
+              >
+              per key: 1 miss → 1 compute, caller khác await cùng Promise.
+            </li>
+            <li>
+              <strong>Soft TTL / stale-while-revalidate:</strong> phục vụ stale
+              ngắn, một path refresh.
+            </li>
+            <li>
+              <strong>Jitter expiry:</strong> TTL ± random để không hết hạn
+              đồng loạt.
+            </li>
+            <li>
+              <strong>Probabilistic early refresh:</strong> trước hết hạn, thỉnh
+              thoảng refresh.
+            </li>
+            <li>
+              Bound
+              <a href="/articles/inflight-inventory.html">in-flight</a> compute
+              per key.
+            </li>
+          </ul>
+
+          <h2>Một câu</h2>
+          <p>
+            <strong
+              >Miss đồng loạt đắt hơn miss lẻ — coalesce trước khi đập
+              DB.<br />
+              TTL cứng không jitter là hẹn giờ stampede.</strong
+            >
+          </p>
+        </div>
+      </article>

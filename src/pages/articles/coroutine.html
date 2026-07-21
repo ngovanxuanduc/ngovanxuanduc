@@ -1,0 +1,276 @@
+---
+{
+  "title": "Coroutine — tạm dừng khi chờ, chạy tiếp đúng chỗ · Articles",
+  "description": "Coroutine: tạm dừng (suspend) khi chờ I/O, chạy tiếp (resume) đúng chỗ — unit deal rẻ trên ít thread. Khác OS thread. async/await là cách viết.",
+  "page": "articles",
+  "scripts": []
+}
+---
+<article class="container">
+        <header class="article-header animate-in">
+          <a class="article-header__back" href="/articles/">← Articles</a>
+          <h1>Coroutine — tạm dừng khi chờ, chạy tiếp đúng chỗ</h1>
+          <p class="article-header__meta">2026-07-21 · ~6 phút đọc · demo</p>
+        </header>
+
+        <div class="article-body animate-in animate-in-delay-1">
+          <p>
+            Bài
+            <a href="/articles/concurrency-vs-parallel.html"
+              >concurrency vs parallel</a
+            >
+            nói
+            <em>dealing with</em> nhiều việc cùng lúc.
+            <a href="/articles/blocking-vs-nonblocking.html"
+              >Blocking vs non-blocking</a
+            >
+            nói khi chờ thì unit có kẹt hay không.
+          </p>
+          <p>
+            <strong>Coroutine</strong> trả lời tầng “cơ chế”:
+            <em>làm sao code đứng giữa chừng, nhường chỗ, rồi chạy tiếp đúng chỗ
+            đó?</em>
+          </p>
+          <pre><code>Coroutine ≈ unit thực thi do app/runtime quản
+  · có thể suspend (tạm dừng, nhả runner)
+  · có thể resume (chạy tiếp từ điểm dừng)
+  · thường cooperative: tự nhường, không bị OS cắt giữa instruction</code></pre>
+          <p>
+            Demo timeline (1 runner, nhiều coroutine suspend/resume):
+            <a href="/demos/coroutine.html">coroutine suspend / resume</a>.
+          </p>
+
+          <h2>Suspend / resume — hình dung nhanh</h2>
+          <pre><code>async function handle(req) {
+  const user = await db.get(req.userId)  // ① suspend
+  // … runner đi deal request khác …
+  // data về → ② resume đúng dòng sau await
+  return render(user)
+}</code></pre>
+          <p>
+            Ở ①, coroutine
+            <em>không chết</em> — nó cất state (biến local, chỗ đang đứng) rồi
+            <strong>nhả</strong> thread/event-loop. Ở ②, runtime gắn lại state
+            và chạy tiếp. Đó là cách
+            <em>dealing with</em> nhiều request trên ít thread: phần lớn thời
+            gian mỗi việc đang
+            <strong>suspend chờ I/O</strong>, không ôm runner.
+          </p>
+          <p>
+            Nhà bếp (cùng tinh thần series):
+          </p>
+          <ul>
+            <li>
+              <strong>Thread block:</strong> đầu bếp đứng nhìn nồi — một người
+              một nồi đến khi sôi.
+            </li>
+            <li>
+              <strong>Coroutine:</strong> hẹn giờ, ghim “nồi A phút 3”, đi
+              deal nồi B; chuông reo → resume A đúng chỗ đang nấu.
+            </li>
+            <li>
+              <strong>Parallel:</strong> thêm đầu bếp — đó là
+              <em>doing</em>, không phải định nghĩa coroutine.
+            </li>
+          </ul>
+
+          <h2>Thread vs coroutine</h2>
+          <pre><code>Thread (OS)
+  · preemptive — OS cắt / schedule
+  · stack ~MB, tạo đắt, context switch đắt hơn
+  · block I/O: thread ngủ, vẫn “chiếm” slot pool
+
+Coroutine (app/runtime)
+  · cooperative — suspend tại điểm rõ (await, yield…)
+  · state nhẹ hơn thread đầy đủ (stackless / stack nhỏ tùy runtime)
+  · chờ I/O: suspend → runner đi deal việc khác</code></pre>
+          <p>
+            Không phải “coroutine thay thread mọi nơi”. CPU nặng, syscalls,
+            driver… vẫn cần thread (hoặc process). Coroutine mạnh khi bài toán
+            là
+            <strong>nhiều việc dang dở + chờ</strong> — đúng chỗ series gọi là
+            concurrency (deal).
+          </p>
+          <p>
+            Go hơi “lai”:
+            <code>goroutine</code> do runtime schedule, map lên OS thread; bạn
+            viết như coroutine rẻ, scheduler có thể preemptive theo safepoint.
+            Ý thực dụng vẫn: unit deal rẻ, không phải “mỗi request một OS
+            thread 2MB”.
+          </p>
+
+          <h2>async / await = cách viết coroutine</h2>
+          <p>
+            Trong
+            <a href="/articles/blocking-vs-nonblocking.html"
+              >blocking vs non-blocking</a
+            >:
+          </p>
+          <pre><code>async / Promise / Future  =  cách viết code suspend được
+non-blocking              =  khi chờ, unit không bị giữ</code></pre>
+          <p>
+            Thêm một dòng:
+          </p>
+          <pre><code>coroutine                 =  unit mang state suspend/resume
+async function + await    =  syntax cho coroutine (JS, Python, C#, …)
+generator yield           =  anh em: suspend theo tay, không chỉ I/O</code></pre>
+          <ul>
+            <li>
+              <code>async function</code> + <code>await</code> — compiler/runtime
+              biến thành state machine (stackless coroutine).
+            </li>
+            <li>
+              Promise chỉ là
+              <em>handle</em> “sẽ xong”; coroutine/task là
+              <em>ai</em> đang chạy / đang suspend.
+            </li>
+            <li>
+              API tên <code>async_*</code> mà bên trong ôm thread đến khi xong
+              → có “hình” coroutine, không có “chất” non-block trên unit đó.
+            </li>
+          </ul>
+
+          <h2>Ai resume? — event loop / scheduler</h2>
+          <p>
+            Coroutine không tự sống một mình. Cần
+            <strong>runner</strong>:
+          </p>
+          <ul>
+            <li>
+              <strong>Node / browser:</strong> event loop — I/O xong, timer
+              fire → queue callback/microtask → resume continuation sau
+              <code>await</code>.
+            </li>
+            <li>
+              <strong>asyncio:</strong> loop + Task; <code>await</code> nhường
+              loop.
+            </li>
+            <li>
+              <strong>Go:</strong> runtime scheduler, M:N goroutine → thread.
+            </li>
+            <li>
+              <strong>Kotlin:</strong> coroutine + dispatcher (Main, IO,
+              Default…).
+            </li>
+          </ul>
+          <p>
+            Hệ quả thực dụng (đã nói ở blocking):
+            <strong>CPU spin / sync I/O trên loop</strong> = không ai resume
+            việc khác → concurrency trên giấy, serial trên thực tế. Coroutine
+            chỉ giúp khi điểm suspend thật sự
+            <em>nhả</em> runner.
+          </p>
+
+          <h2>Không free — mỗi coroutine in-flight vẫn tốn</h2>
+          <p>
+            Rẻ hơn thread ≠ vô hạn. Mỗi task suspend vẫn giữ:
+          </p>
+          <ul>
+            <li>closure / frame (biến local, buffer đang build),</li>
+            <li>socket, request object, timeout handle,</li>
+            <li>chỗ trong pool DB / connection.</li>
+          </ul>
+          <p>
+            Bắn 100k coroutine/Promise cùng lúc → OOM hoặc thrash GC. Đó là
+            <a href="/articles/unbounded-inflight.html">unbounded in-flight</a>.
+            Giới hạn concurrent start:
+            <a href="/articles/promise-all-batch-vs-pool.html">pool</a>,
+            <a href="/articles/backpressure.html">backpressure</a> — vẫn đúng
+            khi unit là coroutine thay vì thread.
+          </p>
+          <pre><code>// “rẻ” nhưng không bound → vẫn chết
+await Promise.all(hugeList.map(job))  // N coroutine in-flight
+
+// bound: tối đa K đang bay
+await pool.map(hugeList, job, { concurrency: K })</code></pre>
+
+          <h2>Runtime (một dòng mỗi cái)</h2>
+          <ul>
+            <li>
+              <strong>JS:</strong> <code>async</code>/<code>await</code> +
+              Promise; 1 thread JS + libuv — coroutine stackless trên paper,
+              block sync = kẹt cả nhà.
+            </li>
+            <li>
+              <strong>Python asyncio:</strong> <code>async def</code> + loop;
+              <code>def</code> sync trong async path = block loop.
+            </li>
+            <li>
+              <strong>Go:</strong> <code>go func()</code> — goroutine rẻ; channel
+              để phối hợp; parallel khi GOMAXPROCS &gt; 1 + có việc CPU.
+            </li>
+            <li>
+              <strong>Kotlin:</strong> <code>suspend fun</code> + structured
+              concurrency (scope) — cancel lan theo cây coroutine.
+            </li>
+          </ul>
+
+          <h2>Thực dụng</h2>
+          <ul>
+            <li>
+              I/O-bound, nhiều connection: coroutine / async là model deal mặc
+              định (Node, asyncio, netty-style, Go server).
+            </li>
+            <li>
+              CPU-bound: suspend không rút wall — cần
+              <a href="/articles/data-vs-task-parallelism.html"
+                >parallel doing</a
+              >
+              (worker, process, pod).
+            </li>
+            <li>
+              Đếm “đang bay” và đặt trần — coroutine rẻ dễ khiến người ta quên
+              bound.
+            </li>
+            <li>
+              Phân biệt: cú pháp async (có suspend point) vs non-block thật
+              (chờ có nhả runner không).
+            </li>
+          </ul>
+
+          <h2>Đọc tiếp</h2>
+          <ul>
+            <li>
+              <a href="/articles/concurrency-vs-parallel.html"
+                >Concurrency vs parallel</a
+              >
+              — deal vs do; coroutine phục vụ deal.
+            </li>
+            <li>
+              <a href="/articles/blocking-vs-nonblocking.html"
+                >Blocking vs non-blocking</a
+              >
+              — chờ mà kẹt hay vẫn chạy việc khác; suspend = non-block khi nhả
+              runner.
+            </li>
+            <li>
+              <a href="/articles/event-loop.html">Event loop</a>
+              — ai resume sau await; sync ôm loop thì không ai được resume.
+            </li>
+            <li>
+              <a href="/articles/unbounded-inflight.html"
+                >Unbounded in-flight</a
+              >
+              ·
+              <a href="/articles/backpressure.html">Backpressure</a>
+              — coroutine nhiều vẫn cần trần.
+            </li>
+          </ul>
+
+          <h2>Một câu để nhớ</h2>
+          <p>
+            <strong
+              >Coroutine = unit suspend / resume do runtime quản, để dealing
+              with nhiều việc trên ít thread.<br />
+              Thread = unit OS schedule; async/await = cách viết
+              coroutine.</strong
+            >
+          </p>
+          <p>
+            Suspend khi chờ → runner đi deal việc khác → resume đúng chỗ.
+            Không thay parallel khi bài là CPU; không miễn bound in-flight.
+            Hiểu coroutine là hiểu
+            <em>vì sao</em> non-block + async sống được trên một event loop.
+          </p>
+        </div>
+      </article>
