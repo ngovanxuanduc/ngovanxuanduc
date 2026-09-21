@@ -82,6 +82,53 @@ function apply(template, data) {
   return out;
 }
 
+/**
+ * Bỏ dấu phẩy thừa trước } hoặc ] (kiểu prettier/JSON5).
+ * Có track string + escape nên không phá nội dung bên trong chuỗi.
+ */
+function stripTrailingCommas(text) {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      out += ch;
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+    if (ch === ",") {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) j++;
+      if (text[j] === "}" || text[j] === "]") continue; // phẩy thừa → bỏ
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/** Parse front matter: JSON chuẩn, fallback sang bản đã sửa dấu phẩy thừa. */
+function parseMeta(fm) {
+  try {
+    return JSON.parse(fm);
+  } catch (e) {
+    try {
+      return JSON.parse(stripTrailingCommas(fm));
+    } catch (e2) {
+      throw new Error(
+        "Invalid JSON front matter: " + e2.message + "\n" + fm.slice(0, 200),
+      );
+    }
+  }
+}
+
 function parsePage(raw) {
   const trimmed = raw.replace(/^\uFEFF/, "");
   if (!trimmed.startsWith("---")) {
@@ -91,15 +138,7 @@ function parsePage(raw) {
   if (end === -1) return { meta: {}, content: trimmed };
   const fm = trimmed.slice(3, end).trim();
   const content = trimmed.slice(end + 4).replace(/^\r?\n/, "");
-  let meta = {};
-  try {
-    meta = JSON.parse(fm);
-  } catch (e) {
-    throw new Error(
-      "Invalid JSON front matter: " + e.message + "\n" + fm.slice(0, 200),
-    );
-  }
-  return { meta, content };
+  return { meta: parseMeta(fm), content };
 }
 
 function renderNav(site, activePage) {
