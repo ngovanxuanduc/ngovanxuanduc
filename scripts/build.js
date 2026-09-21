@@ -95,7 +95,9 @@ function parsePage(raw) {
   try {
     meta = JSON.parse(fm);
   } catch (e) {
-    throw new Error("Invalid JSON front matter: " + e.message + "\n" + fm.slice(0, 200));
+    throw new Error(
+      "Invalid JSON front matter: " + e.message + "\n" + fm.slice(0, 200),
+    );
   }
   return { meta, content };
 }
@@ -134,7 +136,9 @@ function stylesheetsFor(page, relPath) {
   const isGames =
     page === "games" || p === "games/index.html" || p.startsWith("games/");
   const isCalendar =
-    page === "calendar" || p === "calendar.html" || p.endsWith("/calendar.html");
+    page === "calendar" ||
+    p === "calendar.html" ||
+    p.endsWith("/calendar.html");
   if (isTools) sheets.push({ href: "/css/tools.css" });
   if (isGames) sheets.push({ href: "/css/games.css" });
   if (isCalendar) sheets.push({ href: "/css/calendar.css" });
@@ -359,7 +363,9 @@ function minifyJs(code) {
         prevNonSpace = " ";
       }
       // ASI safety: keep newline after return/throw/break/continue/yield when next is not ;
-      const kw = out.match(/(?:^|[^A-Za-z0-9_$])(return|throw|break|continue|yield)$/);
+      const kw = out.match(
+        /(?:^|[^A-Za-z0-9_$])(return|throw|break|continue|yield)$/,
+      );
       if (
         kw &&
         (c === "\n" || src.slice(i, j).includes("\n")) &&
@@ -412,7 +418,7 @@ function minifyJsTree(dir) {
 function siteOrigin(site) {
   const base = (site.url || "https://" + (site.domain || "localhost")).replace(
     /\/$/,
-    ""
+    "",
   );
   return base;
 }
@@ -421,7 +427,8 @@ function siteOrigin(site) {
 function pageCanonicalUrl(site, relPath) {
   const origin = siteOrigin(site);
   let p = String(relPath || "").replace(/\\/g, "/");
-  if (p === "index.html" || p === "/index.html" || p === "") return origin + "/";
+  if (p === "index.html" || p === "/index.html" || p === "")
+    return origin + "/";
   if (p.endsWith("/index.html")) {
     p = p.slice(0, -"index.html".length);
     return origin + "/" + p.replace(/^\//, "");
@@ -440,8 +447,7 @@ function absoluteAssetUrl(site, assetPath) {
 function buildPage(relPath, raw, site, layout) {
   const { meta, content } = parsePage(raw);
   const title = meta.title || site.name;
-  const description =
-    meta.description || site.description || site.name;
+  const description = meta.description || site.description || site.name;
   const page = meta.page || "";
   const scripts = renderScripts(meta.scripts || []);
   const extraHead = meta.extraHead || "";
@@ -451,12 +457,12 @@ function buildPage(relPath, raw, site, layout) {
 
   const ogTitle = meta.ogTitle || title;
   const ogDescription = meta.ogDescription || description;
-  const ogType = meta.ogType || (page === "home" || !page ? "website" : "website");
-  const canonicalUrl =
-    meta.canonical || pageCanonicalUrl(site, relPath);
+  const ogType =
+    meta.ogType || (page === "home" || !page ? "website" : "website");
+  const canonicalUrl = meta.canonical || pageCanonicalUrl(site, relPath);
   const ogImage = absoluteAssetUrl(
     site,
-    meta.ogImage || site.ogImage || "/og-image.jpg"
+    meta.ogImage || site.ogImage || "/og-image.jpg",
   );
 
   const stylesheets = renderStylesheets(stylesheetsFor(page, relPath));
@@ -502,7 +508,7 @@ function buildToolsHub(site, layout, toolsData) {
       (c, i) =>
         `              <button type="button" class="tools-chip${
           i === 0 ? " is-active" : ""
-        }" data-cat="${c.id}">${escapeHtml(c.label)}</button>`
+        }" data-cat="${c.id}">${escapeHtml(c.label)}</button>`,
     )
     .join("\n");
 
@@ -514,14 +520,14 @@ function buildToolsHub(site, layout, toolsData) {
           return `            <a class="tool-link" href="${href}" data-cat="${
             cat.id
           }" data-search="${escapeHtml(t.search || "")}" title="${escapeHtml(
-            t.description || t.title
+            t.description || t.title,
           )}">
               <span class="tool-link__icon">${t.icon || "•"}</span>
               <span class="tool-link__body"><span class="tool-link__title">${escapeHtml(
-                t.title
+                t.title,
               )}</span><span class="tool-link__meta">${escapeHtml(
-            t.meta || ""
-          )}</span></span>
+                t.meta || "",
+              )}</span></span>
             </a>`;
         })
         .join("\n");
@@ -577,7 +583,7 @@ ${JSON.stringify(
     scripts: ["/js/tools/hub.js"],
   },
   null,
-  2
+  2,
 )}
 ---
 ${content}
@@ -609,6 +615,7 @@ const ROOT_PUBLISH = [
   "games",
   "articles",
   "demos",
+  "cv.pdf",
 ];
 
 function cleanRootPublish() {
@@ -658,7 +665,7 @@ function main() {
         const min = minifyCss(raw);
         write(p, min);
         console.log(
-          `  CSS ${name}: ${(raw.length / 1024).toFixed(1)}KB → ${(min.length / 1024).toFixed(1)}KB`
+          `  CSS ${name}: ${(raw.length / 1024).toFixed(1)}KB → ${(min.length / 1024).toFixed(1)}KB`,
         );
       }
     }
@@ -675,11 +682,13 @@ function main() {
     }
     if (jsStats.files) {
       console.log(
-        `  JS: ${jsStats.files} files ${(jsStats.before / 1024).toFixed(1)}KB → ${(jsStats.after / 1024).toFixed(1)}KB (−${(((jsStats.before - jsStats.after) / jsStats.before) * 100) | 0}%)`
+        `  JS: ${jsStats.files} files ${(jsStats.before / 1024).toFixed(1)}KB → ${(jsStats.after / 1024).toFixed(1)}KB (−${(((jsStats.before - jsStats.after) / jsStats.before) * 100) | 0}%)`,
       );
     }
   } else {
-    console.log("  skip minify (edit public/css + public/js; DevTools stays readable)");
+    console.log(
+      "  skip minify (edit public/css + public/js; DevTools stays readable)",
+    );
   }
 
   // 2) pages
@@ -695,7 +704,10 @@ function main() {
   }
 
   // 3) tools hub from registry
-  write(path.join(DIST, "tools", "index.html"), buildToolsHub(site, layout, toolsData));
+  write(
+    path.join(DIST, "tools", "index.html"),
+    buildToolsHub(site, layout, toolsData),
+  );
   count++;
 
   console.log(`Built ${count} pages + public assets → dist/`);

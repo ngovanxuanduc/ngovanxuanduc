@@ -9,10 +9,35 @@
   "ogImage": "/og-image.jpg",
   "twitter": "",
   "nav": [
-    { "id": "home", "label": "Home", "href": "/" },
-    { "id": "calendar", "label": "Lịch", "href": "/calendar.html" },
-    { "id": "tools", "label": "Tools", "href": "/tools/" },
-    { "id": "games", "label": "Games", "href": "/games/" },
-    { "id": "articles", "label": "Articles", "href": "/articles/" }
+    {
+      "id": "home",
+      "label": "Home",
+      "href": "/"
+    },
+    {
+      "id": "calendar",
+      "label": "Lịch",
+      "href": "/calendar.html"
+    },
+    {
+      "id": "tools",
+      "label": "Tools",
+      "href": "/tools/"
+    },
+    {
+      "id": "games",
+      "label": "Games",
+      "href": "/games/"
+    },
+    {
+      "id": "articles",
+      "label": "Articles",
+      "href": "/articles/"
+    },
+    {
+      "id": "cv",
+      "label": "CV",
+      "href": "/cv.pdf"
+    }
   ]
 }

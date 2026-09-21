@@ -21,7 +21,8 @@
   --radius-sm: 8px;
   /* Inter/JetBrains only resolve when fonts.css loads (desktop) */
   --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", Consolas,
+  --mono:
+    "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", Consolas,
     monospace;
   --max: 720px;
   --max-wide: 960px;
@@ -165,7 +166,9 @@ img {
   font-size: 0.9rem;
   padding: 0.4rem 0.75rem;
   border-radius: var(--radius-sm);
-  transition: color var(--transition), background var(--transition);
+  transition:
+    color var(--transition),
+    background var(--transition);
 }
 
 .nav__links a:hover,
@@ -446,7 +449,9 @@ main {
   text-decoration: none;
   color: inherit;
   min-width: 0;
-  transition: border-color var(--transition), background var(--transition),
+  transition:
+    border-color var(--transition),
+    background var(--transition),
     transform 0.12s ease;
 }
 
@@ -516,7 +521,9 @@ main {
   align-self: center;
   color: var(--text-dim);
   font-size: 0.95rem;
-  transition: color var(--transition), transform 0.12s ease;
+  transition:
+    color var(--transition),
+    transform 0.12s ease;
 }
 
 .home-tool:hover .home-tool__go {
@@ -608,8 +615,11 @@ main {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: background var(--transition), border-color var(--transition),
-    color var(--transition), transform 0.1s ease;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    color var(--transition),
+    transform 0.1s ease;
   text-decoration: none;
   line-height: 1.3;
 }
@@ -722,7 +732,9 @@ button.is-copy-fail {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  transition: border-color var(--transition), background var(--transition),
+  transition:
+    border-color var(--transition),
+    background var(--transition),
     transform var(--transition);
   color: inherit;
   text-decoration: none;
@@ -1527,7 +1539,6 @@ a.card:hover {
     flex-wrap: wrap;
     gap: 0.65rem 1rem;
   }
-
 }
 
 @media (max-width: 420px) {
@@ -1546,7 +1557,6 @@ a.card:hover {
     -webkit-box-orient: vertical;
   }
 
-
   .grid.grid--3 {
     grid-template-columns: 1fr;
   }
@@ -1562,7 +1572,6 @@ a.card:hover {
   .countdown__label {
     font-size: 0.58rem;
   }
-
 }
 
 /* Mobile: skip entrance animations (saves main-thread / improves Lighthouse) */
@@ -1697,4 +1706,3 @@ a.card:hover {
   content-visibility: auto;
   contain-intrinsic-size: auto 480px;
 }
-
